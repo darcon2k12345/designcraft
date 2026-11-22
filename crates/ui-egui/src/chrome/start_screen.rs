@@ -14,7 +14,7 @@ pub fn start_screen(app: &mut DesignApp, ui: &mut egui::Ui) {
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
                 ui.label(crate::rtl::widget(
                     ui,
-                    egui::RichText::new(crate::i18n::tr(&app.ui.language, "Welcome to DesignCraft")).font(semibold(28.0)).color(t.text_strong),
+                    egui::RichText::new(crate::i18n::tr(&app.ui.language, "Welcome to Patronus Design")).font(semibold(28.0)).color(t.text_strong),
                 ));
                 ui.label(crate::rtl::widget(
                     ui,
@@ -72,7 +72,7 @@ pub fn start_screen(app: &mut DesignApp, ui: &mut egui::Ui) {
                 ));
                 ui.add_space(8.0);
                 ui.horizontal_wrapped(|ui| {
-                    for p in designcraft_doc::build::PRESETS.iter().filter(|p| p.intent == designcraft_doc::Intent::Print) {
+                    for p in patronusdesign_doc::build::PRESETS.iter().filter(|p| p.intent == patronusdesign_doc::Intent::Print) {
                         let (cr, resp) = ui.allocate_exact_size(vec2(120.0, 150.0), Sense::click());
                         let hov = resp.hovered();
                         ui.painter().rect_filled(cr, 6.0, if hov { t.hover } else { t.panel });
@@ -91,8 +91,8 @@ pub fn start_screen(app: &mut DesignApp, ui: &mut egui::Ui) {
                             egui::Align2::CENTER_CENTER,
                             format!(
                                 "{} × {}",
-                                designcraft_geom::format_measure(p.width, p.units),
-                                designcraft_geom::format_measure(p.height, p.units)
+                                patronusdesign_geom::format_measure(p.width, p.units),
+                                patronusdesign_geom::format_measure(p.height, p.units)
                             ),
                             egui::FontId::proportional(10.0),
                             t.text_dim,
@@ -194,7 +194,7 @@ pub(super) fn recent_file_stat_at(ctx: &egui::Context, path: &str, now: f64) -> 
     {
         return st;
     }
-    let meta = designcraft_engine::io::metadata(path).ok().filter(designcraft_engine::io::Metadata::is_file);
+    let meta = patronusdesign_engine::io::metadata(path).ok().filter(patronusdesign_engine::io::Metadata::is_file);
     let st = RecentStat { exists: meta.is_some(), modified: meta.and_then(|m| m.modified().ok()), checked: now };
     ctx.data_mut(|d| d.insert_temp(key, st.clone()));
     st
@@ -209,7 +209,7 @@ fn recent_preview_texture(ctx: &egui::Context, path: &str, modified: Option<std:
     {
         return tex;
     }
-    let tex = designcraft_engine::cmd::recent_preview(path).and_then(|p| {
+    let tex = patronusdesign_engine::cmd::recent_preview(path).and_then(|p| {
         let size = [usize::try_from(p.width).ok()?, usize::try_from(p.height).ok()?];
         (size[0].checked_mul(size[1])?.checked_mul(4)? == p.rgba.len()).then(|| {
             ctx.load_texture(format!("recent_preview:{path}"), egui::ColorImage::from_rgba_unmultiplied(size, &p.rgba), egui::TextureOptions::LINEAR)
@@ -249,8 +249,8 @@ fn community_card(app: &mut DesignApp, ui: &mut egui::Ui) {
                 ));
                 ui.add_space(4.0);
                 ui.horizontal(|ui| {
-                    for (text, id) in [("DesignCraft page", "help.appPage"), ("GitHub", "help.github"), ("getartcraft.com", "help.website")] {
-                        let url = designcraft_engine::links::get(&id[5..]).unwrap_or_default();
+                    for (text, id) in [("Patronus Design page", "help.appPage"), ("GitHub", "help.github"), ("getartcraft.com", "help.website")] {
+                        let url = patronusdesign_engine::links::get(&id[5..]).unwrap_or_default();
                         let l = ui
                             .add(egui::Label::new(egui::RichText::new(text).size(12.0).color(t.accent).underline()).sense(Sense::click()))
                             .on_hover_text(url)

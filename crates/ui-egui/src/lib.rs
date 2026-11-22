@@ -1,4 +1,4 @@
-//! DesignCraft's egui frontend: an InDesign-style UI over `designcraft-engine`.
+//! Patronus Design's egui frontend: an InDesign-style UI over `patronusdesign-engine`.
 //!
 //! The UI is thin: every action goes through [`DesignApp::run`], which dispatches UI commands
 //! (view/window) here and everything else to the engine. Menus, shortcuts, the ⌘K palette and
@@ -6,13 +6,13 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
-/// DesignCraft as craft-update knows it, with its 128 px icon and accent colour: the update
+/// Patronus Design as craft-update knows it, with its 128 px icon and accent colour: the update
 /// prompt shows both, and an AppImage's menu entry gets the icon.
 #[cfg(not(target_arch = "wasm32"))]
 pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
-    icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/ai.storyteller.designcraft.png")),
+    icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/com.patronus.patronusdesign.png")),
     accent: Some([0x7b, 0xb5, 0x1c]),
-    ..craft_update::suite::DESIGNCRAFT
+    ..patronus_release::APP
 };
 
 pub mod about;
@@ -57,8 +57,8 @@ pub mod widgets;
 use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender};
 
-use designcraft_engine::{Session, SnapView, UiRequest, ViewInfo};
-use designcraft_geom::{Point, Unit};
+use patronusdesign_engine::{Session, SnapView, UiRequest, ViewInfo};
+use patronusdesign_geom::{Point, Unit};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -191,7 +191,7 @@ pub struct DesignApp {
     pub focus_pane: u8,
     pub other_pane: Option<(CanvasCache, Option<egui::Rect>)>,
     /// Power Zoom in progress: the zoom to return to and the canvas point it will centre on.
-    pub power_zoom: Option<(f64, designcraft_geom::Point)>,
+    pub power_zoom: Option<(f64, patronusdesign_geom::Point)>,
     /// The persisted colour settings have been applied this session.
     pub color_applied: bool,
     pub perf: Perf,
@@ -419,15 +419,15 @@ pub(crate) mod test_window {
     /// Ensure a Hebrew face is available for the interface's glyph assertions.
     ///
     /// Canonical craft-fonts builds bundle the face. Optional-input builds can pass
-    /// `DESIGNCRAFT_TEST_HEBREW_FONT=/abs/path/NotoSansHebrew.ttf` (the pinned OFL fixture)
+    /// `PATRONUSDESIGN_TEST_HEBREW_FONT=/abs/path/NotoSansHebrew.ttf` (the pinned OFL fixture)
     /// and otherwise skip their Hebrew-only assertions explicitly.
     pub fn install_test_hebrew_face() -> bool {
-        let db = designcraft_fonts::FontDb::global();
+        let db = patronusdesign_fonts::FontDb::global();
         if db.has_family("Noto Sans Hebrew") {
             return true;
         }
-        let Ok(path) = std::env::var("DESIGNCRAFT_TEST_HEBREW_FONT") else { return false };
-        designcraft_engine::io::read(path).is_ok_and(|bytes| db.add_font(bytes) > 0)
+        let Ok(path) = std::env::var("PATRONUSDESIGN_TEST_HEBREW_FONT") else { return false };
+        patronusdesign_engine::io::read(path).is_ok_and(|bytes| db.add_font(bytes) > 0)
     }
 
     /// The outer rect of a side or top panel, from egui's memory.

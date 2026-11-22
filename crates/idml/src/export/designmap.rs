@@ -75,7 +75,7 @@ impl<'a> Ex<'a> {
         if secs.is_empty() || secs[0].start != 0 {
             secs.insert(
                 0,
-                designcraft_doc::Section {
+                patronusdesign_doc::Section {
                     start: 0,
                     start_number: Some(1),
                     style: Default::default(),
@@ -130,7 +130,7 @@ impl<'a> Ex<'a> {
         // Stories are written before this, so `link_text_sources` is complete.
         let text_sources: Vec<(String, usize)> = std::mem::take(&mut self.link_text_sources);
         for (i, h) in d.hyperlinks.iter().enumerate() {
-            use designcraft_doc::{HyperlinkDest as De, HyperlinkSource as So};
+            use patronusdesign_doc::{HyperlinkDest as De, HyperlinkSource as So};
             // A text destination is already written where its anchor sits.
             let dest = match &h.dest {
                 // Resolved first, as the page branch resolves its page: an anchor whose text was
@@ -200,20 +200,20 @@ impl<'a> Ex<'a> {
 pub(super) const CONTAINER: &str = craft_idml::CONTAINER_XML;
 
 /// A cross-reference format as InDesign building blocks.
-fn xref_format_el(i: usize, f: &designcraft_doc::XrefFormat) -> El {
+fn xref_format_el(i: usize, f: &patronusdesign_doc::XrefFormat) -> El {
     let me = xref_format_self(i);
     crate::xml::from_craft(craft_idml::model::CrossReferenceFormatValues::to_el(&me, &f.name, &f.definition))
 }
 /// Package metadata: the creation and modification times that date variables show.
 pub(super) fn metadata_xmp(d: &Document) -> String {
-    use designcraft_doc::vars::format_date;
+    use patronusdesign_doc::vars::format_date;
     let iso = |t: i64| format!("{}:{:02}Z", format_date(t, "yyyy-MM-ddTHH:mm"), t.rem_euclid(60));
     let modified = if d.modified > 0 { d.modified } else { d.created };
     craft_idml::xmp_metadata(&iso(d.created), &iso(modified))
 }
 
 /// A `MojikumiTable` element with its spacing overrides.
-fn mojikumi_table_el(t: &designcraft_doc::cjk::MojikumiTable) -> El {
+fn mojikumi_table_el(t: &patronusdesign_doc::cjk::MojikumiTable) -> El {
     let overrides = t
         .overrides
         .iter()
@@ -232,7 +232,7 @@ fn mojikumi_table_el(t: &designcraft_doc::cjk::MojikumiTable) -> El {
 }
 
 /// A `Layer` element with its colour property.
-fn layer_el(l: &designcraft_doc::Layer) -> El {
+fn layer_el(l: &patronusdesign_doc::Layer) -> El {
     let color = match names::layer_color_out(l.color) {
         Some(n) => craft_idml::model::LayerColorValue::Named(n),
         None => craft_idml::model::LayerColorValue::Rgb(l.color.map(f64::from)),
@@ -254,9 +254,9 @@ fn layer_el(l: &designcraft_doc::Layer) -> El {
 }
 
 /// A text variable definition with its type's settings element.
-fn text_variable_el(v: &designcraft_doc::vars::TextVariable) -> El {
+fn text_variable_el(v: &patronusdesign_doc::vars::TextVariable) -> El {
     use craft_idml::model::{TextDateKind, TextVariableKind, TextVariableValues};
-    use designcraft_doc::vars::{Use, VarKind};
+    use patronusdesign_doc::vars::{Use, VarKind};
     let kind = match &v.kind {
         VarKind::Custom { text } => TextVariableKind::CustomText { text: text.clone() },
         VarKind::LastPageNumber { section } => TextVariableKind::LastPageNumber { section: *section },
@@ -310,7 +310,7 @@ mod tests {
     use crate::xml::Node;
 
     fn custom_text(definition: &str) -> String {
-        let f = designcraft_doc::XrefFormat { name: "x".into(), definition: definition.into() };
+        let f = patronusdesign_doc::XrefFormat { name: "x".into(), definition: definition.into() };
         xref_format_el(0, &f)
             .children
             .iter()

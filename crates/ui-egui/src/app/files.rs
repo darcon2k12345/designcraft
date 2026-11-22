@@ -61,7 +61,7 @@ impl DesignApp {
         // Image Import Options: a multi-page PDF asks which page.
         if path.to_ascii_lowercase().ends_with(".pdf") {
             let target = self.session.active().map(|d| d.uid);
-            let pages = self.services.read.as_mut().and_then(|r| r(path).ok()).and_then(|b| designcraft_render::pdf_page_count(&b)).unwrap_or(1);
+            let pages = self.services.read.as_mut().and_then(|r| r(path).ok()).and_then(|b| patronusdesign_render::pdf_page_count(&b)).unwrap_or(1);
             if pages > 1 {
                 self.ui.dialog =
                     Some(dialogs::Dialog::new("pdfImport", json!({"path": path, "page": "1", "pages": pages, "target": target, "append": append})));
@@ -126,7 +126,7 @@ impl DesignApp {
     /// among the file's styles; in a browser they all load when the file arrives.
     #[track_caller]
     pub fn pick_styles(&mut self, kind: &str) -> Result<Value, String> {
-        designcraft_engine::cmd::has_doc(&self.session)?;
+        patronusdesign_engine::cmd::has_doc(&self.session)?;
         if let Some(open) = self.services.open_async.as_mut() {
             let purpose = if kind.is_empty() { "styles".to_string() } else { format!("styles:{kind}") };
             open(ImportRequest { purpose, target: self.session.active().map(|d| d.uid) });
@@ -174,7 +174,7 @@ impl DesignApp {
         let file = self.pending_pdf.take().ok_or("PDF import cancelled: no pending file")?;
         let rest = std::mem::take(&mut self.pending_pdf_rest);
         self.activate_import_target(&file.request)?;
-        let params = json!({"name": file.name, "base64": designcraft_engine::cmd::base64_encode(&file.bytes), "pdfPage": page, "pdfCrop": crop, "append": append});
+        let params = json!({"name": file.name, "base64": patronusdesign_engine::cmd::base64_encode(&file.bytes), "pdfPage": page, "pdfCrop": crop, "append": append});
         if file.request.purpose != "place" {
             return self.open_file("file.place", params);
         }
@@ -216,7 +216,7 @@ impl DesignApp {
         let cursor_image = |file: &ImportedFile| {
             matches!(file.request.purpose.as_str(), "place" | "drop")
                 && !file.name.to_ascii_lowercase().ends_with(".pdf")
-                && (is_cursor_image(&file.name) || designcraft_render::image_size(&file.bytes).is_some())
+                && (is_cursor_image(&file.name) || patronusdesign_render::image_size(&file.bytes).is_some())
         };
         // Consecutive images for the same document load the place cursor together.
         let mut files = files.into_iter().peekable();
@@ -246,7 +246,7 @@ impl DesignApp {
                 }
                 let sources: Vec<_> = std::iter::once(file)
                     .chain(group)
-                    .map(|f| json!({"name": f.name, "base64": designcraft_engine::cmd::base64_encode(&f.bytes)}))
+                    .map(|f| json!({"name": f.name, "base64": patronusdesign_engine::cmd::base64_encode(&f.bytes)}))
                     .collect();
                 // They queue after images already in the cursor, as a native batch's do.
                 let queue_after = append || self.session.loaded.is_some();
@@ -282,7 +282,7 @@ impl DesignApp {
         let format = craft_file_formats::detect(&file.name, &file.bytes);
         if let Some(kind) = file.request.purpose.strip_prefix("styles") {
             self.activate_import_target(&file.request)?;
-            let mut params = json!({"name": file.name, "base64": designcraft_engine::cmd::base64_encode(&file.bytes)});
+            let mut params = json!({"name": file.name, "base64": patronusdesign_engine::cmd::base64_encode(&file.bytes)});
             match kind {
                 ":paragraph" => params["character"] = json!([]),
                 ":character" => params["paragraph"] = json!([]),
@@ -301,7 +301,7 @@ impl DesignApp {
             self.activate_import_target(&file.request)?;
         }
         if place && craft_file_formats::detect(&file.name, &file.bytes) == Some(craft_file_formats::Format::Pdf) {
-            let pages = designcraft_render::pdf_page_count(&file.bytes).unwrap_or(1);
+            let pages = patronusdesign_render::pdf_page_count(&file.bytes).unwrap_or(1);
             if pages > 1 {
                 self.ui.dialog = Some(dialogs::Dialog::new(
                     "pdfImport",
@@ -311,7 +311,7 @@ impl DesignApp {
                 return Ok(Value::Null);
             }
         }
-        let b64 = designcraft_engine::cmd::base64_encode(&file.bytes);
+        let b64 = patronusdesign_engine::cmd::base64_encode(&file.bytes);
         if format == Some(craft_file_formats::Format::Ase) || file.request.purpose == "swatches" {
             self.run("swatch.load", json!({"base64": b64}))
         } else if file.request.purpose == "place" {
@@ -326,7 +326,7 @@ impl DesignApp {
     /// A file dropped on the window: documents open, the swatches in a swatch exchange (.ase) file
     /// are loaded, an image loads into the place cursor, and anything else is placed on the spread
     /// in view (a parent spread while parents are being edited). A file without an extension
-    /// opens when its content is a DesignCraft or IDML document.
+    /// opens when its content is a Patronus Design or IDML document.
     pub fn open_dropped(&mut self, path: &str) -> Result<Value, String> {
         self.open_dropped_at(path, None)
     }
@@ -392,14 +392,14 @@ impl DesignApp {
         }
         let document = opens_as_document(path)
             || (std::path::Path::new(path).extension().is_none()
-                && designcraft_engine::io::read_capped(path, designcraft_engine::cmd::DOCUMENT_SNIFF_BYTES)
-                    .is_ok_and(|b| designcraft_engine::cmd::is_document(&b)));
+                && patronusdesign_engine::io::read_capped(path, patronusdesign_engine::cmd::DOCUMENT_SNIFF_BYTES)
+                    .is_ok_and(|b| patronusdesign_engine::cmd::is_document(&b)));
         if document {
             return self.open_document(path.to_string());
         }
         // A graphic dropped on a frame that takes one fills it, as File > Place does. Text keeps
         // getting a frame of its own, so it never replaces the image in a graphic frame.
-        let is_text = designcraft_textimport::is_text_file(path);
+        let is_text = patronusdesign_textimport::is_text_file(path);
         let frame = if *frame_free && !is_text { canvas::drop_frame(self, pointer) } else { None };
         if let Some(frame) = frame {
             let placed = self.open_file("file.place", json!({"path": path, "frame": frame.0}));
@@ -419,7 +419,7 @@ impl DesignApp {
             o.insert("spread".into(), serde_json::to_value(sr).unwrap_or(Value::Null));
             o.insert("x".into(), json!(at.x));
             o.insert("y".into(), json!(at.y));
-            if let (designcraft_doc::SpreadRef::Doc(si), Some(st)) = (sr, self.session.active()) {
+            if let (patronusdesign_doc::SpreadRef::Doc(si), Some(st)) = (sr, self.session.active()) {
                 let pi = st.doc.spreads.get(si).and_then(|s| s.page_at_x(at.x)).unwrap_or(0);
                 o.insert("page".into(), json!(st.doc.first_page_of_spread(si) + pi + 1));
             }
@@ -583,7 +583,7 @@ pub(crate) fn is_cursor_image(name: &str) -> bool {
     })
 }
 
-/// Files that open as documents (when dropped or picked) rather than being placed: DesignCraft,
+/// Files that open as documents (when dropped or picked) rather than being placed: Patronus Design,
 /// IDML, and InDesign documents and templates (converted to IDML on open).
 pub fn opens_as_document(name: &str) -> bool {
     matches!(
@@ -605,7 +605,7 @@ mod import_warning_tests {
         let spread = r#"<idPkg:Spread xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"><Spread Self="s"><Page Self="p" GeometricBounds="0 0 100 100" ItemTransform="1 0 0 1 0 0"/><Rectangle Self="r" ItemTransform="1 0 0 1 0 0"/></Spread></idPkg:Spread>"#;
         let mut zip = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
         let options = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
-        for (name, text) in [("mimetype", designcraft_idml::MIMETYPE), ("designmap.xml", &map), ("Spreads/one.xml", spread)] {
+        for (name, text) in [("mimetype", patronusdesign_idml::MIMETYPE), ("designmap.xml", &map), ("Spreads/one.xml", spread)] {
             zip.start_file(name, options).unwrap();
             zip.write_all(text.as_bytes()).unwrap();
         }
@@ -643,15 +643,16 @@ mod import_warning_tests {
     #[test]
     fn byte_open_reports_partial_import_warnings_without_losing_documents() {
         let mut app = app();
-        let result =
-            app.open_file("file.openBytes", json!({"name": "partial.idml", "base64": designcraft_engine::cmd::base64_encode(&idml(true))})).unwrap();
+        let result = app
+            .open_file("file.openBytes", json!({"name": "partial.idml", "base64": patronusdesign_engine::cmd::base64_encode(&idml(true))}))
+            .unwrap();
         assert_eq!(result["warnings"].as_array().unwrap().len(), 2);
         assert_partial_import_warning(&mut app, "partial.idml");
     }
 
     #[test]
     fn native_open_reports_partial_import_warnings_without_losing_documents() {
-        let path = std::env::temp_dir().join(format!("designcraft-partial-import-{}", std::process::id())).join("partial.idml");
+        let path = std::env::temp_dir().join(format!("patronusdesign-partial-import-{}", std::process::id())).join("partial.idml");
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(&path, idml(true)).unwrap();
         let picked = path.to_string_lossy().to_string();
@@ -680,8 +681,8 @@ mod import_warning_tests {
         let sid = *d.stories.keys().next().unwrap();
         let story = d.story_mut(sid).unwrap();
         story.format_chars(0..6, |f| f.over.font_family = Some("Unavailable Test Family".into()));
-        story.paras[0].para.grep_styles = Some(vec![designcraft_doc::GrepStyle { style: "Keep".into(), pattern: "[a-".into() }]);
-        let path = std::env::temp_dir().join(format!("designcraft-font-warning-{}.designcraft", std::process::id()));
+        story.paras[0].para.grep_styles = Some(vec![patronusdesign_doc::GrepStyle { style: "Keep".into(), pattern: "[a-".into() }]);
+        let path = std::env::temp_dir().join(format!("patronusdesign-font-warning-{}.designcraft", std::process::id()));
         app.run("file.save", json!({"path": path})).unwrap();
         let result = app.open_file("file.open", json!({"path": path}));
         std::fs::remove_file(&path).unwrap();
@@ -694,7 +695,7 @@ mod import_warning_tests {
     fn complete_import_does_not_show_a_warning() {
         let mut app = app();
         let result = app
-            .open_file("file.openBytes", json!({"name": "complete.idml", "base64": designcraft_engine::cmd::base64_encode(&idml(false))}))
+            .open_file("file.openBytes", json!({"name": "complete.idml", "base64": patronusdesign_engine::cmd::base64_encode(&idml(false))}))
             .unwrap();
         assert_eq!(result["warnings"], json!([]));
         assert!(app.ui.dialog.is_none());
@@ -722,7 +723,7 @@ pub(crate) mod browser_import_tests {
     #[test]
     fn browser_opens_title_a_document_by_its_name_without_one_extension() {
         let mut app = app();
-        let native = designcraft_engine::cmd::base64_decode(app.run("file.serialize", json!({})).unwrap()["base64"].as_str().unwrap());
+        let native = patronusdesign_engine::cmd::base64_decode(app.run("file.serialize", json!({})).unwrap()["base64"].as_str().unwrap());
         for purpose in ["open", "drop"] {
             for (name, title) in [
                 ("Brochure.designcraft", "Brochure"),
@@ -741,7 +742,7 @@ pub(crate) mod browser_import_tests {
                 assert_eq!(app.session.doc().unwrap().doc.title, title, "{purpose}: {name}");
             }
         }
-        let idml = designcraft_idml::export_idml(&app.session.doc().unwrap().doc);
+        let idml = patronusdesign_idml::export_idml(&app.session.doc().unwrap().doc);
         for purpose in ["open", "drop"] {
             for name in ["Brochure.idml", "Brochure.indd", "Brochure.INDT"] {
                 let before = app.session.documents().len();
@@ -842,8 +843,8 @@ pub(crate) mod browser_import_tests {
         let mut source = Session::new();
         source.execute("file.new", &json!({"title": "source"})).unwrap();
         source.execute("frame.create", &json!({"rect": [10, 10, 50, 50], "content": "text", "text": "placed"})).unwrap();
-        let native = designcraft_engine::cmd::to_bytes(&source.doc().unwrap().doc).unwrap();
-        let idml = designcraft_idml::export_idml(&source.doc().unwrap().doc);
+        let native = patronusdesign_engine::cmd::to_bytes(&source.doc().unwrap().doc).unwrap();
+        let idml = patronusdesign_idml::export_idml(&source.doc().unwrap().doc);
         for (name, bytes) in [("source.designcraft", native), ("source.idml", idml)] {
             let mut app = app();
             let request = app.import_request("place");
@@ -880,8 +881,8 @@ pub(crate) mod browser_import_tests {
         assert!(app.session.documents()[1].doc.assets.is_empty());
         app.run("place.drop", json!({"x": 36, "y": 36})).unwrap();
         let exported = app.run("file.exportPdf", json!({})).unwrap();
-        let exported = designcraft_engine::cmd::base64_decode(exported["base64"].as_str().unwrap());
-        let pixels = designcraft_render::render_pdf_page(&exported, 0, 400).unwrap();
+        let exported = patronusdesign_engine::cmd::base64_decode(exported["base64"].as_str().unwrap());
+        let pixels = patronusdesign_render::render_pdf_page(&exported, 0, 400).unwrap();
         assert!(pixels.data().iter().filter(|p| p.g > 240 && p.r < 10 && p.b < 10).count() > 1000);
         assert_eq!(pixels.data().iter().filter(|p| p.r > 240 && p.g < 10 && p.b < 10).count(), 0);
     }
@@ -909,8 +910,8 @@ pub(crate) mod browser_import_tests {
         assert_eq!(app.session.tool_id(), "placeGun");
         assert!(app.session.loaded.is_some());
         assert_eq!(items(&app), 0);
-        let mods = designcraft_tools::Mods::default();
-        app.session.tool_key(designcraft_tools::ToolKey::Escape, mods, designcraft_engine::ViewInfo::at_zoom(1.0)).unwrap();
+        let mods = patronusdesign_tools::Mods::default();
+        app.session.tool_key(patronusdesign_tools::ToolKey::Escape, mods, patronusdesign_engine::ViewInfo::at_zoom(1.0)).unwrap();
         assert_eq!(app.session.tool_id(), "selection");
         assert!(app.session.loaded.is_none());
         // A click with the loaded cursor places the graphic at its natural size.
@@ -918,7 +919,7 @@ pub(crate) mod browser_import_tests {
         deliver(&mut app, request, "red.svg", image());
         app.run("place.drop", json!({"x": 100, "y": 100})).unwrap();
         let it = app.session.doc().unwrap().doc.spreads[0].items.last().unwrap();
-        assert_eq!(it.bounds(), designcraft_geom::Rect::new(100.0, 100.0, 107.5, 107.5), "10 CSS px = 7.5 pt");
+        assert_eq!(it.bounds(), patronusdesign_geom::Rect::new(100.0, 100.0, 107.5, 107.5), "10 CSS px = 7.5 pt");
         // An empty graphic frame selected: the graphic fills it.
         let f = app.run("frame.create", json!({"rect": [200, 200, 300, 300], "content": "graphic"})).unwrap()["id"].as_u64().unwrap();
         app.run("selection.set", json!({"ids": [f]})).unwrap();
@@ -927,8 +928,8 @@ pub(crate) mod browser_import_tests {
         assert_eq!(app.session.tool_id(), "selection");
         assert!(app.session.loaded.is_none());
         assert_eq!(items(&app), 2);
-        let frame = app.session.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap();
-        assert!(matches!(frame.content, designcraft_doc::Content::Graphic(_)));
+        let frame = app.session.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap();
+        assert!(matches!(frame.content, patronusdesign_doc::Content::Graphic(_)));
     }
 
     #[test]
@@ -958,7 +959,7 @@ pub(crate) mod browser_import_tests {
     #[test]
     fn drop_routing_and_nonlayout_open_remain_compatible() {
         let mut app = app();
-        let native = designcraft_engine::cmd::to_bytes(&app.session.doc().unwrap().doc).unwrap();
+        let native = patronusdesign_engine::cmd::to_bytes(&app.session.doc().unwrap().doc).unwrap();
         let request = app.import_request("drop");
         deliver(&mut app, request, "document.designcraft", native);
         assert_eq!(app.session.documents().len(), 2);
@@ -980,7 +981,7 @@ pub(crate) mod browser_import_tests {
         source.execute("file.new", &json!({})).unwrap();
         source.execute("swatch.create", &json!({"name": "Import Teal", "color": "#108080"})).unwrap();
         let data = source.execute("swatch.save", &json!({"names": ["Import Teal"]})).unwrap();
-        let bytes = designcraft_engine::cmd::base64_decode(data["base64"].as_str().unwrap());
+        let bytes = patronusdesign_engine::cmd::base64_decode(data["base64"].as_str().unwrap());
         for (purpose, name) in [("swatches", "picker-file"), ("drop", "palette.ase")] {
             let mut app = app();
             let request = app.import_request(purpose);
@@ -995,7 +996,7 @@ pub(crate) mod browser_import_tests {
     #[test]
     fn native_pdf_dialog_keeps_path_and_uid_at_confirmation() {
         let mut app = app();
-        let path = std::env::temp_dir().join(format!("designcraft-native-import-{}-{}.pdf", std::process::id(), app.session.doc().unwrap().uid));
+        let path = std::env::temp_dir().join(format!("patronusdesign-native-import-{}-{}.pdf", std::process::id(), app.session.doc().unwrap().uid));
         std::fs::write(&path, pdf()).unwrap();
         let pick_path = path.to_string_lossy().to_string();
         app.answer_dialogs(crate::app::file_dialogs::testing::answer_with(Some(pick_path)));
@@ -1037,7 +1038,7 @@ pub(crate) mod browser_import_tests {
     }
 
     fn png(v: u8) -> Vec<u8> {
-        designcraft_render::Rendered { width: 10, height: 10, pixels: vec![v; 400] }.to_png()
+        patronusdesign_render::Rendered { width: 10, height: 10, pixels: vec![v; 400] }.to_png()
     }
 
     /// The names of the images in the place cursor, the one a click places first.
@@ -1102,7 +1103,7 @@ pub(crate) mod browser_import_tests {
     /// A graphic frame, holding a picture and selected, with an empty place cursor; the frame's id.
     fn select_a_graphic_frame(app: &mut DesignApp) -> u64 {
         let frame = app.run("frame.create", json!({"rect": [10, 10, 100, 100]})).unwrap()["id"].as_u64().unwrap();
-        let b64 = designcraft_engine::cmd::base64_encode(&image());
+        let b64 = patronusdesign_engine::cmd::base64_encode(&image());
         app.run("file.place", json!({"base64": b64, "name": "old.svg", "frame": frame})).unwrap();
         app.run("selection.set", json!({"ids": [frame]})).unwrap();
         assert!(app.session.loaded.is_none());
@@ -1111,7 +1112,7 @@ pub(crate) mod browser_import_tests {
 
     fn frame_asset(app: &DesignApp, frame: u64) -> String {
         let doc = &app.session.active().unwrap().doc;
-        let designcraft_doc::Content::Graphic(g) = &doc.item(designcraft_doc::ItemId(frame)).unwrap().content else { panic!("a graphic") };
+        let patronusdesign_doc::Content::Graphic(g) = &doc.item(patronusdesign_doc::ItemId(frame)).unwrap().content else { panic!("a graphic") };
         doc.assets[&g.asset].name.clone()
     }
 
@@ -1290,7 +1291,7 @@ pub(crate) mod browser_import_tests {
         std::fs::write(&path, pdf_pages(3)).unwrap();
         let mut app = app();
         app.services.read = Some(Box::new(|p| std::fs::read(p).map_err(|e| e.to_string())));
-        let b64 = designcraft_engine::cmd::base64_encode(&image());
+        let b64 = patronusdesign_engine::cmd::base64_encode(&image());
         app.run("place.load", json!({"base64": b64, "name": "a.svg"})).unwrap();
         app.open_picked("place", path).unwrap();
         dialogs::confirm(&mut app).unwrap();
@@ -1320,7 +1321,7 @@ pub(crate) mod browser_import_tests {
         assert_eq!(app.ui.status, "Place cancelled while a dialog is open");
         assert!(app.session.loaded.is_none());
         app.ui.dialog = None;
-        let b64 = designcraft_engine::cmd::base64_encode(&image());
+        let b64 = patronusdesign_engine::cmd::base64_encode(&image());
         app.run("place.load", json!({"base64": b64, "name": "a.svg"})).unwrap();
         let first = app.session.loaded.as_ref().unwrap().asset;
         let files = json!([{"base64": b64, "name": "b.svg"}, {"base64": b64, "name": "c.svg"}]);
@@ -1360,14 +1361,14 @@ pub(crate) mod browser_import_tests {
         std::fs::write(path("b.svg"), image()).unwrap();
         let mut app = app();
         app.services.read = Some(Box::new(|p| std::fs::read(p).map_err(|e| e.to_string())));
-        let f = designcraft_doc::ItemId(
+        let f = patronusdesign_doc::ItemId(
             app.run("frame.create", json!({"rect": [200, 200, 300, 300], "content": "graphic"})).unwrap()["id"].as_u64().unwrap(),
         );
         assert!(app.session.active().unwrap().selection.items.contains(&f));
         app.place_paths(vec![path("a.svg"), path("one.pdf"), path("b.svg")]).unwrap();
         assert_eq!(loaded_names(&app), ["a.svg", "one.pdf", "b.svg"]);
         let frame = app.session.active().unwrap().doc.item(f).unwrap();
-        assert!(!matches!(frame.content, designcraft_doc::Content::Graphic(_)), "the selected frame stays empty");
+        assert!(!matches!(frame.content, patronusdesign_doc::Content::Graphic(_)), "the selected frame stays empty");
     }
 
     /// File › Place with several files chosen in the dialog loads them all into the place
@@ -1399,7 +1400,7 @@ pub(crate) mod browser_import_tests {
         app.run("document.preferences", json!({"horizontalUnits": "millimeters"})).unwrap();
         app.run("app.contactSheetDialog", json!({})).unwrap();
         let d = app.ui.dialog.as_ref().unwrap();
-        assert_eq!(d.unit, designcraft_geom::Unit::Millimeters);
+        assert_eq!(d.unit, patronusdesign_geom::Unit::Millimeters);
         assert_eq!(d.s("gutter"), "6pt");
     }
 
@@ -1491,12 +1492,12 @@ mod load_styles_tests {
         s.execute("style.paragraph.create", &json!({"name": "Body", "chars": {"size": 10}})).unwrap();
         s.execute("style.paragraph.create", &json!({"name": "Head", "basedOn": "Body", "chars": {"size": 20}})).unwrap();
         s.execute("style.character.create", &json!({"name": "Lead", "chars": {"size": 9}})).unwrap();
-        designcraft_engine::cmd::base64_decode(s.execute("file.serialize", &json!({})).unwrap()["base64"].as_str().unwrap())
+        patronusdesign_engine::cmd::base64_decode(s.execute("file.serialize", &json!({})).unwrap()["base64"].as_str().unwrap())
     }
 
     /// An app with a document that has its own 8 pt Body, and a picker that answers with the client's file.
     fn app_and_file(test: &str) -> (DesignApp, std::path::PathBuf) {
-        let path = std::env::temp_dir().join(format!("designcraft-load-styles-{}-{test}.designcraft", std::process::id()));
+        let path = std::env::temp_dir().join(format!("patronusdesign-load-styles-{}-{test}.designcraft", std::process::id()));
         std::fs::write(&path, client_bytes()).unwrap();
         let picked = path.to_string_lossy().to_string();
         let mut app = DesignApp::new(Session::new(), Services::default());

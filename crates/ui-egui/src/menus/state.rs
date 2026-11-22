@@ -32,11 +32,11 @@ pub fn enabled(app: &DesignApp, id: &str) -> bool {
     if is_window_control(id) {
         return window_control_available(app, id);
     }
-    // Shared docking commands DesignCraft does not provide (native panel windows, Lock Workspace).
+    // Shared docking commands Patronus Design does not provide (native panel windows, Lock Workspace).
     if matches!(id, "window.panel.window" | "window.workspace.lock") {
         return false;
     }
-    match designcraft_engine::find_command(id) {
+    match patronusdesign_engine::find_command(id) {
         Some(c) => (c.enabled)(&app.session).is_ok(),
         None => true,
     }
@@ -44,7 +44,7 @@ pub fn enabled(app: &DesignApp, id: &str) -> bool {
 
 /// The default shortcut of a command.
 pub fn default_shortcut(id: &str) -> Option<&'static str> {
-    designcraft_engine::find_command(id).and_then(|c| c.shortcut).or_else(|| ui_label(id).and_then(|(_, s)| s))
+    patronusdesign_engine::find_command(id).and_then(|c| c.shortcut).or_else(|| ui_label(id).and_then(|(_, s)| s))
 }
 
 /// The shortcut in effect for a command (the user's, else the default), as stored ("Cmd+Alt+K").
@@ -104,9 +104,9 @@ pub fn checked(app: &DesignApp, id: &str, params: &Value) -> Option<bool> {
                 _ => false,
             }
         }
-        "view.fastDisplay" => app.ui.display_quality == designcraft_render::DisplayQuality::Fast,
-        "view.typicalDisplay" => app.ui.display_quality == designcraft_render::DisplayQuality::Typical,
-        "view.highQualityDisplay" => app.ui.display_quality == designcraft_render::DisplayQuality::High,
+        "view.fastDisplay" => app.ui.display_quality == patronusdesign_render::DisplayQuality::Fast,
+        "view.typicalDisplay" => app.ui.display_quality == patronusdesign_render::DisplayQuality::Typical,
+        "view.highQualityDisplay" => app.ui.display_quality == patronusdesign_render::DisplayQuality::High,
         "view.guides" => app.ui.guides,
         "view.lockGuides" => app.ui.guides_locked,
         "view.lockColumnGuides" => app.session.active().is_some_and(|d| d.doc.settings.column_guides_locked),
@@ -123,9 +123,11 @@ pub fn checked(app: &DesignApp, id: &str, params: &Value) -> Option<bool> {
         "changes.track" => app.session.active().is_some_and(|d| d.doc.settings.track_changes),
         // Pressed, as the Bulleted and Numbered List buttons: every paragraph the command applies
         // to (selected text, cells or text frames) has it.
-        "list.bullets" | "list.numbers" => {
-            app.session.selection_has_list(if id == "list.bullets" { designcraft_doc::ListType::Bullets } else { designcraft_doc::ListType::Numbers })
-        }
+        "list.bullets" | "list.numbers" => app.session.selection_has_list(if id == "list.bullets" {
+            patronusdesign_doc::ListType::Bullets
+        } else {
+            patronusdesign_doc::ListType::Numbers
+        }),
         "window.controlBar" => app.ui.control_bar && app.ui.hidden_panels == 0,
         "window.split" => app.split,
         "window.newWindow" => app.second_window,

@@ -1,6 +1,6 @@
 //! One blink phase for the text caret: the story, table cell and footnote carets share it.
 
-use designcraft_doc::TextSel;
+use patronusdesign_doc::TextSel;
 
 const BLINK_HZ: f64 = 1.6;
 

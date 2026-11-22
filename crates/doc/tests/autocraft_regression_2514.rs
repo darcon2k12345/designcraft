@@ -1,7 +1,7 @@
-use designcraft_doc::arrow::apply;
-use designcraft_doc::geom::BezPath;
-use designcraft_doc::geom::kurbo::Shape;
-use designcraft_doc::{Arrowhead, Stroke};
+use patronusdesign_doc::arrow::apply;
+use patronusdesign_doc::geom::BezPath;
+use patronusdesign_doc::geom::kurbo::Shape;
+use patronusdesign_doc::{Arrowhead, Stroke};
 
 #[test]
 fn start_head_follows_tangent_when_start_handle_is_missing() {

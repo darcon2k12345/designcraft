@@ -1,6 +1,6 @@
-//! Adapter from craft-rtf's neutral document model to a DesignCraft story.
+//! Adapter from craft-rtf's neutral document model to a Patronus Design story.
 
-use designcraft_doc::{CharAttrs, CharFormat, Story, StoryId};
+use patronusdesign_doc::{CharAttrs, CharFormat, Story, StoryId};
 
 use crate::{ImportError, Imported};
 
@@ -15,13 +15,13 @@ fn char_format(fmt: &craft_rtf::CharFmt) -> CharFormat {
         font_style: (font_style != "Regular").then(|| font_style.to_string()),
         underline: fmt.underline.then_some(true),
         strikethrough: fmt.strike.then_some(true),
-        size: fmt.half_points.and_then(|size| designcraft_doc::attrs::imported_type_size(f64::from(size) / 2.0)),
+        size: fmt.half_points.and_then(|size| patronusdesign_doc::attrs::imported_type_size(f64::from(size) / 2.0)),
         ..Default::default()
     };
     if let Some(font) = &fmt.font {
         over.font_family = Some(font.clone());
     }
-    CharFormat { style: designcraft_doc::story::NO_CHAR_STYLE.into(), over }
+    CharFormat { style: patronusdesign_doc::story::NO_CHAR_STYLE.into(), over }
 }
 
 fn append_para(story: &mut Story, para: &craft_rtf::Para, separate: bool) {
@@ -36,10 +36,10 @@ fn append_para(story: &mut Story, para: &craft_rtf::Para, separate: bool) {
         attrs.space_before = Some(f64::from(para.space_before) / 20.0);
         attrs.space_after = Some(f64::from(para.space_after) / 20.0);
         attrs.align = Some(match para.align {
-            Some(craft_rtf::Align::Left) | None => designcraft_doc::attrs::Align::Left,
-            Some(craft_rtf::Align::Center) => designcraft_doc::attrs::Align::Center,
-            Some(craft_rtf::Align::Right) => designcraft_doc::attrs::Align::Right,
-            Some(craft_rtf::Align::Justified) => designcraft_doc::attrs::Align::FullyJustified,
+            Some(craft_rtf::Align::Left) | None => patronusdesign_doc::attrs::Align::Left,
+            Some(craft_rtf::Align::Center) => patronusdesign_doc::attrs::Align::Center,
+            Some(craft_rtf::Align::Right) => patronusdesign_doc::attrs::Align::Right,
+            Some(craft_rtf::Align::Justified) => patronusdesign_doc::attrs::Align::FullyJustified,
         });
     }
     for run in &para.runs {
@@ -49,9 +49,9 @@ fn append_para(story: &mut Story, para: &craft_rtf::Para, separate: bool) {
                 continue;
             }
             text.push(match c {
-                craft_rtf::LINE_BREAK => designcraft_doc::FORCED_LINE_BREAK,
-                craft_rtf::PAGE_BREAK => designcraft_doc::PAGE_BREAK,
-                craft_rtf::COLUMN_BREAK => designcraft_doc::COLUMN_BREAK,
+                craft_rtf::LINE_BREAK => patronusdesign_doc::FORCED_LINE_BREAK,
+                craft_rtf::PAGE_BREAK => patronusdesign_doc::PAGE_BREAK,
+                craft_rtf::COLUMN_BREAK => patronusdesign_doc::COLUMN_BREAK,
                 other => other,
             });
         }
@@ -168,7 +168,7 @@ Caf\'e9 \u8364? price\tab tab\line next\par
         // What the exporter writes comes back.
         let mut st = Story::new(StoryId(1));
         st.insert(0, "x \u{1F600} \u{20BB7}\u{7530} y");
-        let doc = designcraft_doc::Document::new(&designcraft_doc::build::NewDocument::default());
+        let doc = patronusdesign_doc::Document::new(&patronusdesign_doc::build::NewDocument::default());
         assert_eq!(import(crate::export::rtf(&doc, &st).as_bytes()).unwrap().story.text, st.text);
         // Half a pair is not a character: it is still left out.
         assert_eq!(import(br"{\rtf1 A\u-10179?B\u-8704?C}").unwrap().story.text, "ABC");

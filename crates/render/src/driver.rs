@@ -143,7 +143,7 @@ impl Renderer {
         if let Some(pm) = vello_cpu::PixmapMut::new(w, h, &mut pixels) {
             ctx.render(pm, &mut self.resources);
         }
-        if opts.blend_space_view && doc.settings.blend_space == designcraft_doc::BlendSpace::Cmyk && opts.plate.is_none() {
+        if opts.blend_space_view && doc.settings.blend_space == patronusdesign_doc::BlendSpace::Cmyk && opts.plate.is_none() {
             let mut img = Rendered { width: w as u32, height: h as u32, pixels };
             for pl in spreads {
                 let Some(sp) = doc.spread(pl.spread) else { continue };

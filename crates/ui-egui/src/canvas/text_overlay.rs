@@ -8,8 +8,8 @@ pub(super) fn draw_text_selection(
     xf: &Xf,
     doc: &Document,
     layout: &CanvasLayout,
-    ts: designcraft_doc::TextSel,
-    cells: Option<designcraft_doc::TableSel>,
+    ts: patronusdesign_doc::TextSel,
+    cells: Option<patronusdesign_doc::TableSel>,
 ) {
     let cs = app.session.cache.get(doc, ts.story, None);
     let range = ts.range();
@@ -129,8 +129,8 @@ fn draw_cell_selection(
     doc: &Document,
     layout: &CanvasLayout,
     cs: &compose::ComposedStory,
-    ts: designcraft_doc::TextSel,
-    cell: designcraft_doc::CellAddr,
+    ts: patronusdesign_doc::TextSel,
+    cell: patronusdesign_doc::CellAddr,
 ) {
     // Footnote text or a cell: its composed story and where it sits in the frame.
     let found = match cell.footnote_id() {
@@ -140,7 +140,7 @@ fn draw_cell_selection(
     let Some((fi, origin, text)) = found else { return };
     let Some(ft) = cs.frames.get(fi) else { return };
     let (Some((a, _)), Some(it)) = (item_canvas_xf(doc, layout, ft.frame), doc.item(ft.frame)) else { return };
-    let m = a * doc.text_xf(it) * designcraft_geom::Affine::translate(origin.to_vec2());
+    let m = a * doc.text_xf(it) * patronusdesign_geom::Affine::translate(origin.to_vec2());
     let range = ts.range();
     if !range.is_empty()
         && let Some(cft) = text.frames.first()
@@ -181,10 +181,10 @@ fn draw_inverse_highlight(
     xf: &Xf,
     doc: &Document,
     cs: &compose::ComposedStory,
-    story: designcraft_doc::StoryId,
+    story: patronusdesign_doc::StoryId,
     runs: &[(usize, Affine, Vec<[Point; 4]>, Vec<(usize, usize)>)],
 ) {
-    use designcraft_render::vello_cpu::{self, kurbo, peniko};
+    use patronusdesign_render::vello_cpu::{self, kurbo, peniko};
     let ctx = painter.ctx();
     let ppp = ctx.pixels_per_point();
     let to_screen = |m: Affine, p: Point| xf.to_screen(m * p);
@@ -230,7 +230,7 @@ fn draw_inverse_highlight(
                     rc.fill_path(&bp);
                 }
             }
-            let db = designcraft_fonts::FontDb::global();
+            let db = patronusdesign_fonts::FontDb::global();
             for (fi, m, _, glyphs) in runs {
                 let Some(ft) = cs.frames.get(*fi) else { continue };
                 for &(li, gi) in glyphs {
@@ -351,7 +351,7 @@ pub(super) fn draw_dynamic_spelling(app: &DesignApp, ctx: &egui::Context, painte
         let bad: std::sync::Arc<Vec<std::ops::Range<usize>>> = match ctx.data(|d| d.get_temp(key)) {
             Some(v) => v,
             None => {
-                let v = std::sync::Arc::new(designcraft_engine::cmd::spelling::misspellings(doc, story, &doc.user_words));
+                let v = std::sync::Arc::new(patronusdesign_engine::cmd::spelling::misspellings(doc, story, &doc.user_words));
                 ctx.data_mut(|d| d.insert_temp(key, v.clone()));
                 v
             }
@@ -406,7 +406,7 @@ pub fn selected_text(app: &DesignApp) -> Option<String> {
     if s.is_empty() {
         return None;
     }
-    Some(s.replace(designcraft_doc::story::FORCED_LINE_BREAK, "\n"))
+    Some(s.replace(patronusdesign_doc::story::FORCED_LINE_BREAK, "\n"))
 }
 
 #[cfg(test)]

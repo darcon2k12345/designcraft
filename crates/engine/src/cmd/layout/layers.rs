@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use designcraft_doc::{Guide, Hyperlink, HyperlinkSource, Item, ItemId, SpreadRef, Story, StoryId};
+use patronusdesign_doc::{Guide, Hyperlink, HyperlinkSource, Item, ItemId, SpreadRef, Story, StoryId};
 
 use super::{LAYER_COLORS, Layer, LayerId, Result, Session, Value, bad, json, ok};
 
@@ -177,7 +177,7 @@ pub(super) fn duplicate_layer(s: &mut Session, p: &Value) -> Result<Value> {
         }
         // A page, document or parent, hides a parent item's copy where it hides the parent item, and its ruler guides on
         // the layer get copies on the new layer.
-        let hidden = |pg: &designcraft_doc::Page| -> Vec<ItemId> { pg.overridden.iter().filter_map(|o| ids.get(o).copied()).collect() };
+        let hidden = |pg: &patronusdesign_doc::Page| -> Vec<ItemId> { pg.overridden.iter().filter_map(|o| ids.get(o).copied()).collect() };
         for sp in d.spreads.iter_mut().chain(d.parents.iter_mut()) {
             if sp.pages.iter().all(|pg| hidden(pg).is_empty() && pg.guides.iter().all(|g| g.layer != Some(id))) {
                 continue;
@@ -221,7 +221,7 @@ const MAX_COPY_DEPTH: usize = 64;
 /// anchored objects, table cells and notes deeper than [`MAX_COPY_DEPTH`] in all: a story counts from the depth of the
 /// frame that shows it, as copying it recurses on from there. `seen` holds the deepest level each story was checked at;
 /// a story reached again no deeper is skipped.
-fn too_deep(it: &Item, d: &designcraft_doc::Document, seen: &mut HashMap<StoryId, usize>) -> bool {
+fn too_deep(it: &Item, d: &patronusdesign_doc::Document, seen: &mut HashMap<StoryId, usize>) -> bool {
     fn item(it: &Item, depth: usize, next: &mut Vec<(StoryId, usize)>) -> bool {
         if let Some(t) = it.text_frame() {
             next.push((t.story, depth));
@@ -271,7 +271,7 @@ fn map_anchored(orig: &Story, copy: &Story, ids: &mut HashMap<ItemId, ItemId>) {
 
 /// Give the tables of `st`, and the tables in the stories of its table cells and notes, new ids from `d`, and point the
 /// paragraphs that hold them at the new ids. [`too_deep`] bounds the nesting.
-fn renumber_tables(d: &mut designcraft_doc::Document, st: &mut Story) {
+fn renumber_tables(d: &mut patronusdesign_doc::Document, st: &mut Story) {
     let mut tables = HashMap::new();
     for (t, mut table) in std::mem::take(&mut st.tables) {
         let n = d.alloc();
@@ -304,8 +304,8 @@ fn anchor_ids(st: &Story, used: &mut HashSet<u64>) {
 
 /// Give the text anchors in the stories of the table cells and notes of `st` new ids from `d` that are not in `used`
 /// (recorded in `anchors` and `used`). [`too_deep`] bounds the nesting.
-fn renumber_nested_anchors(d: &mut designcraft_doc::Document, st: &mut Story, anchors: &mut HashMap<u64, u64>, used: &mut HashSet<u64>) {
-    fn child(d: &mut designcraft_doc::Document, st: &mut Story, anchors: &mut HashMap<u64, u64>, used: &mut HashSet<u64>) {
+fn renumber_nested_anchors(d: &mut patronusdesign_doc::Document, st: &mut Story, anchors: &mut HashMap<u64, u64>, used: &mut HashSet<u64>) {
+    fn child(d: &mut patronusdesign_doc::Document, st: &mut Story, anchors: &mut HashMap<u64, u64>, used: &mut HashSet<u64>) {
         for anchor in &mut st.anchors {
             let id = loop {
                 let id = d.alloc();
@@ -419,10 +419,10 @@ mod layer_tests {
         s.execute("layer.merge", &json!({"ids": [l4, l2]})).unwrap();
         let d = &s.doc().unwrap().doc;
         assert_eq!(d.layers.len(), 1);
-        assert_eq!(d.item(designcraft_doc::ItemId(f)).unwrap().layer.0, l4);
+        assert_eq!(d.item(patronusdesign_doc::ItemId(f)).unwrap().layer.0, l4);
     }
 
-    fn on_layer(d: &designcraft_doc::Document, layer: u64) -> Vec<std::sync::Arc<designcraft_doc::Item>> {
+    fn on_layer(d: &patronusdesign_doc::Document, layer: u64) -> Vec<std::sync::Arc<patronusdesign_doc::Item>> {
         d.spreads.iter().chain(&d.parents).flat_map(|sp| sp.items.iter().filter(|i| i.layer.0 == layer).cloned()).collect()
     }
 
@@ -444,7 +444,7 @@ mod layer_tests {
         let copy = s.execute("layer.duplicate", &json!({"id": art})).unwrap()["id"].as_u64().unwrap();
         let d = s.doc().unwrap().doc.clone();
         assert_eq!(d.layers.iter().map(|l| l.id.0).collect::<Vec<_>>(), [copy, art, base], "the copy sits right above the original");
-        let (l, o) = (d.layer(designcraft_doc::LayerId(copy)).unwrap(), d.layer(designcraft_doc::LayerId(art)).unwrap());
+        let (l, o) = (d.layer(patronusdesign_doc::LayerId(copy)).unwrap(), d.layer(patronusdesign_doc::LayerId(art)).unwrap());
         assert_eq!(l.name, "Art copy");
         assert_eq!((l.color, l.visible, l.locked, l.printable, l.show_guides), (o.color, o.visible, o.locked, o.printable, o.show_guides));
         assert_eq!(s.doc().unwrap().active_layer.0, copy);
@@ -459,9 +459,9 @@ mod layer_tests {
         let guides = &d.spreads[0].pages[0].guides;
         assert_eq!(guides.len(), 3, "Art's guide gets a copy; the base layer's does not");
         let (g, c) = (&guides[0], &guides[2]);
-        assert_eq!((g.layer, c.layer), (Some(designcraft_doc::LayerId(art)), Some(designcraft_doc::LayerId(copy))));
+        assert_eq!((g.layer, c.layer), (Some(patronusdesign_doc::LayerId(art)), Some(patronusdesign_doc::LayerId(copy))));
         assert_eq!((g.orientation, g.position, g.liquid), (c.orientation, c.position, c.liquid));
-        assert!(d.item(designcraft_doc::ItemId(rect)).is_some());
+        assert!(d.item(patronusdesign_doc::ItemId(rect)).is_some());
         // A second copy gets a name of its own; bad ids change nothing.
         s.execute("layer.duplicate", &json!({"id": art})).unwrap();
         assert_eq!(s.doc().unwrap().doc.layers[1].name, "Art copy 2");
@@ -496,13 +496,13 @@ mod layer_tests {
             let expected_parent = if copy_parent {
                 copied_stories.iter().find(|story| story.link.is_none()).unwrap().id
             } else {
-                designcraft_doc::StoryId(parent["story"].as_u64().unwrap())
+                patronusdesign_doc::StoryId(parent["story"].as_u64().unwrap())
             };
             assert_eq!(d.story(copied_child).unwrap().link.unwrap().0, expected_parent);
             s.execute("story.setText", &json!({"story": expected_parent.0, "text": "Edited source"})).unwrap();
             s.execute("story.updateLink", &json!({"story": copied_child.0})).unwrap();
             assert_eq!(s.doc().unwrap().doc.story(copied_child).unwrap().text, "Edited source");
-            assert_eq!(s.doc().unwrap().doc.story(designcraft_doc::StoryId(child["story"].as_u64().unwrap())).unwrap().text, "Original");
+            assert_eq!(s.doc().unwrap().doc.story(patronusdesign_doc::StoryId(child["story"].as_u64().unwrap())).unwrap().text, "Original");
             if copy_parent {
                 s.execute("story.setText", &json!({"story": parent["story"], "text": "Edited original"})).unwrap();
                 s.execute("story.updateLink", &json!({"story": copied_child.0})).unwrap();
@@ -529,7 +529,7 @@ mod layer_tests {
         let _ = art;
         let copy = s.execute("layer.duplicate", &json!({"id": base})).unwrap()["id"].as_u64().unwrap();
         let d = s.doc().unwrap().doc.clone();
-        let story = |id: u64| d.item(designcraft_doc::ItemId(id)).and_then(|i| i.text_frame()).map(|t| t.story).unwrap();
+        let story = |id: u64| d.item(patronusdesign_doc::ItemId(id)).and_then(|i| i.text_frame()).map(|t| t.story).unwrap();
         let orig = d.story(story(a)).unwrap();
         assert_eq!(orig.frames.iter().map(|f| f.0).collect::<Vec<_>>(), [a, b, c], "the original thread is unchanged");
         let copies = on_layer(&d, copy);
@@ -540,9 +540,9 @@ mod layer_tests {
         assert_ne!(sid, orig.id);
         assert_eq!(st.text, orig.text, "the copy holds the whole text");
         // Thread order as in the original (a's copy first, though b's copy was made first), without c.
-        let pos = |id: designcraft_doc::ItemId| d.find(id).map(|l| l.path.clone());
+        let pos = |id: patronusdesign_doc::ItemId| d.find(id).map(|l| l.path.clone());
         let order: Vec<_> = st.frames.iter().map(|f| d.item(*f).unwrap().path.clone()).collect();
-        let want: Vec<_> = [a, b].iter().map(|f| d.item(designcraft_doc::ItemId(*f)).unwrap().path.clone()).collect();
+        let want: Vec<_> = [a, b].iter().map(|f| d.item(patronusdesign_doc::ItemId(*f)).unwrap().path.clone()).collect();
         assert_eq!(order, want);
         assert!(st.frames.iter().all(|f| pos(*f).is_some()));
     }
@@ -566,7 +566,7 @@ mod layer_tests {
             let bp = std::sync::Arc::make_mut(&mut d.parents[1]);
             bp.parent.as_mut().unwrap().based_on = Some(a);
             bp.pages[0].parent = Some(a);
-            bp.pages[0].overridden.push(designcraft_doc::ItemId(parent));
+            bp.pages[0].overridden.push(patronusdesign_doc::ItemId(parent));
             Ok(())
         })
         .unwrap();
@@ -574,7 +574,7 @@ mod layer_tests {
         let d = s.doc().unwrap().doc.clone();
         let copies = on_layer(&d, copy);
         assert_eq!(copies.len(), 2, "the parent item and page 2's override");
-        let p2 = copies.iter().find(|i| matches!(d.find(i.id).unwrap().spread, designcraft_doc::SpreadRef::Parent(0))).unwrap();
+        let p2 = copies.iter().find(|i| matches!(d.find(i.id).unwrap().spread, patronusdesign_doc::SpreadRef::Parent(0))).unwrap();
         let o2 = copies.iter().find(|i| i.overrides.is_some()).unwrap();
         assert_ne!((p2.id.0, o2.id.0), (parent, o));
         assert_eq!(o2.overrides, Some(p2.id), "the override's copy overrides the parent item's copy");
@@ -583,10 +583,10 @@ mod layer_tests {
             let (si, pi) = d.page_loc(page).unwrap();
             d.spreads[si].pages[pi].overridden.clone()
         };
-        assert_eq!(overridden(1), [designcraft_doc::ItemId(parent), p2.id], "page 2 hides both parent items");
-        assert_eq!(overridden(2), [designcraft_doc::ItemId(parent), p2.id], "page 3 too, without an override");
+        assert_eq!(overridden(1), [patronusdesign_doc::ItemId(parent), p2.id], "page 2 hides both parent items");
+        assert_eq!(overridden(2), [patronusdesign_doc::ItemId(parent), p2.id], "page 3 too, without an override");
         assert!(overridden(0).is_empty(), "page 1 shows both");
-        assert_eq!(d.parents[1].pages[0].overridden, [designcraft_doc::ItemId(parent), p2.id], "parent B hides both");
+        assert_eq!(d.parents[1].pages[0].overridden, [patronusdesign_doc::ItemId(parent), p2.id], "parent B hides both");
     }
 
     #[test]
@@ -607,12 +607,12 @@ mod layer_tests {
         let on_a =
             s.execute("frame.create", &json!({"spread": {"kind": "parent", "index": 0}, "rect": [0, 0, 50, 50]})).unwrap()["id"].as_u64().unwrap();
         s.edit(|d, _| {
-            d.item_mut(designcraft_doc::ItemId(on_a)).unwrap().overrides = Some(designcraft_doc::ItemId(on_b));
+            d.item_mut(patronusdesign_doc::ItemId(on_a)).unwrap().overrides = Some(patronusdesign_doc::ItemId(on_b));
             Ok(())
         })
         .unwrap();
         let d = s.doc().unwrap().doc.clone();
-        let layer_of = |id: u64| d.item(designcraft_doc::ItemId(id)).unwrap().layer.0;
+        let layer_of = |id: u64| d.item(patronusdesign_doc::ItemId(id)).unwrap().layer.0;
         assert_eq!((layer_of(g), layer_of(b)), (base, d.layers.iter().find(|l| l.name == "Art").unwrap().id.0));
         let copy = s.execute("layer.duplicate", &json!({"id": base})).unwrap()["id"].as_u64().unwrap();
         let d = s.doc().unwrap().doc.clone();
@@ -620,7 +620,7 @@ mod layer_tests {
         let group = copies.iter().find(|i| !i.children().is_empty()).unwrap();
         assert!(group.children().iter().all(|c| c.layer.0 == copy), "the copied group is on the new layer as a whole");
         let in_parent =
-            |i: usize| copies.iter().find(|c| matches!(d.find(c.id).unwrap().spread, designcraft_doc::SpreadRef::Parent(p) if p == i)).unwrap();
+            |i: usize| copies.iter().find(|c| matches!(d.find(c.id).unwrap().spread, patronusdesign_doc::SpreadRef::Parent(p) if p == i)).unwrap();
         assert_eq!(in_parent(0).overrides, Some(in_parent(1).id), "A's copy overrides B's copy");
     }
 
@@ -631,28 +631,29 @@ mod layer_tests {
         let base = s.doc().unwrap().doc.layers[0].id.0;
         let text = json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Before after."});
         let f = s.execute("frame.create", &text).unwrap()["id"].as_u64().unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
         let b = s.execute("frame.create", &json!({"rect": [450, 450, 474, 490]})).unwrap()["id"].as_u64().unwrap();
         s.execute("anchored.insert", &json!({"ids": [b], "story": sid.0, "pos": 7})).unwrap();
         // Two anchored text frames threaded in one story, as IDML import makes them.
         let threaded = s
             .edit(|d, _| {
-                use designcraft_doc::{AnchoredObject, ParaFormat};
-                let (r, r2) = (designcraft_geom::Rect::new(0.0, 0.0, 60.0, 30.0), designcraft_geom::Rect::new(0.0, 0.0, 80.0, 40.0));
-                let (first, story) = d.add_text_frame(designcraft_doc::SpreadRef::Doc(0), r, d.default_layer(), "Symbol", ParaFormat::default())?;
-                let (second, spare) = d.add_text_frame(designcraft_doc::SpreadRef::Doc(0), r2, d.default_layer(), "", ParaFormat::default())?;
+                use patronusdesign_doc::{AnchoredObject, ParaFormat};
+                let (r, r2) = (patronusdesign_geom::Rect::new(0.0, 0.0, 60.0, 30.0), patronusdesign_geom::Rect::new(0.0, 0.0, 80.0, 40.0));
+                let (first, story) =
+                    d.add_text_frame(patronusdesign_doc::SpreadRef::Doc(0), r, d.default_layer(), "Symbol", ParaFormat::default())?;
+                let (second, spare) = d.add_text_frame(patronusdesign_doc::SpreadRef::Doc(0), r2, d.default_layer(), "", ParaFormat::default())?;
                 let mut items = Vec::new();
                 for f in [first, second] {
-                    let mut it = d.item(f).cloned().ok_or(designcraft_doc::DocError::NoItem(f))?;
-                    if let designcraft_doc::Content::Text(tf) = &mut it.content {
+                    let mut it = d.item(f).cloned().ok_or(patronusdesign_doc::DocError::NoItem(f))?;
+                    if let patronusdesign_doc::Content::Text(tf) = &mut it.content {
                         tf.story = story;
                     }
                     items.push(it);
                 }
                 d.stories.remove(&spare);
-                d.story_mut(story).ok_or(designcraft_doc::DocError::NoStory(story))?.frames = vec![first, second];
+                d.story_mut(story).ok_or(patronusdesign_doc::DocError::NoStory(story))?.frames = vec![first, second];
                 std::sync::Arc::make_mut(&mut d.spreads[0]).items.retain(|i| i.id != first && i.id != second);
-                let st = d.story_mut(sid).ok_or(designcraft_doc::DocError::NoStory(sid))?;
+                let st = d.story_mut(sid).ok_or(patronusdesign_doc::DocError::NoStory(sid))?;
                 for it in items.into_iter().rev() {
                     st.insert_object(0, AnchoredObject::new(it, Default::default()));
                 }
@@ -669,7 +670,7 @@ mod layer_tests {
         let st = d.story(copied).unwrap();
         assert_eq!(st.text, "Symbol");
         assert_eq!(st.frames.len(), 2, "the copies share one story");
-        let order = |story: &designcraft_doc::Story| story.frames.iter().map(|f| d.anchored_item(*f).unwrap().path.clone()).collect::<Vec<_>>();
+        let order = |story: &patronusdesign_doc::Story| story.frames.iter().map(|f| d.anchored_item(*f).unwrap().path.clone()).collect::<Vec<_>>();
         assert_eq!(order(st), order(d.story(threaded).unwrap()), "in the original thread order");
         let anchored: Vec<_> = d.anchored_items().into_iter().filter(|(_, i)| i.text_frame().is_none()).map(|(_, i)| (i.id, i.layer.0)).collect();
         assert_eq!(anchored.len(), 2);
@@ -707,7 +708,7 @@ mod layer_tests {
         s.execute("object.caption", &json!({"ids": [a], "text": "{name}", "live": true})).unwrap();
         let text = json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Before after."});
         let f = s.execute("frame.create", &text).unwrap()["id"].as_u64().unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
         // The caption's source moves into the story and keeps its id.
         s.execute("anchored.insert", &json!({"ids": [a], "story": sid.0, "pos": 7})).unwrap();
         let copy = s.execute("layer.duplicate", &json!({"id": base})).unwrap()["id"].as_u64().unwrap();
@@ -721,14 +722,14 @@ mod layer_tests {
 
     #[test]
     fn duplicate_layer_copies_the_hyperlinks_of_its_objects_and_text() {
-        use designcraft_doc::{HyperlinkDest, HyperlinkSource};
+        use patronusdesign_doc::{HyperlinkDest, HyperlinkSource};
         let mut s = crate::Session::new();
         s.execute("file.new", &json!({"pages": 2})).unwrap();
         let base = s.doc().unwrap().doc.layers[0].id.0;
         let a = s.execute("frame.create", &json!({"rect": [72, 72, 172, 172]})).unwrap()["id"].as_u64().unwrap();
         s.execute("hyperlink.create", &json!({"ids": [a], "url": "https://example.com/a", "name": "Logo"})).unwrap();
         let t = s.execute("frame.create", &json!({"rect": [72, 200, 400, 300], "content": "text", "text": "Read more here"})).unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(t["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(t["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
         s.execute("text.select", &json!({"story": sid.0, "anchor": 5, "focus": 9})).unwrap();
         s.execute("hyperlink.create", &json!({"page": 2})).unwrap();
         s.execute("layer.new", &json!({"name": "Art"})).unwrap();
@@ -759,14 +760,14 @@ mod layer_tests {
         let base = s.doc().unwrap().doc.layers[0].id.0;
         let text = json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Heading\rSee "});
         let f = s.execute("frame.create", &text).unwrap()["id"].as_u64().unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
         let anchor = s
             .edit(|d, _| {
-                let a = d.paragraph_anchor(sid, 0).ok_or(designcraft_doc::DocError::NoStory(sid))?;
+                let a = d.paragraph_anchor(sid, 0).ok_or(patronusdesign_doc::DocError::NoStory(sid))?;
                 let format = d.xref_formats[0].name.clone();
-                let st = d.story_mut(sid).ok_or(designcraft_doc::DocError::NoStory(sid))?;
+                let st = d.story_mut(sid).ok_or(patronusdesign_doc::DocError::NoStory(sid))?;
                 let end = st.len();
-                st.insert_xref(end, designcraft_doc::CrossRef { target: a, format, ..Default::default() });
+                st.insert_xref(end, patronusdesign_doc::CrossRef { target: a, format, ..Default::default() });
                 Ok(a)
             })
             .unwrap();
@@ -789,10 +790,10 @@ mod layer_tests {
         s.execute("file.new", &json!({})).unwrap();
         let base = s.doc().unwrap().doc.layers[0].id.0;
         let f = s.execute("frame.create", &json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Head"})).unwrap()["id"].as_u64().unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
         s.execute("layer.new", &json!({"name": "Art"})).unwrap();
         let g = s.execute("frame.create", &json!({"rect": [72, 450, 400, 600], "content": "text", "text": "Other"})).unwrap()["id"].as_u64().unwrap();
-        let other = s.doc().unwrap().doc.item(designcraft_doc::ItemId(g)).unwrap().text_frame().unwrap().story;
+        let other = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(g)).unwrap().text_frame().unwrap().story;
         let d = Arc::make_mut(&mut s.doc_mut().unwrap().doc);
         d.story_mut(sid).unwrap().insert_anchor(0, "Heading");
         // A story on another layer holds the ids the copy's first anchor would take, as anchors loaded from a file can.
@@ -812,13 +813,13 @@ mod layer_tests {
 
     #[test]
     fn duplicate_layer_remaps_anchors_in_cells_and_notes() {
-        use designcraft_doc::Story;
+        use patronusdesign_doc::Story;
         use std::sync::Arc;
 
         fn add_anchor(st: &mut Story, id: u64) {
             st.insert_anchor(0, "Nested heading");
             Arc::make_mut(&mut st.anchors[0]).id = id;
-            st.insert_xref(st.len(), designcraft_doc::CrossRef { target: id, ..Default::default() });
+            st.insert_xref(st.len(), patronusdesign_doc::CrossRef { target: id, ..Default::default() });
         }
         fn collect(st: &Story, values: &mut Vec<(u64, u64)>) {
             for (a, x) in st.anchors.iter().zip(st.xrefs.iter()) {
@@ -837,15 +838,15 @@ mod layer_tests {
         s.execute("file.new", &json!({})).unwrap();
         let base = s.doc().unwrap().doc.layers[0].id.0;
         let f = s.execute("frame.create", &json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Rows"})).unwrap()["id"].as_u64().unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
         let d = Arc::make_mut(&mut s.doc_mut().unwrap().doc);
         let table_id = d.alloc();
         let nested_id = d.alloc();
         let anchor_ids = [d.alloc(), d.alloc(), d.alloc(), d.alloc()];
-        let mut table = designcraft_doc::Table::new(table_id, 1, 1, 0, 0, 40.0);
+        let mut table = patronusdesign_doc::Table::new(table_id, 1, 1, 0, 0, 40.0);
         let cell = &mut table.cells[0].text;
         add_anchor(cell, anchor_ids[0]);
-        let mut nested = designcraft_doc::Table::new(nested_id, 1, 1, 0, 0, 20.0);
+        let mut nested = patronusdesign_doc::Table::new(nested_id, 1, 1, 0, 0, 20.0);
         add_anchor(&mut nested.cells[0].text, anchor_ids[1]);
         cell.insert_table(cell.len(), nested);
         cell.insert_note(cell.len(), "Footnote", Default::default()).unwrap();
@@ -880,7 +881,7 @@ mod layer_tests {
 
     #[test]
     fn duplicate_layer_gives_objects_anchored_in_endnotes_of_cells_their_own_ids() {
-        use designcraft_doc::AnchoredObject;
+        use patronusdesign_doc::AnchoredObject;
         use std::sync::Arc;
 
         let mut s = crate::Session::new();
@@ -889,12 +890,12 @@ mod layer_tests {
         let a = s.execute("frame.create", &json!({"rect": [450, 450, 474, 490]})).unwrap()["id"].as_u64().unwrap();
         s.execute("object.caption", &json!({"ids": [a], "text": "{name}", "live": true})).unwrap();
         let f = s.execute("frame.create", &json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Rows"})).unwrap()["id"].as_u64().unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
         let d = Arc::make_mut(&mut s.doc_mut().unwrap().doc);
         // The caption's source moves into an endnote of a table cell and keeps its id.
-        let it = d.item(designcraft_doc::ItemId(a)).cloned().unwrap();
+        let it = d.item(patronusdesign_doc::ItemId(a)).cloned().unwrap();
         Arc::make_mut(&mut d.spreads[0]).items.retain(|i| i.id.0 != a);
-        let mut table = designcraft_doc::Table::new(d.alloc(), 1, 1, 0, 0, 40.0);
+        let mut table = patronusdesign_doc::Table::new(d.alloc(), 1, 1, 0, 0, 40.0);
         let cell = &mut table.cells[0].text;
         cell.insert_endnote(cell.len(), "Endnote", Default::default()).unwrap();
         Arc::make_mut(&mut cell.endnotes[0]).text.insert_object(0, AnchoredObject::new(it, Default::default()));
@@ -915,7 +916,7 @@ mod layer_tests {
     fn duplicate_layer_gives_copied_cell_anchors_ids_no_other_anchor_has() {
         use std::sync::Arc;
 
-        fn ids(st: &designcraft_doc::Story, out: &mut Vec<u64>) {
+        fn ids(st: &patronusdesign_doc::Story, out: &mut Vec<u64>) {
             out.extend(st.anchors.iter().map(|a| a.id));
             for table in st.tables.values() {
                 for cell in &table.cells {
@@ -927,12 +928,12 @@ mod layer_tests {
         s.execute("file.new", &json!({})).unwrap();
         let base = s.doc().unwrap().doc.layers[0].id.0;
         let f = s.execute("frame.create", &json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Rows"})).unwrap()["id"].as_u64().unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
         let d = Arc::make_mut(&mut s.doc_mut().unwrap().doc);
         let table_id = d.alloc();
         // The cell's anchors take the ids the document hands out next, as anchors made in a cell story can.
         let start = d.alloc();
-        let mut table = designcraft_doc::Table::new(table_id, 1, 1, 0, 0, 40.0);
+        let mut table = patronusdesign_doc::Table::new(table_id, 1, 1, 0, 0, 40.0);
         let cell = &mut table.cells[0].text;
         for k in 1..=64 {
             cell.insert_anchor(0, "Heading");
@@ -960,7 +961,7 @@ mod layer_tests {
         let base = s.doc().unwrap().doc.layers[0].id.0;
         let text = json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Rows"});
         let f = s.execute("frame.create", &text).unwrap()["id"].as_u64().unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
         s.execute("text.select", &json!({"story": sid.0, "anchor": 4, "focus": 4})).unwrap();
         let table = s.execute("table.insert", &json!({"rows": 1, "cols": 2})).unwrap()["table"].as_u64().unwrap();
         let copy = s.execute("layer.duplicate", &json!({"id": base})).unwrap()["id"].as_u64().unwrap();
@@ -987,14 +988,14 @@ mod layer_tests {
         let base = s.doc().unwrap().doc.layers[0].id.0;
         let text = json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Rows"});
         let f = s.execute("frame.create", &text).unwrap()["id"].as_u64().unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
         s.execute("text.select", &json!({"story": sid.0, "anchor": 4, "focus": 4})).unwrap();
         let table = s.execute("table.insert", &json!({"rows": 1, "cols": 2})).unwrap()["table"].as_u64().unwrap();
         let d = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
         let inner = d.alloc();
         let deepest = d.alloc();
-        let mut nested = designcraft_doc::Table::new(inner, 1, 1, 0, 0, 40.0);
-        nested.cells[0].text.insert_table(0, designcraft_doc::Table::new(deepest, 1, 1, 0, 0, 20.0));
+        let mut nested = patronusdesign_doc::Table::new(inner, 1, 1, 0, 0, 40.0);
+        nested.cells[0].text.insert_table(0, patronusdesign_doc::Table::new(deepest, 1, 1, 0, 0, 20.0));
         d.story_mut(sid).unwrap().table_mut(table).unwrap().cells[0].text.insert_table(0, nested);
         let copy = s.execute("layer.duplicate", &json!({"id": base})).unwrap()["id"].as_u64().unwrap();
         let d = &s.doc().unwrap().doc;
@@ -1024,7 +1025,7 @@ mod layer_tests {
             let y = 72 + 80 * k;
             let text = json!({"rect": [72, y, 400, y + 60], "content": "text", "text": "Rows"});
             let f = s.execute("frame.create", &text).unwrap()["id"].as_u64().unwrap();
-            let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+            let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
             s.execute("text.select", &json!({"story": sid.0, "anchor": 4, "focus": 4})).unwrap();
             s.execute("table.insert", &json!({"rows": 1, "cols": 2})).unwrap();
             let b = s.execute("frame.create", &json!({"rect": [450, y, 474, y + 40]})).unwrap()["id"].as_u64().unwrap();
@@ -1049,26 +1050,26 @@ mod layer_tests {
         s.execute("file.new", &json!({})).unwrap();
         let base = s.doc().unwrap().doc.layers[0].id.0;
         let f = s.execute("frame.create", &json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Top"})).unwrap()["id"].as_u64().unwrap();
-        let top = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+        let top = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
         s.edit(|d, _| {
-            use designcraft_doc::{AnchoredObject, ParaFormat};
-            let r = designcraft_geom::Rect::new(0.0, 0.0, 60.0, 30.0);
+            use patronusdesign_doc::{AnchoredObject, ParaFormat};
+            let r = patronusdesign_geom::Rect::new(0.0, 0.0, 60.0, 30.0);
             let mut outer = top;
             for _ in 0..40 {
-                let (a, inner) = d.add_text_frame(designcraft_doc::SpreadRef::Doc(0), r, d.default_layer(), "Link", ParaFormat::default())?;
-                let (b, spare) = d.add_text_frame(designcraft_doc::SpreadRef::Doc(0), r, d.default_layer(), "", ParaFormat::default())?;
+                let (a, inner) = d.add_text_frame(patronusdesign_doc::SpreadRef::Doc(0), r, d.default_layer(), "Link", ParaFormat::default())?;
+                let (b, spare) = d.add_text_frame(patronusdesign_doc::SpreadRef::Doc(0), r, d.default_layer(), "", ParaFormat::default())?;
                 let mut items = Vec::new();
                 for f in [a, b] {
-                    let mut it = d.item(f).cloned().ok_or(designcraft_doc::DocError::NoItem(f))?;
-                    if let designcraft_doc::Content::Text(tf) = &mut it.content {
+                    let mut it = d.item(f).cloned().ok_or(patronusdesign_doc::DocError::NoItem(f))?;
+                    if let patronusdesign_doc::Content::Text(tf) = &mut it.content {
                         tf.story = inner;
                     }
                     items.push(it);
                 }
                 d.stories.remove(&spare);
-                d.story_mut(inner).ok_or(designcraft_doc::DocError::NoStory(inner))?.frames = vec![a, b];
+                d.story_mut(inner).ok_or(patronusdesign_doc::DocError::NoStory(inner))?.frames = vec![a, b];
                 std::sync::Arc::make_mut(&mut d.spreads[0]).items.retain(|i| i.id != a && i.id != b);
-                let st = d.story_mut(outer).ok_or(designcraft_doc::DocError::NoStory(outer))?;
+                let st = d.story_mut(outer).ok_or(patronusdesign_doc::DocError::NoStory(outer))?;
                 for it in items.into_iter().rev() {
                     st.insert_object(0, AnchoredObject::new(it, Default::default()));
                 }
@@ -1104,10 +1105,10 @@ mod layer_tests {
     /// shows the second: within the limit in each story, past it in all.
     #[test]
     fn duplicate_layer_refuses_nesting_too_deep_across_stories() {
-        use designcraft_doc::{AnchoredObject, Content, Item, ItemId};
+        use patronusdesign_doc::{AnchoredObject, Content, Item, ItemId};
         use std::sync::Arc;
 
-        fn nest(d: &mut designcraft_doc::Document, mut it: Item, levels: usize) -> Item {
+        fn nest(d: &mut patronusdesign_doc::Document, mut it: Item, levels: usize) -> Item {
             for _ in 0..levels {
                 let mut group = it.clone();
                 group.id = ItemId(d.alloc());
@@ -1140,7 +1141,7 @@ mod layer_tests {
     /// past the limit of the copy, which counts the group itself.
     #[test]
     fn duplicate_layer_refuses_an_empty_group_at_the_copy_limit() {
-        use designcraft_doc::{Content, ItemId};
+        use patronusdesign_doc::{Content, ItemId};
         use std::sync::Arc;
 
         let mut s = crate::Session::new();
@@ -1181,9 +1182,9 @@ mod layer_tests {
         let copies = on_layer(d, copy);
         assert_eq!(copies.len(), 1, "the override only: the parent item is on Art");
         assert_eq!(copies[0].overrides, None, "a plain object, so the original override stays the only one");
-        assert_eq!(d.item(designcraft_doc::ItemId(o)).unwrap().overrides, Some(designcraft_doc::ItemId(parent)));
+        assert_eq!(d.item(patronusdesign_doc::ItemId(o)).unwrap().overrides, Some(patronusdesign_doc::ItemId(parent)));
         let (si, pi) = d.page_loc(1).unwrap();
-        assert_eq!(d.spreads[si].pages[pi].overridden, [designcraft_doc::ItemId(parent)]);
+        assert_eq!(d.spreads[si].pages[pi].overridden, [patronusdesign_doc::ItemId(parent)]);
     }
 }
 
@@ -1200,12 +1201,12 @@ mod layer_options_tests {
         let all = json!({"id": id, "name": "  Artwork ", "color": "Gold", "visible": false, "locked": true, "printable": false,
             "showGuides": false, "suppressWrapWhenHidden": true});
         s.execute("layer.set", &all).unwrap();
-        let l = s.doc().unwrap().doc.layer(designcraft_doc::LayerId(id)).cloned().unwrap();
+        let l = s.doc().unwrap().doc.layer(patronusdesign_doc::LayerId(id)).cloned().unwrap();
         assert_eq!(l.name, "Artwork");
         assert_eq!(l.color, [255, 153, 0]);
         assert!(!l.visible && l.locked && !l.printable && !l.show_guides && l.suppress_wrap_when_hidden);
         s.execute("edit.undo", &json!({})).unwrap();
-        assert_eq!(s.doc().unwrap().doc.layer(designcraft_doc::LayerId(id)).unwrap().name, "Art", "one undo step");
+        assert_eq!(s.doc().unwrap().doc.layer(patronusdesign_doc::LayerId(id)).unwrap().name, "Art", "one undo step");
         let first_name = s.doc().unwrap().doc.layers.iter().find(|l| l.id.0 == first).unwrap().name.clone();
         let before = s.doc().unwrap().doc.layers.clone();
         for p in [

@@ -16,7 +16,7 @@ pub(super) fn xmp_date(xmp: &str, key: &str) -> Option<i64> {
         let rest = xmp.get(i + key.len() + 2..)?;
         rest.get(..rest.find('"')?)?
     };
-    designcraft_doc::vars::parse_iso_date(value)
+    patronusdesign_doc::vars::parse_iso_date(value)
 }
 
 pub(super) fn lab_to_color(l: f32, a: f32, b: f32) -> Color {

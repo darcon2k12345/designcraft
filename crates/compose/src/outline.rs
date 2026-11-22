@@ -1,7 +1,7 @@
 //! The outline of a non-rectangular text frame (ovals, polygons, corner options, Pathfinder
 //! results, freeform closed paths): lines are set in the part of each line band the outline covers.
 
-use designcraft_geom::{Affine, BezPath, PathEl, Point};
+use patronusdesign_geom::{Affine, BezPath, PathEl, Point};
 
 /// Flattening tolerance (points) for curved frame outlines.
 const TOLERANCE: f64 = 0.1;
@@ -22,7 +22,7 @@ impl FrameOutline {
     /// The outline of `bp` (closed subpaths only), or None when it is its own axis-aligned
     /// rectangle (or has no area), so the frame keeps its rectangular text area.
     pub fn new(bp: &BezPath, inset: f64) -> Option<FrameOutline> {
-        let bb = designcraft_geom::Shape::bounding_box(bp);
+        let bb = patronusdesign_geom::Shape::bounding_box(bp);
         let extent = bb.width().max(bb.height());
         if !extent.is_finite() {
             return None;
@@ -61,8 +61,8 @@ impl FrameOutline {
 
     /// The outline of `item`'s path with its corner options applied, or None when that is the
     /// item's own rectangle. The composer and the Properties panel's one Inset field both use it.
-    pub fn of_item(item: &designcraft_doc::Item, inset: f64) -> Option<FrameOutline> {
-        let bp = if item.corners.is_none() { item.path.to_bezpath() } else { designcraft_geom::corners::apply(&item.path, &item.corners) };
+    pub fn of_item(item: &patronusdesign_doc::Item, inset: f64) -> Option<FrameOutline> {
+        let bp = if item.corners.is_none() { item.path.to_bezpath() } else { patronusdesign_geom::corners::apply(&item.path, &item.corners) };
         FrameOutline::new(&bp, inset)
     }
 
@@ -195,7 +195,7 @@ fn flatten_closed(bp: &BezPath, tol: f64) -> (Vec<(Point, Point)>, bool) {
         sub.clear();
     };
     let mut over = false;
-    designcraft_geom::kurbo::flatten(bp.iter(), tol, |el| {
+    patronusdesign_geom::kurbo::flatten(bp.iter(), tol, |el| {
         if over {
             return;
         }

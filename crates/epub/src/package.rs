@@ -39,7 +39,7 @@ fn modified(doc: &Document, opts: &EpubOptions) -> String {
     timestamp.map_or_else(
         || "2026-01-01T00:00:00Z".to_owned(),
         |time| {
-            let (year, date) = designcraft_doc::time::utc_parts(time, 0);
+            let (year, date) = patronusdesign_doc::time::utc_parts(time, 0);
             format!("{year:04}-{}", date.format("%m-%dT%H:%M:%SZ"))
         },
     )
@@ -52,7 +52,7 @@ fn metadata(doc: &Document, opts: &EpubOptions, title: &str, language: &str) -> 
         language: language.to_owned(),
         creators: opts.author.as_deref().or(doc.metadata_author()).into_iter().map(str::to_owned).collect(),
         modified: modified(doc, opts),
-        generator: Some("DesignCraft".into()),
+        generator: Some("Patronus Design".into()),
         ..Default::default()
     }
 }

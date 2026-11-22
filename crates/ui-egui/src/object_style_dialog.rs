@@ -29,7 +29,7 @@ const ATTRIBUTES: [(&str, &str); 6] = [
 /// The fields of the Paragraph Styles and Text Frame General Options pages: the style's paragraph
 /// style (`""`: none), Apply Next Style, and text frame options `tf` as the Text Frame Options
 /// dialog shows them (`tfBase` keeps the options as they are, `tfShown` the fields as first shown).
-fn text_fields(app: &DesignApp, fields: &mut Value, paragraph: Option<&str>, next: bool, tf: &designcraft_doc::TextFrameOptions) {
+fn text_fields(app: &DesignApp, fields: &mut Value, paragraph: Option<&str>, next: bool, tf: &patronusdesign_doc::TextFrameOptions) {
     fields["paragraphStyle"] = json!(paragraph.unwrap_or(""));
     fields["applyNext"] = json!(next);
     fields["tfBase"] = serde_json::to_value(tf).unwrap_or_default();
@@ -42,8 +42,8 @@ fn text_fields(app: &DesignApp, fields: &mut Value, paragraph: Option<&str>, nex
 }
 
 /// The active document's ruler unit, which a bare number in a measurement field is in.
-fn doc_units(app: &DesignApp) -> designcraft_geom::Unit {
-    app.session.active().map_or(designcraft_geom::Unit::Picas, |s| s.doc.settings.horizontal_units)
+fn doc_units(app: &DesignApp) -> patronusdesign_geom::Unit {
+    app.session.active().map_or(patronusdesign_geom::Unit::Picas, |s| s.doc.settings.horizontal_units)
 }
 
 /// The dialog with `fields`, reading bare numbers in the document's ruler unit.
@@ -84,7 +84,7 @@ pub fn open_new(app: &mut DesignApp) {
         "doc": doc,
         "targets": targets,
         "name": name,
-        "basedOn": designcraft_doc::NO_OBJECT_STYLE,
+        "basedOn": patronusdesign_doc::NO_OBJECT_STYLE,
         "fill": it.as_ref().map(|i| i.fill.clone()).unwrap_or_default(),
         "stroke": it.as_ref().map(|i| i.stroke.clone()).unwrap_or_default(),
         // A style holds named corners (top left, top right, …), the item its path's.
@@ -105,7 +105,7 @@ pub fn open_edit(app: &mut DesignApp, name: &str) -> Result<(), String> {
     let Some(os) = app.session.active().and_then(|st| st.doc.styles.object_style(name).cloned()) else {
         return Err(format!("no object style `{name}`"));
     };
-    if name == designcraft_doc::NO_OBJECT_STYLE {
+    if name == patronusdesign_doc::NO_OBJECT_STYLE {
         return Err(format!("`{name}` has no options"));
     }
     let mut fields = json!({
@@ -113,7 +113,7 @@ pub fn open_edit(app: &mut DesignApp, name: &str) -> Result<(), String> {
         "doc": document_key(app),
         "orig": name,
         "name": name,
-        "basedOn": os.based_on.as_deref().unwrap_or(designcraft_doc::NO_OBJECT_STYLE),
+        "basedOn": os.based_on.as_deref().unwrap_or(patronusdesign_doc::NO_OBJECT_STYLE),
         "fill": os.fill.clone().unwrap_or_default(),
         "stroke": os.stroke.clone().unwrap_or_default(),
         "corners": os.corners.unwrap_or_default(),
@@ -162,11 +162,11 @@ fn attrs(d: &Dialog) -> serde_json::Map<String, Value> {
 
 /// The Text Frame General Options page as the style's text frame options (the options it doesn't
 /// show as they were), or `None` when the style doesn't set them.
-fn frame_options(d: &Dialog) -> Result<Option<designcraft_doc::TextFrameOptions>, String> {
+fn frame_options(d: &Dialog) -> Result<Option<patronusdesign_doc::TextFrameOptions>, String> {
     if !included(d, "textFrame") {
         return Ok(None);
     }
-    let mut o: designcraft_doc::TextFrameOptions = d.fields.get("tfBase").and_then(|v| serde_json::from_value(v.clone()).ok()).unwrap_or_default();
+    let mut o: patronusdesign_doc::TextFrameOptions = d.fields.get("tfBase").and_then(|v| serde_json::from_value(v.clone()).ok()).unwrap_or_default();
     let bad = |what: &str| format!("Text Frame General Options: {what}");
     // A field still as first shown keeps the option's value, which the field shows rounded.
     let shown = d.fields.get("tfShown").cloned().unwrap_or(Value::Null);
@@ -182,7 +182,7 @@ fn frame_options(d: &Dialog) -> Result<Option<designcraft_doc::TextFrameOptions>
         .ok_or_else(|| bad("the number of columns is a whole number from 1 to 40"))? as u32;
     o.gutter = measure("gutter", o.gutter).ok_or_else(|| bad("the gutter is not a measure"))?;
     o.columns_kind = serde_json::from_value(json!(d.s("columnsKind"))).unwrap_or(o.columns_kind);
-    if o.columns_kind == designcraft_doc::ColumnsKind::FixedWidth {
+    if o.columns_kind == patronusdesign_doc::ColumnsKind::FixedWidth {
         o.column_width = measure("columnWidth", o.column_width).ok_or_else(|| bad("the column width is not a measure"))?;
     }
     o.balance_columns = d.b("balanceColumns");
@@ -190,7 +190,7 @@ fn frame_options(d: &Dialog) -> Result<Option<designcraft_doc::TextFrameOptions>
         *side = measure(key, *side).ok_or_else(|| bad("an inset is not a measure"))?;
     }
     o.vertical_justification = serde_json::from_value(json!(d.s("verticalJustification"))).unwrap_or(o.vertical_justification);
-    if o.vertical_justification == designcraft_doc::VerticalJustification::Justify {
+    if o.vertical_justification == patronusdesign_doc::VerticalJustification::Justify {
         o.vj_paragraph_spacing_limit =
             measure("paragraphSpacingLimit", o.vj_paragraph_spacing_limit).ok_or_else(|| bad("the paragraph spacing limit is not a measure"))?;
     }
@@ -199,10 +199,10 @@ fn frame_options(d: &Dialog) -> Result<Option<designcraft_doc::TextFrameOptions>
 }
 
 /// The General options of `o` as the `textFrame` parameter of `style.object.create` and `edit`.
-fn general_json(o: &designcraft_doc::TextFrameOptions) -> Value {
+fn general_json(o: &patronusdesign_doc::TextFrameOptions) -> Value {
     let mut v = serde_json::to_value(o).unwrap_or_default();
     if let Value::Object(m) = &mut v {
-        m.retain(|k, _| designcraft_doc::TextFrameOptions::GENERAL_KEYS.contains(&k.as_str()));
+        m.retain(|k, _| patronusdesign_doc::TextFrameOptions::GENERAL_KEYS.contains(&k.as_str()));
     }
     v
 }
@@ -235,7 +235,7 @@ pub fn confirm(app: &mut DesignApp, d: &Dialog) -> Result<Value, String> {
                 .into_iter()
                 .flatten()
                 .filter_map(Value::as_u64)
-                .filter(|id| st.doc.item(designcraft_doc::ItemId(*id)).is_some())
+                .filter(|id| st.doc.item(patronusdesign_doc::ItemId(*id)).is_some())
                 .collect()
         });
         if d.b("apply")
@@ -354,7 +354,7 @@ fn settings(app: &DesignApp, d: &Dialog) -> Vec<String> {
     }
     if included(d, "corners") {
         let c = &get(d, &["corners"])["corners"][0];
-        let shape: designcraft_geom::corners::CornerShape = serde_json::from_value(c["shape"].clone()).unwrap_or_default();
+        let shape: patronusdesign_geom::corners::CornerShape = serde_json::from_value(c["shape"].clone()).unwrap_or_default();
         out.push(format!("{}: {} {} pt", tr("Corner Options"), tr(shape.label()), c["size"].as_f64().unwrap_or(0.0)));
     }
     let paragraph = d.s("paragraphStyle");
@@ -453,11 +453,11 @@ fn page_ui(app: &DesignApp, ui: &mut egui::Ui, d: &mut Dialog, page: &str) {
                     }
                     ui.add_space(12.0);
                     crate::rtl::label(ui, tr("Shape:"));
-                    let cur: designcraft_geom::corners::CornerShape =
+                    let cur: patronusdesign_geom::corners::CornerShape =
                         serde_json::from_value(get(d, &["corners", "corners"])[0]["shape"].clone()).unwrap_or_default();
                     let mut picked = None;
                     craft_ui::ComboBox::from_id_salt("os_corner_shape").selected_text(tr(cur.label())).width(140.0).show_ui(ui, |ui| {
-                        for s in designcraft_geom::corners::CornerShape::ALL {
+                        for s in patronusdesign_geom::corners::CornerShape::ALL {
                             if ui.selectable_label(s == cur, tr(s.label())).clicked() {
                                 picked = Some(s);
                             }
@@ -593,7 +593,7 @@ mod tests {
     }
 
     fn app_with_frame() -> (DesignApp, u64) {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let id = app.run("frame.create", json!({"rect": [72, 72, 172, 172], "content": "graphic"})).unwrap()["id"].as_u64().unwrap();
         app.run("selection.set", json!({"ids": [id]})).unwrap();
@@ -660,7 +660,7 @@ mod tests {
         crate::dialogs::confirm(&mut app).unwrap();
         let name = "Rounded Corner Image, White Stroke";
         let doc = |app: &DesignApp| app.session.active().unwrap().doc.clone();
-        let item = |app: &DesignApp, id: u64| doc(app).item(designcraft_doc::ItemId(id)).unwrap().clone();
+        let item = |app: &DesignApp, id: u64| doc(app).item(patronusdesign_doc::ItemId(id)).unwrap().clone();
         assert_eq!(item(&app, a).object_style, name, "applied to the selection");
         let os = doc(&app).styles.object_style(name).cloned().unwrap();
         assert!(os.corners.is_some() && os.effects.as_ref().unwrap().drop_shadow.on && os.stroke.as_ref().unwrap().weight == 2.5);
@@ -685,7 +685,7 @@ mod tests {
     /// Options › Text Frame General Options then gives the style's frames insets and two columns.
     #[test]
     fn an_object_style_nests_a_paragraph_style_and_sets_text_frame_options() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         app.run("style.paragraph.create", json!({"name": "Body Text"})).unwrap();
         app.run("style.paragraph.create", json!({"name": "Drop Cap First Paragraph", "nextStyle": "Body Text", "para": {"dropCapLines": 3}}))
@@ -716,10 +716,10 @@ mod tests {
         let doc = |app: &DesignApp| app.session.active().unwrap().doc.clone();
         let story = |app: &DesignApp| {
             let d = doc(app);
-            let sid = d.item(designcraft_doc::ItemId(id)).unwrap().text_frame().unwrap().story;
+            let sid = d.item(patronusdesign_doc::ItemId(id)).unwrap().text_frame().unwrap().story;
             d.story(sid).unwrap().clone()
         };
-        assert_eq!(doc(&app).item(designcraft_doc::ItemId(id)).unwrap().object_style, "Text Box Drop Cap");
+        assert_eq!(doc(&app).item(patronusdesign_doc::ItemId(id)).unwrap().object_style, "Text Box Drop Cap");
         assert_eq!(story(&app).paras[0].style, "Drop Cap First Paragraph", "the frame's text takes the nested style");
         app.run("type.fillWithPlaceholder", json!({"frame": id})).unwrap();
         assert!(story(&app).paras.iter().all(|p| p.style == "Drop Cap First Paragraph"));
@@ -740,7 +740,7 @@ mod tests {
             assert!(texts.iter().any(|x| x.trim() == t), "{t}: {texts:?}");
         }
         crate::dialogs::confirm(&mut app).unwrap();
-        let o = doc(&app).item(designcraft_doc::ItemId(id)).unwrap().text_frame().unwrap().options.clone();
+        let o = doc(&app).item(patronusdesign_doc::ItemId(id)).unwrap().text_frame().unwrap().options.clone();
         assert_eq!((o.columns, o.inset), (2, [4.0; 4]));
         let os = doc(&app).styles.object_style("Text Box Drop Cap").cloned().unwrap();
         assert_eq!((os.paragraph_style.as_deref(), os.text_frame.map(|t| t.columns)), (Some("Drop Cap First Paragraph"), Some(2)));
@@ -764,7 +764,7 @@ mod tests {
     /// sets both on the style and its frame, and the frame keeps its auto-size setting.
     #[test]
     fn the_general_options_page_sets_the_paragraph_spacing_limit() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let r = app.run("frame.create", json!({"rect": [36, 36, 336, 336], "content": "text", "caret": false})).unwrap();
         let id = r["id"].as_u64().unwrap();
@@ -779,10 +779,10 @@ mod tests {
         crate::dialogs::confirm(&mut app).unwrap();
         let doc = app.session.active().unwrap().doc.clone();
         let tf = doc.styles.object_style("Justified").and_then(|s| s.text_frame.clone()).unwrap();
-        assert_eq!((tf.vertical_justification, tf.vj_paragraph_spacing_limit), (designcraft_doc::VerticalJustification::Justify, 6.0));
+        assert_eq!((tf.vertical_justification, tf.vj_paragraph_spacing_limit), (patronusdesign_doc::VerticalJustification::Justify, 6.0));
         app.run("style.object.apply", json!({"name": "Justified", "ids": [id]})).unwrap();
-        let o = app.session.active().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap().text_frame().unwrap().options.clone();
-        assert_eq!((o.vj_paragraph_spacing_limit, o.auto_size), (6.0, designcraft_doc::AutoSize::HeightOnly));
+        let o = app.session.active().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap().text_frame().unwrap().options.clone();
+        assert_eq!((o.vj_paragraph_spacing_limit, o.auto_size), (6.0, patronusdesign_doc::AutoSize::HeightOnly));
     }
 
     /// `objectStyle.dialog` with a style the document lacks, or `[None]`, is an error and opens
@@ -790,7 +790,7 @@ mod tests {
     #[test]
     fn the_dialog_command_refuses_a_style_with_no_options() {
         let (mut app, _) = app_with_frame();
-        for name in ["Nope", designcraft_doc::NO_OBJECT_STYLE] {
+        for name in ["Nope", patronusdesign_doc::NO_OBJECT_STYLE] {
             assert!(app.run("objectStyle.dialog", json!({"name": name})).is_err(), "{name}");
             assert!(app.ui.dialog.is_none(), "{name}");
         }
@@ -839,7 +839,7 @@ mod tests {
     }
 
     fn app_with_text_frame(units: &str) -> DesignApp {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         app.run("document.preferences", json!({"horizontalUnits": units, "verticalUnits": units})).unwrap();
         let r = app.run("frame.create", json!({"rect": [36, 36, 336, 336], "content": "text", "caret": false})).unwrap();
@@ -894,7 +894,7 @@ mod tests {
     /// the dialog open with the reason and changes no style.
     #[test]
     fn the_dialog_acts_only_on_the_document_it_opened_for() {
-        let name = designcraft_doc::BASIC_GRAPHICS_FRAME;
+        let name = patronusdesign_doc::BASIC_GRAPHICS_FRAME;
         let weights = |app: &DesignApp| -> Vec<f64> {
             app.session
                 .documents()
@@ -908,7 +908,7 @@ mod tests {
                 set(d, &["stroke", "weight"], json!(9.0));
             }
         };
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"title": "A"})).unwrap();
         app.run("file.new", json!({"title": "B"})).unwrap();
         app.session.set_active(0);
@@ -968,7 +968,7 @@ mod tests {
         }
         app.run("selection.set", json!({"ids": [b]})).unwrap();
         crate::dialogs::confirm(&mut app).unwrap();
-        let style = |id: u64| app.session.active().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap().object_style.clone();
+        let style = |id: u64| app.session.active().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap().object_style.clone();
         assert_eq!(style(a), "Picked");
         assert_ne!(style(b), "Picked");
     }

@@ -2,12 +2,12 @@
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
-use designcraft_color::{Color, ColorType, GradientKind, SwatchValue, swatch};
-use designcraft_doc::{
+use patronusdesign_color::{Color, ColorType, GradientKind, SwatchValue, swatch};
+use patronusdesign_doc::{
     CharAttrs, CharFormat, ColumnsKind, Content, Document, Item, ListType, PageSide, ParaAttrs, ParaFormat, Rule, Shape, SpanColumns, Spread, Story,
     TextFrameOptions, story as st,
 };
-use designcraft_geom::{Affine, PathData};
+use patronusdesign_geom::{Affine, PathData};
 
 use crate::base64_encode;
 use crate::names::{self, CHAR_BUILTINS, OBJECT_BUILTINS, PARA_BUILTINS, escape_id, num, pt};

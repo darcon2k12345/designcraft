@@ -5,7 +5,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::sync::Mutex;
 
-use designcraft_doc::{AssetData, SourceKey, WeakAssetData};
+use patronusdesign_doc::{AssetData, SourceKey, WeakAssetData};
 
 use craft_pdf::syntax::Pdf;
 use craft_pdf::syntax::object::{Array, Dict, MaybeRef, Name, ObjRef, Object, ObjectIdentifier};
@@ -503,7 +503,7 @@ pub(crate) mod tests {
 
         let missing = linked::file("mem:/missing-layers.pdf", None, bytes.len() as u64);
         // Other tests say the links changed, which asks for missing files again.
-        let generation = designcraft_doc::asset_data::link_generation();
+        let generation = patronusdesign_doc::asset_data::link_generation();
         let mut failed = false;
         for _ in 0..500 {
             if matches!(layered(&missing, &blue, false, |_| false), Layered::Failed) {
@@ -517,7 +517,7 @@ pub(crate) mod tests {
             assert!(matches!(layered(&missing, &blue, false, |_| false), Layered::Failed));
             assert!(matches!(layered(&missing, &blue, true, |_| false), Layered::Failed));
         }
-        if designcraft_doc::asset_data::link_generation() == generation {
+        if patronusdesign_doc::asset_data::link_generation() == generation {
             assert_eq!(linked::reads("mem:/missing-layers.pdf"), 1, "not read again before the links change");
         }
     }

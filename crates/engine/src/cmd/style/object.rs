@@ -43,7 +43,7 @@ pub(super) fn clear_object_overrides(s: &mut Session, p: &Value) -> Result<Value
     // and a text frame's story back in the style's paragraph style, as applying the style does.
     let d = &s.doc()?.doc;
     let mut changed: Vec<Item> = Vec::new();
-    let mut restyled: Vec<(designcraft_doc::StoryId, ObjectStyle)> = Vec::new();
+    let mut restyled: Vec<(patronusdesign_doc::StoryId, ObjectStyle)> = Vec::new();
     let mut n = 0;
     for id in &ids {
         let Some(it) = d.item(*id) else { continue };
@@ -206,9 +206,9 @@ fn paragraph_style_param(cmd: &str, s: &Session, p: &Value) -> Result<Option<Opt
 fn text_frame_param(
     cmd: &str,
     p: &Value,
-    base: Option<&designcraft_doc::TextFrameOptions>,
-) -> Result<Option<Option<designcraft_doc::TextFrameOptions>>> {
-    let general = designcraft_doc::TextFrameOptions::GENERAL_KEYS;
+    base: Option<&patronusdesign_doc::TextFrameOptions>,
+) -> Result<Option<Option<patronusdesign_doc::TextFrameOptions>>> {
+    let general = patronusdesign_doc::TextFrameOptions::GENERAL_KEYS;
     let mut p = p.clone();
     if let Some(Value::Object(o)) = p.get_mut("textFrame") {
         if let Some(k) = o.keys().find(|k| !general.contains(&k.as_str())) {
@@ -218,7 +218,7 @@ fn text_frame_param(
             o.insert("inset".into(), json!([n, n, n, n]));
         }
     }
-    let tf = group_param(cmd, &p, "textFrame", base.unwrap_or(&designcraft_doc::TextFrameOptions::default()), &[])?;
+    let tf = group_param(cmd, &p, "textFrame", base.unwrap_or(&patronusdesign_doc::TextFrameOptions::default()), &[])?;
     if let Some(Some(o)) = &tf {
         // Only the values given in this call are checked.
         let given = |k: &str| p.get("textFrame").is_some_and(|t| t.get(k).is_some());
@@ -245,7 +245,7 @@ fn bool_param(cmd: &str, p: &Value, key: &str) -> Result<Option<bool>> {
 
 /// `p.stroke` merged over `base` (as [`group_param`]), refused when the weight isn't a number ≥ 0,
 /// the tint or gap tint isn't 0–1, or the type has a field its kind doesn't take.
-fn stroke_param(cmd: &str, p: &Value, base: Option<&designcraft_doc::Stroke>) -> Result<Option<Option<designcraft_doc::Stroke>>> {
+fn stroke_param(cmd: &str, p: &Value, base: Option<&patronusdesign_doc::Stroke>) -> Result<Option<Option<patronusdesign_doc::Stroke>>> {
     let optional = ["gapOverprint", "gradientAngle", "gradientVector"];
     let base = base.cloned().unwrap_or_default();
     // A type without `kind` keeps the style's kind, so it takes that kind's fields.
@@ -294,11 +294,11 @@ fn group_param<T: serde::Serialize + serde::de::DeserializeOwned>(
 }
 
 /// `fill`: a swatch name, `{swatch?, tint?}` over `base`, or null.
-fn fill_param(cmd: &str, p: &Value, base: Option<&designcraft_doc::Fill>) -> Result<Option<Option<designcraft_doc::Fill>>> {
+fn fill_param(cmd: &str, p: &Value, base: Option<&patronusdesign_doc::Fill>) -> Result<Option<Option<patronusdesign_doc::Fill>>> {
     if let Some(sw) = p.get("fill").and_then(Value::as_str) {
-        return Ok(Some(Some(designcraft_doc::Fill::swatch(sw))));
+        return Ok(Some(Some(patronusdesign_doc::Fill::swatch(sw))));
     }
-    let fill = group_param(cmd, p, "fill", base.unwrap_or(&designcraft_doc::Fill::default()), &["gradientAngle", "gradientVector"])?;
+    let fill = group_param(cmd, p, "fill", base.unwrap_or(&patronusdesign_doc::Fill::default()), &["gradientAngle", "gradientVector"])?;
     if let Some(Some(f)) = &fill
         && !(f.tint.is_finite() && (0.0..=1.0).contains(&f.tint))
     {
@@ -311,8 +311,8 @@ fn fill_param(cmd: &str, p: &Value, base: Option<&designcraft_doc::Fill>) -> Res
 fn corners_param(
     cmd: &str,
     p: &Value,
-    base: designcraft_geom::corners::CornerOptions,
-) -> Result<Option<Option<designcraft_geom::corners::CornerOptions>>> {
+    base: patronusdesign_geom::corners::CornerOptions,
+) -> Result<Option<Option<patronusdesign_geom::corners::CornerOptions>>> {
     let Some(v) = p.get("corners") else { return Ok(None) };
     if v.is_null() {
         return Ok(Some(None));
@@ -322,7 +322,7 @@ fn corners_param(
         return Err(bad(cmd, format!("corners.{k} is not a corner setting (shape, size, corners)")));
     }
     let mut c = if o.contains_key("corners") {
-        serde_json::from_value::<designcraft_geom::corners::CornerOptions>(v.clone()).map_err(|e| bad(cmd, format!("corners: {e}")))?
+        serde_json::from_value::<patronusdesign_geom::corners::CornerOptions>(v.clone()).map_err(|e| bad(cmd, format!("corners: {e}")))?
     } else {
         base
     };
@@ -344,7 +344,7 @@ fn corners_param(
 pub(super) fn edit_object(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "style.object.edit";
     let name = str_param(p, "name").ok_or_else(|| bad(CMD, "missing name"))?.to_string();
-    if name == designcraft_doc::NO_OBJECT_STYLE {
+    if name == patronusdesign_doc::NO_OBJECT_STYLE {
         return Err(bad(CMD, format!("`{name}` can't be edited")));
     }
     let old = s.doc()?.doc.styles.object_style(&name).cloned().ok_or_else(|| bad(CMD, format!("no object style `{name}`")))?;
@@ -420,11 +420,11 @@ pub(super) fn edit_object(s: &mut Session, p: &Value) -> Result<Value> {
         let stroke = (new.stroke != old.stroke).then_some(new.stroke.clone()).flatten().map(|f| (old.stroke.clone(), f));
         // With no stroke in the style before, an item with no stroke (a frame's default) or a
         // 1 pt black one (a drawn shape's default) follows.
-        let stroke_follows = |it: &Item, old: &Option<designcraft_doc::Stroke>| match old {
+        let stroke_follows = |it: &Item, old: &Option<patronusdesign_doc::Stroke>| match old {
             Some(o) => it.stroke == *o,
             None => {
-                it.stroke == designcraft_doc::Stroke::none()
-                    || (matches!(it.content, designcraft_doc::Content::Unassigned) && it.stroke == designcraft_doc::Stroke::default())
+                it.stroke == patronusdesign_doc::Stroke::none()
+                    || (matches!(it.content, patronusdesign_doc::Content::Unassigned) && it.stroke == patronusdesign_doc::Stroke::default())
             }
         };
         let corners = (new.corners != old.corners).then_some(new.corners).flatten().map(|c| (old.corners.unwrap_or_default(), c));

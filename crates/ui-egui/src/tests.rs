@@ -4,7 +4,7 @@ use super::*;
 /// row hung below the panel and was cut off.
 #[test]
 fn control_bar_shows_its_second_row() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), Services::default());
     app.run("file.newSample", json!({})).unwrap();
     app.ui.control_bar = true;
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
@@ -60,7 +60,7 @@ fn black_shows_as_rich_black_by_default() {
 /// they follow the active document's ruler units.
 #[test]
 fn tool_readouts_measure_in_the_documents_units() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), Services::default());
     assert_eq!(app.view_info().unit, Unit::Picas, "no document: the UI's default");
     app.run("file.new", json!({})).unwrap();
     app.run("document.preferences", json!({"horizontalUnits": "inches", "verticalUnits": "millimeters"})).unwrap();
@@ -76,7 +76,7 @@ fn save_dialogs_start_beside_the_document_or_in_the_last_folder() {
     let elsewhere = tempfile::tempdir().unwrap();
     let asked: Rc<RefCell<Vec<String>>> = Rc::default();
     let answer: Rc<RefCell<Option<String>>> = Rc::default();
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), Services::default());
     let (seen, reply) = (asked.clone(), answer.clone());
     app.answer_dialogs(move |request| {
         let craft_dialogs::Request::File(dialog) = request else { return craft_dialogs::Answer::Cancelled };
@@ -124,7 +124,7 @@ fn save_dialogs_start_beside_the_document_or_in_the_last_folder() {
 #[test]
 fn save_dialog_suggestions_keep_the_folder_and_only_a_file_name() {
     let folder = tempfile::tempdir().unwrap();
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), Services::default());
     app.ui.last_save_folder = Some(folder.path().join("Docs").to_string_lossy().to_string());
     assert_eq!(app.suggested_save_path(""), "");
     assert_eq!(app.suggested_save_path("Q1/Q2.pdf"), folder.path().join("Docs").join("Q2.pdf").to_string_lossy());
@@ -132,7 +132,7 @@ fn save_dialog_suggestions_keep_the_folder_and_only_a_file_name() {
 
 /// An app with one document that has an unsaved edit.
 fn app_with_unsaved_document() -> DesignApp {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), Services::default());
     app.run("file.new", json!({})).unwrap();
     assert!(!app.session.documents()[0].is_dirty(), "a new document has nothing to save");
     app.run("frame.create", json!({"rect": [36, 36, 136, 136]})).unwrap();
@@ -153,7 +153,7 @@ fn the_recovery_timer_writes_off_the_interface_thread() {
     let entry = dir.path().join(format!("{uid}.designcraft"));
     // The writer stops at the start of the write until the test lets it go on, so a frame that
     // waited for the write would never return.
-    let held = designcraft_engine::recovery::testing::hold_next_write(dir.path());
+    let held = patronusdesign_engine::recovery::testing::hold_next_write(dir.path());
     // egui discards a pass that needs another layout; the timer runs in the first pass it keeps.
     for _ in 0..10 {
         shot_frame(&mut app, &ctx, egui::vec2(1400.0, 900.0));
@@ -171,7 +171,7 @@ fn the_recovery_timer_writes_off_the_interface_thread() {
     assert!(app.recovery_writing, "the write is still held");
     assert!(!entry.exists(), "nothing is published while the write is held");
     held.release();
-    designcraft_engine::recovery::testing::wait_until_idle();
+    patronusdesign_engine::recovery::testing::wait_until_idle();
     shot_frame(&mut app, &ctx, egui::vec2(1400.0, 900.0));
     assert!(!app.recovery_writing, "the frame after the write took its result");
     assert!(entry.exists(), "the timer's background write published the document");
@@ -211,7 +211,7 @@ fn closing_without_saving_discards_the_document() {
 #[test]
 fn closing_with_save_writes_the_file_then_closes() {
     let mut app = app_with_unsaved_document();
-    let path = std::env::temp_dir().join(format!("designcraft-close-test-{}.designcraft", std::process::id()));
+    let path = std::env::temp_dir().join(format!("patronusdesign-close-test-{}.designcraft", std::process::id()));
     app.run("file.saveAs", json!({"path": path})).unwrap();
     let saved = std::fs::metadata(&path).unwrap().len();
     app.run("frame.create", json!({"rect": [200, 200, 300, 300]})).unwrap();
@@ -236,7 +236,7 @@ fn a_cancelled_save_keeps_the_document_open() {
 
 #[test]
 fn closing_a_saved_document_does_not_ask() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), Services::default());
     app.run("file.new", json!({})).unwrap();
     menus::activate(&mut app, "file.close", &Value::Null);
     assert!(app.session.documents().is_empty());
@@ -357,7 +357,7 @@ fn native_quit_prompts_restore_window_visibility_without_focusing_completed_quit
     let completed = quit_frame(&mut app, &ctx, true);
     assert!(app.session.documents().is_empty());
 
-    let mut clean = DesignApp::new(designcraft_engine::Session::new(), Services::default());
+    let mut clean = DesignApp::new(patronusdesign_engine::Session::new(), Services::default());
     clean.run("file.new", json!({})).unwrap();
     let clean_close = quit_frame(&mut clean, &ctx, true);
     let mut control = app_with_unsaved_document();
@@ -438,7 +438,7 @@ fn repeated_native_quit_requests_save_and_discard_only_after_all_answers() {
     assert!(quit_frame(&mut app, &ctx, true).is_empty());
     assert!(app.session.documents().is_empty());
     assert!(path.exists());
-    assert_eq!(designcraft_engine::Session::new().execute("file.open", &json!({"path": path})).unwrap()["index"], 0);
+    assert_eq!(patronusdesign_engine::Session::new().execute("file.open", &json!({"path": path})).unwrap()["index"], 0);
     assert_eq!(std::fs::read_dir(app.session.recovery_dir.as_ref().unwrap()).unwrap().count(), 0);
 }
 
@@ -478,7 +478,7 @@ fn quitting_save_failure_after_discard_keeps_documents_and_can_retry() {
     let mut app = app_with_unsaved_document();
     second_unsaved_document(&mut app);
     let path = std::env::temp_dir()
-        .join(format!("designcraft-quit-missing-{}-{}", std::process::id(), app.session.active().unwrap().uid))
+        .join(format!("patronusdesign-quit-missing-{}-{}", std::process::id(), app.session.active().unwrap().uid))
         .join("missing")
         .join("document.designcraft");
     assert!(!path.parent().unwrap().exists());
@@ -535,7 +535,7 @@ fn quitting_save_then_later_cancel_keeps_saved_document_open() {
     let mut app = app_with_unsaved_document();
     second_unsaved_document(&mut app);
     let first = app.session.documents()[0].uid;
-    let path = std::env::temp_dir().join(format!("designcraft-quit-save-{}-{first}.designcraft", std::process::id()));
+    let path = std::env::temp_dir().join(format!("patronusdesign-quit-save-{}-{first}.designcraft", std::process::id()));
     let picked = path.to_string_lossy().to_string();
     app.answer_dialogs(crate::app::file_dialogs::testing::answer_with(Some(picked.clone())));
     quit_frame(&mut app, &ctx, true);
@@ -589,7 +589,7 @@ fn quitting_pending_save_uses_dialog_uid_after_tab_switch() {
     let mut app = app_with_unsaved_document();
     second_unsaved_document(&mut app);
     let first = app.session.documents()[0].uid;
-    let path = std::env::temp_dir().join(format!("designcraft-quit-uid-{}-{first}.designcraft", std::process::id()));
+    let path = std::env::temp_dir().join(format!("patronusdesign-quit-uid-{}-{first}.designcraft", std::process::id()));
     let picked = path.to_string_lossy().to_string();
     app.answer_dialogs(crate::app::file_dialogs::testing::answer_with(Some(picked.clone())));
     quit_frame(&mut app, &ctx, true);
@@ -609,7 +609,7 @@ fn quitting_discard_preserves_recovery_until_final_commit() {
     let ctx = egui::Context::default();
     let mut app = app_with_unsaved_document();
     let uid = app.session.active().unwrap().uid;
-    let dir = std::env::temp_dir().join(format!("designcraft-quit-recovery-{}-{uid}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("patronusdesign-quit-recovery-{}-{uid}", std::process::id()));
     app.session.recovery_dir = Some(dir.clone());
     app.run("file.recovery.save", json!({})).unwrap();
     let entry = dir.join(format!("{uid}.designcraft"));
@@ -675,7 +675,7 @@ fn quitting_native_exit_retains_incomplete_stale_and_new_document_plans() {
 #[test]
 fn quitting_without_unsaved_changes_closes_at_once() {
     let ctx = egui::Context::default();
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), Services::default());
     app.run("file.new", json!({})).unwrap();
     // Quit (⌘Q) closes the window like its close button.
     app.run("app.quit", json!({})).unwrap();
@@ -711,7 +711,7 @@ fn opening_missing_fonts_offers_repeated_replacement_and_keeps_errors_visible() 
         f.over.font_family = Some("Unavailable Test Family".into());
         f.over.font_style = Some("Regular".into());
     });
-    let path = std::env::temp_dir().join(format!("designcraft-font-open-{}.designcraft", std::process::id()));
+    let path = std::env::temp_dir().join(format!("patronusdesign-font-open-{}.designcraft", std::process::id()));
     app.run("file.save", json!({"path":path})).unwrap();
     app.run("file.open", json!({"path":path})).unwrap();
     let dialog = app.ui.dialog.as_mut().unwrap();
@@ -780,7 +780,7 @@ fn pdf_export_settings_survive_missing_key() {
 
 /// A temporary file named `name` whose bytes aren't a document or a graphic.
 fn unreadable_file(name: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!("designcraft-ui-{}-{name}", std::process::id()));
+    let path = std::env::temp_dir().join(format!("patronusdesign-ui-{}-{name}", std::process::id()));
     std::fs::write(&path, b"neither a document nor a graphic").unwrap();
     path
 }
@@ -806,10 +806,10 @@ fn dropped_documents_open_and_the_rest_is_placed() {
 /// for by the operating system, they wait for the window and then open as documents.
 #[test]
 fn extensionless_documents_open_by_content() {
-    let path = std::env::temp_dir().join(format!("designcraft-ui-{}-Brochure", std::process::id()));
+    let path = std::env::temp_dir().join(format!("patronusdesign-ui-{}-Brochure", std::process::id()));
     let mut app = DesignApp::new(Session::new(), Services::default());
     app.run("file.new", json!({})).unwrap();
-    let bytes = designcraft_engine::cmd::base64_decode(app.run("file.serialize", json!({})).unwrap()["base64"].as_str().unwrap());
+    let bytes = patronusdesign_engine::cmd::base64_decode(app.run("file.serialize", json!({})).unwrap()["base64"].as_str().unwrap());
     std::fs::write(&path, bytes).unwrap();
     let p = path.to_string_lossy().to_string();
     app.open_dropped(&p).unwrap();
@@ -878,9 +878,9 @@ fn dropping_an_ase_file_loads_its_swatches() {
     source.execute("file.new", &json!({})).unwrap();
     source.execute("swatch.create", &json!({"name": "Dropped Teal", "color": "#108080"})).unwrap();
     let data = source.execute("swatch.save", &json!({"names": ["Dropped Teal"]})).unwrap();
-    let bytes = designcraft_engine::cmd::base64_decode(data["base64"].as_str().unwrap());
+    let bytes = patronusdesign_engine::cmd::base64_decode(data["base64"].as_str().unwrap());
     for name in ["palette.ase", "PALETTE.ASE"] {
-        let path = std::env::temp_dir().join(format!("designcraft-ui-{}-{name}", std::process::id()));
+        let path = std::env::temp_dir().join(format!("patronusdesign-ui-{}-{name}", std::process::id()));
         std::fs::write(&path, &bytes).unwrap();
         let mut app = DesignApp::new(Session::new(), Services::default());
         app.run("file.new", json!({})).unwrap();
@@ -910,17 +910,17 @@ fn app_with_drop_item(command: &str, params: serde_json::Value) -> (DesignApp, u
     let _ = app.view_mut();
     let (view, rect) = (app.view().unwrap(), app.canvas_rect.unwrap());
     let st = app.session.active().unwrap();
-    let layout = designcraft_tools::CanvasLayout::new(&st.doc, false);
-    let slot = layout.slot(designcraft_doc::SpreadRef::Doc(0)).unwrap();
+    let layout = patronusdesign_tools::CanvasLayout::new(&st.doc, false);
+    let slot = layout.slot(patronusdesign_doc::SpreadRef::Doc(0)).unwrap();
     let xf = canvas::Xf::new(rect, view);
-    let inside = xf.to_screen(slot.to_canvas(designcraft_geom::Point::new(80.0, 80.0)));
-    let outside = xf.to_screen(slot.to_canvas(designcraft_geom::Point::new(300.0, 300.0)));
+    let inside = xf.to_screen(slot.to_canvas(patronusdesign_geom::Point::new(80.0, 80.0)));
+    let outside = xf.to_screen(slot.to_canvas(patronusdesign_geom::Point::new(300.0, 300.0)));
     (app, frame, inside, outside)
 }
 
 fn dropped_png(name: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!("designcraft-ui-{}-{name}.png", std::process::id()));
-    std::fs::write(&path, designcraft_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] }.to_png()).unwrap();
+    let path = std::env::temp_dir().join(format!("patronusdesign-ui-{}-{name}.png", std::process::id()));
+    std::fs::write(&path, patronusdesign_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] }.to_png()).unwrap();
     path
 }
 
@@ -932,14 +932,14 @@ fn a_graphic_dropped_on_a_frame_with_a_nested_image_replaces_it() {
     let path = dropped_png("drop-nested-old");
     app.open_dropped_at(&path.to_string_lossy(), Some(inside)).unwrap();
     let _ = std::fs::remove_file(&path);
-    let id = designcraft_doc::ItemId(frame);
+    let id = patronusdesign_doc::ItemId(frame);
     app.session
         .edit(|d, _| {
             let it = d.item_mut(id).unwrap();
             let mut image = it.clone();
-            image.id = designcraft_doc::ItemId(9_999);
-            image.xf = designcraft_geom::Affine::IDENTITY;
-            it.content = designcraft_doc::Content::Group { items: vec![std::sync::Arc::new(image)] };
+            image.id = patronusdesign_doc::ItemId(9_999);
+            image.xf = patronusdesign_geom::Affine::IDENTITY;
+            it.content = patronusdesign_doc::Content::Group { items: vec![std::sync::Arc::new(image)] };
             Ok(())
         })
         .unwrap();
@@ -950,7 +950,7 @@ fn a_graphic_dropped_on_a_frame_with_a_nested_image_replaces_it() {
     let _ = std::fs::remove_file(&path);
     let d = &app.session.doc().unwrap().doc;
     assert_eq!(d.spreads[0].items.len(), 1, "no new object");
-    let designcraft_doc::Content::Graphic(g) = &d.item(id).unwrap().content else { panic!("the frame holds the new graphic") };
+    let patronusdesign_doc::Content::Graphic(g) = &d.item(id).unwrap().content else { panic!("the frame holds the new graphic") };
     assert!(d.assets[&g.asset].name.contains("drop-nested-new"));
 }
 
@@ -964,7 +964,7 @@ fn a_graphic_dropped_on_a_frame_fills_it() {
     assert!(app.session.loaded.is_none(), "nothing waits in the place cursor");
     let d = &app.session.doc().unwrap().doc;
     assert_eq!(d.spreads[0].items.len(), 1, "no new object");
-    assert!(matches!(d.item(designcraft_doc::ItemId(frame)).unwrap().content, designcraft_doc::Content::Graphic(_)));
+    assert!(matches!(d.item(patronusdesign_doc::ItemId(frame)).unwrap().content, patronusdesign_doc::Content::Graphic(_)));
     assert!(canvas::drop_frame(&app, Some(outside)).is_none(), "an empty spot on the page is no frame");
     // Dropped again, it replaces the image there rather than loading the place cursor.
     let path = dropped_png("dropframe-again");
@@ -972,18 +972,18 @@ fn a_graphic_dropped_on_a_frame_fills_it() {
     let _ = std::fs::remove_file(&path);
     let d = &app.session.doc().unwrap().doc;
     assert_eq!(d.spreads[0].items.len(), 1, "still no new object");
-    let designcraft_doc::Content::Graphic(g) = &d.item(designcraft_doc::ItemId(frame)).unwrap().content else { panic!("a graphic frame") };
+    let patronusdesign_doc::Content::Graphic(g) = &d.item(patronusdesign_doc::ItemId(frame)).unwrap().content else { panic!("a graphic frame") };
     assert!(d.assets[&g.asset].name.contains("dropframe-again"), "the frame shows the new image");
     assert!(app.session.loaded.is_none(), "nothing waits in the place cursor");
     // Text dropped there gets a frame of its own and leaves the image in place.
-    let text = std::env::temp_dir().join(format!("designcraft-ui-{}-dropframe.txt", std::process::id()));
+    let text = std::env::temp_dir().join(format!("patronusdesign-ui-{}-dropframe.txt", std::process::id()));
     std::fs::write(&text, "Dropped words").unwrap();
     let r = app.open_dropped_at(&text.to_string_lossy(), Some(inside));
     let _ = std::fs::remove_file(&text);
     r.unwrap();
     let d = &app.session.doc().unwrap().doc;
     assert_eq!(d.spreads[0].items.len(), 2, "the text has a new frame");
-    assert!(matches!(d.item(designcraft_doc::ItemId(frame)).unwrap().content, designcraft_doc::Content::Graphic(_)));
+    assert!(matches!(d.item(patronusdesign_doc::ItemId(frame)).unwrap().content, patronusdesign_doc::Content::Graphic(_)));
 }
 
 /// The raw input of a drop without pointer events, with the window's content at `inner`.
@@ -1019,7 +1019,7 @@ fn a_file_dropped_without_pointer_events_fills_the_frame_under_the_system_pointe
         assert!(app.session.loaded.is_none(), "nothing waits in the place cursor at {zoom}");
         let d = &app.session.doc().unwrap().doc;
         assert_eq!(d.spreads[0].items.len(), 1, "no new object at {zoom}");
-        let designcraft_doc::Content::Graphic(g) = &d.item(designcraft_doc::ItemId(frame)).unwrap().content else {
+        let patronusdesign_doc::Content::Graphic(g) = &d.item(patronusdesign_doc::ItemId(frame)).unwrap().content else {
             panic!("the frame under the pointer is filled at {zoom}")
         };
         assert!(d.assets[&g.asset].name.contains("drop-system-pointer"));
@@ -1052,7 +1052,7 @@ fn a_pointerless_drop_keeps_the_system_pointer_of_its_own_input() {
     let _ = std::fs::remove_file(&path);
     let d = &app.session.doc().unwrap().doc;
     assert_eq!(d.spreads[0].items.len(), 1, "no new object");
-    let designcraft_doc::Content::Graphic(g) = &d.item(designcraft_doc::ItemId(frame)).unwrap().content else {
+    let patronusdesign_doc::Content::Graphic(g) = &d.item(patronusdesign_doc::ItemId(frame)).unwrap().content else {
         panic!("the file fills the frame it was dropped on")
     };
     assert!(d.assets[&g.asset].name.contains("drop-own-input"));
@@ -1080,13 +1080,13 @@ fn separate_drops_before_one_pass_are_not_one_batch() {
     let _ = std::fs::remove_file(&first);
     let _ = std::fs::remove_file(&second);
     let d = &app.session.doc().unwrap().doc;
-    let designcraft_doc::Content::Graphic(g) = &d.item(designcraft_doc::ItemId(frame)).unwrap().content else {
+    let patronusdesign_doc::Content::Graphic(g) = &d.item(patronusdesign_doc::ItemId(frame)).unwrap().content else {
         panic!("the first drop fills the frame it was dropped on")
     };
     assert!(d.assets[&g.asset].name.contains("separate-drop-a"));
     assert!(app.session.loaded.is_none(), "nothing waits in the place cursor");
     let item = d.spreads[0].items.last().unwrap();
-    let designcraft_doc::Content::Graphic(g) = &item.content else { panic!("the second drop is placed") };
+    let patronusdesign_doc::Content::Graphic(g) = &item.content else { panic!("the second drop is placed") };
     assert!(d.assets[&g.asset].name.contains("separate-drop-b"));
 }
 
@@ -1100,9 +1100,9 @@ fn a_graphic_dropped_on_a_compound_path_fills_it() {
     app.run("object.fill", json!({"ids": [frame], "swatch": "[Black]"})).unwrap();
     let (view, rect) = (app.view().unwrap(), app.canvas_rect.unwrap());
     let st = app.session.active().unwrap();
-    let layout = designcraft_tools::CanvasLayout::new(&st.doc, false);
-    let slot = layout.slot(designcraft_doc::SpreadRef::Doc(0)).unwrap();
-    let screen = |x, y| canvas::Xf::new(rect, view).to_screen(slot.to_canvas(designcraft_geom::Point::new(x, y)));
+    let layout = patronusdesign_tools::CanvasLayout::new(&st.doc, false);
+    let slot = layout.slot(patronusdesign_doc::SpreadRef::Doc(0)).unwrap();
+    let screen = |x, y| canvas::Xf::new(rect, view).to_screen(slot.to_canvas(patronusdesign_geom::Point::new(x, y)));
     // On the ring, between the outer edge (36) and the hole (66); the hole's middle is no frame.
     let ring = screen(50.0, 50.0);
     assert!(canvas::drop_frame(&app, Some(screen(86.0, 86.0))).is_none(), "the hole");
@@ -1112,8 +1112,8 @@ fn a_graphic_dropped_on_a_compound_path_fills_it() {
     assert_eq!(r.unwrap()["id"].as_u64(), Some(frame), "the compound path under the pointer is filled");
     let d = &app.session.doc().unwrap().doc;
     assert_eq!(d.spreads[0].items.len(), 1, "no new object");
-    let it = d.item(designcraft_doc::ItemId(frame)).unwrap();
-    assert!(matches!(it.content, designcraft_doc::Content::Graphic(_)));
+    let it = d.item(patronusdesign_doc::ItemId(frame)).unwrap();
+    assert!(matches!(it.content, patronusdesign_doc::Content::Graphic(_)));
     assert_eq!(it.path.subpaths.len(), 2, "it keeps its hole");
 }
 
@@ -1122,7 +1122,7 @@ fn a_graphic_dropped_on_a_compound_path_fills_it() {
 #[test]
 fn graphics_dropped_on_a_line_leave_the_line_alone() {
     let (mut app, line, on_line, _) = app_with_drop_item("line.create", json!({"a": [36, 80], "b": [136, 80]}));
-    let id = designcraft_doc::ItemId(line);
+    let id = patronusdesign_doc::ItemId(line);
     let before = serde_json::to_value(app.session.doc().unwrap().doc.item(id).unwrap()).unwrap();
     assert!(canvas::drop_frame(&app, Some(on_line)).is_none(), "a line is no frame");
     let (first, second) = (dropped_png("drop-on-line-first"), dropped_png("drop-on-line-second"));
@@ -1146,7 +1146,10 @@ fn a_locked_frame_is_not_a_drop_target() {
     let _ = std::fs::remove_file(&path);
     r.unwrap();
     let d = &app.session.doc().unwrap().doc;
-    assert!(matches!(d.item(designcraft_doc::ItemId(frame)).unwrap().content, designcraft_doc::Content::Unassigned), "the locked frame stays empty");
+    assert!(
+        matches!(d.item(patronusdesign_doc::ItemId(frame)).unwrap().content, patronusdesign_doc::Content::Unassigned),
+        "the locked frame stays empty"
+    );
     assert_eq!(d.spreads[0].items.len(), 2, "the image got a frame of its own");
     assert!(app.session.loaded.is_none(), "nothing waits in the place cursor");
 }
@@ -1166,7 +1169,7 @@ fn only_the_first_graphic_of_a_drop_fills_the_frame() {
     assert!(app.session.loaded.is_none(), "nothing waits in the place cursor");
     let d = &app.session.doc().unwrap().doc;
     assert_eq!(d.spreads[0].items.len(), 2, "the second image got a frame of its own");
-    assert!(matches!(d.item(designcraft_doc::ItemId(frame)).unwrap().content, designcraft_doc::Content::Graphic(_)));
+    assert!(matches!(d.item(patronusdesign_doc::ItemId(frame)).unwrap().content, patronusdesign_doc::Content::Graphic(_)));
 }
 
 #[test]
@@ -1176,8 +1179,8 @@ fn a_file_dropped_while_a_parent_is_open_lands_on_the_parent() {
     app.canvas_rect = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1400.0, 900.0)));
     app.run("layout.parents.edit", json!({"on": true})).unwrap();
     let _ = app.view_mut();
-    let path = std::env::temp_dir().join(format!("designcraft-ui-{}-drop.png", std::process::id()));
-    std::fs::write(&path, designcraft_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] }.to_png()).unwrap();
+    let path = std::env::temp_dir().join(format!("patronusdesign-ui-{}-drop.png", std::process::id()));
+    std::fs::write(&path, patronusdesign_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] }.to_png()).unwrap();
     let r = app.open_dropped(&path.to_string_lossy());
     let _ = std::fs::remove_file(&path);
     r.unwrap();
@@ -1207,7 +1210,7 @@ fn a_single_image_dropped_off_a_frame_is_placed_unless_the_cursor_holds_images()
     assert_eq!(names.len(), 2, "{names:?}");
     assert!(names[1].contains("drop-places-b"), "{names:?}");
     let d = &app.session.doc().unwrap().doc;
-    assert!(matches!(d.item(designcraft_doc::ItemId(frame)).unwrap().content, designcraft_doc::Content::Unassigned));
+    assert!(matches!(d.item(patronusdesign_doc::ItemId(frame)).unwrap().content, patronusdesign_doc::Content::Unassigned));
     assert_eq!(d.spreads[0].items.len(), 1, "nothing placed yet");
     app.run("place.cancel", json!({})).unwrap();
     app.open_dropped_at(&second.to_string_lossy(), Some(outside)).unwrap();
@@ -1223,10 +1226,10 @@ fn several_dropped_images_load_the_place_cursor_in_order() {
     let (mut app, frame, inside, _) = app_with_drop_frame();
     app.run("selection.set", json!({"ids": []})).unwrap();
     let a = dropped_png("drop-many-a");
-    let b = std::env::temp_dir().join(format!("designcraft-ui-{}-drop-many-b.svg", std::process::id()));
+    let b = std::env::temp_dir().join(format!("patronusdesign-ui-{}-drop-many-b.svg", std::process::id()));
     std::fs::write(&b, br##"<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>"##).unwrap();
     let c = dropped_png("drop-many-c");
-    let text = std::env::temp_dir().join(format!("designcraft-ui-{}-drop-many.txt", std::process::id()));
+    let text = std::env::temp_dir().join(format!("patronusdesign-ui-{}-drop-many.txt", std::process::id()));
     std::fs::write(&text, "Dropped words").unwrap();
     let paths = [&a, &text, &b, &c].map(|p| p.to_string_lossy().to_string());
     app.open_dropped_batch(paths.iter().map(|p| (p.clone(), Some(inside))).collect());
@@ -1240,17 +1243,17 @@ fn several_dropped_images_load_the_place_cursor_in_order() {
     }
     assert_eq!(app.session.tool_id(), "placeGun");
     let d = &app.session.doc().unwrap().doc;
-    assert!(matches!(d.item(designcraft_doc::ItemId(frame)).unwrap().content, designcraft_doc::Content::Unassigned), "the frame isn't filled");
+    assert!(matches!(d.item(patronusdesign_doc::ItemId(frame)).unwrap().content, patronusdesign_doc::Content::Unassigned), "the frame isn't filled");
     assert_eq!(d.spreads[0].items.len(), 2, "the text got a frame of its own");
     // Clicks place them one by one; Escape drops the current one, and the last ends placing.
     app.run("place.drop", json!({"x": 300, "y": 300})).unwrap();
     assert_eq!(app.session.loaded_queue.len(), 1);
-    let mods = designcraft_tools::Mods::default();
-    let view = designcraft_engine::ViewInfo::at_zoom(1.0);
-    app.session.tool_key(designcraft_tools::ToolKey::Escape, mods, view).unwrap();
+    let mods = patronusdesign_tools::Mods::default();
+    let view = patronusdesign_engine::ViewInfo::at_zoom(1.0);
+    app.session.tool_key(patronusdesign_tools::ToolKey::Escape, mods, view).unwrap();
     assert_eq!(loaded_names(&app).len(), 1);
     assert_eq!(app.session.tool_id(), "placeGun");
-    app.session.tool_key(designcraft_tools::ToolKey::Escape, mods, view).unwrap();
+    app.session.tool_key(patronusdesign_tools::ToolKey::Escape, mods, view).unwrap();
     assert!(app.session.loaded.is_none() && app.session.loaded_queue.is_empty());
     assert_eq!(app.session.tool_id(), "selection");
 }
@@ -1263,10 +1266,10 @@ fn a_mixed_drop_keeps_its_order() {
     let (mut app, frame, inside, outside) = app_with_drop_frame();
     let mut other = DesignApp::new(Session::new(), Services::default());
     other.run("file.new", json!({})).unwrap();
-    let document = std::env::temp_dir().join(format!("designcraft-ui-{}-drop-mixed.designcraft", std::process::id()));
+    let document = std::env::temp_dir().join(format!("patronusdesign-ui-{}-drop-mixed.designcraft", std::process::id()));
     other.run("file.saveAs", json!({"path": document})).unwrap();
     let image = dropped_png("drop-mixed");
-    let text = std::env::temp_dir().join(format!("designcraft-ui-{}-drop-mixed.txt", std::process::id()));
+    let text = std::env::temp_dir().join(format!("patronusdesign-ui-{}-drop-mixed.txt", std::process::id()));
     std::fs::write(&text, "Dropped words").unwrap();
     let drops = vec![
         (image.to_string_lossy().to_string(), Some(inside)),
@@ -1280,7 +1283,7 @@ fn a_mixed_drop_keeps_its_order() {
     assert_eq!(app.session.documents().len(), 2, "the document opened last");
     let d = &app.session.documents()[0].doc;
     assert!(
-        matches!(d.item(designcraft_doc::ItemId(frame)).unwrap().content, designcraft_doc::Content::Graphic(_)),
+        matches!(d.item(patronusdesign_doc::ItemId(frame)).unwrap().content, patronusdesign_doc::Content::Graphic(_)),
         "the image filled the frame in the document open before the drop"
     );
     assert_eq!(d.spreads[0].items.len(), 2, "the text got a frame of its own");
@@ -1333,18 +1336,18 @@ fn paste_lands_on_the_spread_in_view() {
     };
     // Nothing is in view before the canvas is laid out: the first spread, as in a script.
     app.run("edit.paste", json!({})).unwrap();
-    assert_eq!(pasted_on(&app), designcraft_doc::SpreadRef::Doc(0));
+    assert_eq!(pasted_on(&app), patronusdesign_doc::SpreadRef::Doc(0));
     app.canvas_rect = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1400.0, 900.0)));
     canvas::go_to_page(&mut app, 2);
     menus::activate(&mut app, "edit.pasteInPlace", &Value::Null);
-    assert_eq!(pasted_on(&app), designcraft_doc::SpreadRef::Doc(2));
+    assert_eq!(pasted_on(&app), patronusdesign_doc::SpreadRef::Doc(2));
     canvas::go_to_page(&mut app, 1);
     app.run("edit.paste", json!({})).unwrap();
-    assert_eq!(pasted_on(&app), designcraft_doc::SpreadRef::Doc(1));
+    assert_eq!(pasted_on(&app), patronusdesign_doc::SpreadRef::Doc(1));
     // A parent spread while parents are edited.
     app.run("layout.parents.edit", json!({"on": true})).unwrap();
     app.run("edit.paste", json!({})).unwrap();
-    assert_eq!(pasted_on(&app), designcraft_doc::SpreadRef::Parent(0));
+    assert_eq!(pasted_on(&app), patronusdesign_doc::SpreadRef::Parent(0));
     // With an insertion point Paste still goes into the text, where the object is anchored.
     let story = app.run("frame.create", json!({"rect": [36, 200, 300, 400], "content": "text", "text": "ab"})).unwrap()["story"].clone();
     app.run("text.select", json!({"story": story, "anchor": 2})).unwrap();
@@ -1456,7 +1459,7 @@ fn screenshot_app() -> (DesignApp, egui::Context, std::sync::Arc<std::sync::Mute
 fn screenshot_callback_stays_weak_and_writes_only_from_logic() {
     let (mut app, ctx, writes) = screenshot_app();
     let (reply, replies) = std::sync::mpsc::channel();
-    let path = std::env::temp_dir().join(format!("designcraft-shot-{}.png", std::process::id()));
+    let path = std::env::temp_dir().join(format!("patronusdesign-shot-{}.png", std::process::id()));
     app.admit_screenshot(Some(path.to_string_lossy().to_string()), reply).unwrap();
     app.queued_shots[0].1 = 0.0;
     let mut callback = None;
@@ -1907,7 +1910,7 @@ fn document_with_a_frame() -> Vec<u8> {
     session.execute("file.new", &json!({"title": "Incoming"})).unwrap();
     session.execute("frame.create", &json!({"rect": [10, 10, 50, 50]})).unwrap();
     let serialized = session.execute("file.serialize", &json!({})).unwrap();
-    designcraft_engine::cmd::base64_decode(serialized["base64"].as_str().unwrap())
+    patronusdesign_engine::cmd::base64_decode(serialized["base64"].as_str().unwrap())
 }
 
 /// One host iteration in eframe's order: `raw_input_hook`, then `run_ui` calling
@@ -2208,7 +2211,7 @@ fn design_revert_discards_a_buffered_native_drop() {
     let (mut app, ctx) = drop_test_app();
     let dir = prepare_revert(&mut app);
     let path = dir.path().join("drop.png");
-    std::fs::write(&path, designcraft_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] }.to_png()).unwrap();
+    std::fs::write(&path, patronusdesign_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] }.to_png()).unwrap();
     let mut raw = visible_raw_with_drop(&[&path]);
     app.raw_input_hook(&ctx, &mut raw);
     assert_eq!(app.pending_drops.len(), 1);
@@ -2398,8 +2401,8 @@ fn drop_test_app() -> (DesignApp, egui::Context) {
 /// Write a tiny unique PNG for drop tests.
 #[cfg(not(target_arch = "wasm32"))]
 fn temporary_png(name: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!("designcraft-ui-{}-{name}.png", std::process::id()));
-    std::fs::write(&path, designcraft_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] }.to_png()).unwrap();
+    let path = std::env::temp_dir().join(format!("patronusdesign-ui-{}-{name}.png", std::process::id()));
+    std::fs::write(&path, patronusdesign_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] }.to_png()).unwrap();
     path
 }
 
@@ -2508,19 +2511,19 @@ fn design_generation_native_drop_batch_without_a_change_still_places_every_file(
 fn the_eyedropper_samples_an_image_still_decoding() {
     let mut app = DesignApp::new(Session::new(), Services::default());
     app.run("file.new", json!({})).unwrap();
-    let red = designcraft_render::Rendered { width: 40, height: 40, pixels: [255u8, 0, 0, 255].repeat(1600) }.to_png();
-    let b64 = designcraft_engine::cmd::base64_encode(&red);
+    let red = patronusdesign_render::Rendered { width: 40, height: 40, pixels: [255u8, 0, 0, 255].repeat(1600) }.to_png();
+    let b64 = patronusdesign_engine::cmd::base64_encode(&red);
     app.run("file.place", json!({"base64": b64, "name": "red.png", "x": 100, "y": 100, "width": 200})).unwrap();
     app.canvas_rect = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1400.0, 900.0)));
     let _ = app.view_mut();
     let at = {
         let (view, rect) = (*app.view().unwrap(), app.canvas_rect.unwrap());
         let st = app.session.active().unwrap();
-        let layout = designcraft_tools::CanvasLayout::new(&st.doc, false);
-        canvas::Xf::new(rect, &view).to_screen(layout.slots[0].xf * designcraft_geom::Point::new(200.0, 200.0))
+        let layout = patronusdesign_tools::CanvasLayout::new(&st.doc, false);
+        canvas::Xf::new(rect, &view).to_screen(layout.slots[0].xf * patronusdesign_geom::Point::new(200.0, 200.0))
     };
     // Nothing decoded: the canvas would draw the grey placeholder here.
-    designcraft_render::images::clear();
+    patronusdesign_render::images::clear();
     let ctx = egui::Context::default();
     assert_eq!(canvas::color_at(&mut app, &ctx, at), Some([255, 0, 0]));
 }
@@ -2531,7 +2534,7 @@ fn the_eyedropper_samples_an_image_still_decoding() {
 fn a_save_waits_for_the_checks_of_linked_files() {
     let dir = tempfile::tempdir().unwrap();
     let image = dir.path().join("art.png");
-    std::fs::write(&image, designcraft_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] }.to_png()).unwrap();
+    std::fs::write(&image, patronusdesign_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] }.to_png()).unwrap();
     let doc = dir.path().join("doc.designcraft");
     let mut first = DesignApp::new(Session::new(), Services::default());
     first.run("file.new", json!({})).unwrap();

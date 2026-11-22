@@ -50,7 +50,7 @@ pub fn links_panel(app: &mut DesignApp, ui: &mut egui::Ui) {
         let refresh = app.links_worker.rows(ui.ctx(), snapshot);
         // A file the check read and found unchanged isn't read again, in this session or the next.
         if !refresh.verified.is_empty() {
-            designcraft_engine::cmd::remember_link_files(&mut app.session, &doc, &refresh.verified);
+            patronusdesign_engine::cmd::remember_link_files(&mut app.session, &doc, &refresh.verified);
         }
         refresh
     };
@@ -309,13 +309,13 @@ fn storage_icon(ui: &mut egui::Ui, linked: bool, color: egui::Color32, language:
 
 /// The proxy of a linked graphic, drawn small. `None` when the graphic has no proxy or it can't be
 /// decoded; the answer is kept per proxy so a failed decode isn't retried every frame.
-fn proxy_thumb(ctx: &egui::Context, uid: u64, doc: &designcraft_doc::Document, asset: u64) -> Option<egui::TextureHandle> {
-    let proxy = doc.assets.get(&designcraft_doc::AssetId(asset))?.proxy.as_ref()?;
+fn proxy_thumb(ctx: &egui::Context, uid: u64, doc: &patronusdesign_doc::Document, asset: u64) -> Option<egui::TextureHandle> {
+    let proxy = doc.assets.get(&patronusdesign_doc::AssetId(asset))?.proxy.as_ref()?;
     let key = egui::Id::NULL.with(("links_thumb", uid, asset, proxy.data.key().0));
     if let Some(cached) = ctx.data(|d| d.get_temp::<Option<egui::TextureHandle>>(key)) {
         return cached;
     }
-    let tex = designcraft_render::images::decoded(&proxy.data, 0).and_then(|pm| {
+    let tex = patronusdesign_render::images::decoded(&proxy.data, 0).and_then(|pm| {
         let (w, h) = (pm.width() as usize, pm.height() as usize);
         if w == 0 || h == 0 {
             return None;
@@ -367,7 +367,7 @@ pub fn update_links(app: &mut DesignApp, target: Value) {
     // thread, and a share that doesn't answer would hold up every other update.
     let any_edited = app.session.active().is_some_and(|st| {
         let document = st.path.as_deref().map(std::path::Path::new);
-        designcraft_engine::cmd::preview_document_links(&st.doc, &app.session.cache, document).iter().any(wanted)
+        patronusdesign_engine::cmd::preview_document_links(&st.doc, &app.session.cache, document).iter().any(wanted)
     });
     let rows = if any_edited {
         app.session.execute("links.list", &json!({})).ok().and_then(|v| v.as_array().cloned()).unwrap_or_default()
@@ -397,7 +397,7 @@ pub fn info_panel(app: &mut DesignApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     match sel_info(app) {
         Some(i) => {
-            let f = |v: f64| designcraft_geom::format_measure(v, u);
+            let f = |v: f64| patronusdesign_geom::format_measure(v, u);
             crate::rtl::label(ui, format!("X: {}   Y: {}", f(i.page_rect.x0), f(i.page_rect.y0)));
             crate::rtl::label(ui, format!("W: {}   H: {}", f(i.page_rect.width()), f(i.page_rect.height())));
             crate::rtl::label(

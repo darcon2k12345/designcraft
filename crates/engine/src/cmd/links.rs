@@ -20,11 +20,11 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use designcraft_compose::Cache;
-use designcraft_doc::{
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::{
     Asset, AssetData, AssetId, Content, Document, Fingerprint, Item, ItemId, LinkedSource, Selection, Storage, Story, StoryId, TextFileLink,
 };
-use designcraft_geom::Affine;
+use patronusdesign_geom::Affine;
 use serde_json::{Value, json};
 
 use super::{CommandSpec, bad, cmd, has_doc, str_param};
@@ -144,7 +144,7 @@ pub fn refused(link: &str, document: Option<&Path>) -> Option<crate::io::Refused
 /// Whether an asset's linked file is gone ([`status_cached`] "missing" without reading the file). An
 /// asset can hold data while its file is missing: the document's preview of it. `document` is
 /// the document's file, which relative links are resolved against.
-pub fn link_missing(a: &designcraft_doc::Asset, document: Option<&Path>) -> bool {
+pub fn link_missing(a: &patronusdesign_doc::Asset, document: Option<&Path>) -> bool {
     let Some(link) = &a.link else { return false };
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -166,10 +166,10 @@ pub fn link_missing(a: &designcraft_doc::Asset, document: Option<&Path>) -> bool
 /// Linked images checked this session: (asset, the identity of its bytes, the file its link
 /// resolves to) → (the file's size and time when it was read, whether it matched the bytes). The
 /// resolved file, not the link text, is the key: a relative link names another file once the
-/// document is saved elsewhere. The bytes' [`designcraft_doc::SourceKey`] (as the render cache
+/// document is saved elsewhere. The bytes' [`patronusdesign_doc::SourceKey`] (as the render cache
 /// keys them) changes with every relink or update and is never reused, so a remembered answer
 /// can never describe other bytes.
-pub(crate) type ImageChecks = std::collections::HashMap<(AssetId, designcraft_doc::SourceKey, std::path::PathBuf), (Fingerprint, bool)>;
+pub(crate) type ImageChecks = std::collections::HashMap<(AssetId, patronusdesign_doc::SourceKey, std::path::PathBuf), (Fingerprint, bool)>;
 
 /// The size and time to keep with `bytes` just read from a linked file, `before` being the
 /// file's from before the read. Kept only when they can vouch for the bytes later: the size is
@@ -202,12 +202,12 @@ impl FileLink {
 
 /// The proxy a linked graphic is drawn with while its file can't be read: none for video and
 /// sound, or a file that doesn't decode.
-pub(super) fn proxy_of(a: &Asset, bytes: &[u8]) -> Option<designcraft_doc::Proxy> {
+pub(super) fn proxy_of(a: &Asset, bytes: &[u8]) -> Option<patronusdesign_doc::Proxy> {
     if a.mime.starts_with("video/") || a.mime.starts_with("audio/") {
         return None;
     }
-    let p = designcraft_render::proxy::make_proxy(bytes, a.page)?;
-    Some(designcraft_doc::Proxy { mime: p.mime.into(), pixels: p.pixels, data: AssetData::embedded(p.data) })
+    let p = patronusdesign_render::proxy::make_proxy(bytes, a.page)?;
+    Some(patronusdesign_doc::Proxy { mime: p.mime.into(), pixels: p.pixels, data: AssetData::embedded(p.data) })
 }
 
 /// Give `a` the bytes of a graphic being placed, relinked or updated (its `mime` and `page` set).
@@ -261,24 +261,24 @@ pub(crate) fn give_placed(
     };
     record_file(a, &bytes, file, document);
     a.link_hash = None;
-    link_recorded(a, Arc::clone(&bytes), designcraft_doc::SourceKey::fresh(), document, |_, _| None);
+    link_recorded(a, Arc::clone(&bytes), patronusdesign_doc::SourceKey::fresh(), document, |_, _| None);
     Some(super::native_links::Pending::of(a, bytes))
 }
 
 /// Link `a` to `file`, whose bytes (`bytes`) were just read: the file's record (paths, size and
 /// time, content hash) and a proxy to draw while the file can't be read (`preview` when there is
 /// one, else made from the bytes). The bytes stay in memory for the first draw.
-pub(crate) fn link_to_file(a: &mut Asset, bytes: Arc<Vec<u8>>, file: FileLink, document: Option<&Path>, preview: Option<designcraft_doc::Proxy>) {
+pub(crate) fn link_to_file(a: &mut Asset, bytes: Arc<Vec<u8>>, file: FileLink, document: Option<&Path>, preview: Option<patronusdesign_doc::Proxy>) {
     record_file(a, &bytes, file, document);
     a.link_hash = Some(crate::asset_io::content_hash(&bytes));
-    link_recorded(a, bytes, designcraft_doc::SourceKey::fresh(), document, |a, bytes| preview.or_else(|| proxy_of(a, bytes)));
+    link_recorded(a, bytes, patronusdesign_doc::SourceKey::fresh(), document, |a, bytes| preview.or_else(|| proxy_of(a, bytes)));
 }
 
 /// Add to a graphic placed with [`give_placed`] (or opened with a link that has no hash) its
 /// content `hash` and `proxy`, made from the bytes it has under its current key: the hash when it
 /// has none, the proxy when it is linked and has none. Its storage stays as it is (a graphic
 /// embedded since with Links › Embed stays embedded). → whether `a` changed.
-pub(super) fn add_prepared(a: &mut Asset, hash: &str, proxy: Option<&designcraft_doc::Proxy>) -> bool {
+pub(super) fn add_prepared(a: &mut Asset, hash: &str, proxy: Option<&patronusdesign_doc::Proxy>) -> bool {
     let mut changed = false;
     if a.link_hash.is_none() {
         a.link_hash = Some(hash.to_owned());
@@ -305,9 +305,9 @@ pub(super) fn add_prepared(a: &mut Asset, hash: &str, proxy: Option<&designcraft
 fn link_recorded(
     a: &mut Asset,
     bytes: Arc<Vec<u8>>,
-    key: designcraft_doc::SourceKey,
+    key: patronusdesign_doc::SourceKey,
     document: Option<&Path>,
-    proxy: impl FnOnce(&Asset, &[u8]) -> Option<designcraft_doc::Proxy>,
+    proxy: impl FnOnce(&Asset, &[u8]) -> Option<patronusdesign_doc::Proxy>,
 ) {
     a.link_fingerprint = Some(a.link_fingerprint.unwrap_or(Fingerprint { size: bytes.len() as u64, mtime: UNVERIFIED_MTIME }));
     let Some(source) = LinkedSource::of(a, document) else {
@@ -391,12 +391,12 @@ pub(crate) fn link_modified(a: &Asset, document: Option<&Path>, checks: &mut Lin
 }
 
 /// Is the linked file still the one the asset's bytes were loaded from, going by the size and
-/// time kept then ([`designcraft_doc::Asset::link_fingerprint`], [`loaded_fingerprint`])? Nothing
+/// time kept then ([`patronusdesign_doc::Asset::link_fingerprint`], [`loaded_fingerprint`])? Nothing
 /// is read when it is, also on the first check after a document is opened, which matters on a
 /// network share. A fingerprint of another size than the bytes isn't theirs and doesn't count; a
 /// new time or no fingerprint leave it to the byte comparison.
 #[cfg(not(target_arch = "wasm32"))]
-fn loaded_unchanged(a: &designcraft_doc::Asset, now: Fingerprint) -> bool {
+fn loaded_unchanged(a: &patronusdesign_doc::Asset, now: Fingerprint) -> bool {
     a.link_fingerprint.is_some_and(|loaded| loaded.size == a.data.len() && loaded == now && settled(&now))
 }
 
@@ -406,7 +406,7 @@ fn loaded_unchanged(a: &designcraft_doc::Asset, now: Fingerprint) -> bool {
 /// polls, and a document of press-size images would otherwise be read whole on every poll. A file
 /// changed in the last two seconds is never remembered (see [`settled`]).
 #[cfg(test)]
-pub(crate) fn status_cached(a: &designcraft_doc::Asset, document: Option<&Path>, checks: &mut ImageChecks) -> &'static str {
+pub(crate) fn status_cached(a: &patronusdesign_doc::Asset, document: Option<&Path>, checks: &mut ImageChecks) -> &'static str {
     image_status(a, document, checks, None).0
 }
 
@@ -438,7 +438,7 @@ fn embedded_copy(a: &Asset) -> bool {
 /// at, it is `checking`; after that the file is looked at as it is now, which may have changed
 /// since.
 fn image_status(
-    a: &designcraft_doc::Asset,
+    a: &patronusdesign_doc::Asset,
     document: Option<&Path>,
     checks: &mut ImageChecks,
     open: Option<&super::native_links::OpenLinks>,
@@ -707,7 +707,7 @@ pub fn remember_link_files(s: &mut Session, doc: &Arc<Document>, files: &[(Asset
     if !Arc::ptr_eq(&st.doc, doc) || st.interaction.is_some() {
         return 0;
     }
-    let stale = |a: &designcraft_doc::Asset, f: &Fingerprint| a.link.is_some() && a.data.len() == f.size && a.link_fingerprint != Some(*f);
+    let stale = |a: &patronusdesign_doc::Asset, f: &Fingerprint| a.link.is_some() && a.data.len() == f.size && a.link_fingerprint != Some(*f);
     let fresh: Vec<(AssetId, Fingerprint)> = files.iter().filter(|(id, f)| st.doc.assets.get(id).is_some_and(|a| stale(a, f))).copied().collect();
     if fresh.is_empty() {
         return 0;
@@ -788,7 +788,7 @@ fn list(
                         }
                         let (pw, _) = a.pixels?;
                         let xf = u.parent_xf * it.xf * g.xf;
-                        let shown_w = xf.transform_rect_bbox(designcraft_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1)).width();
+                        let shown_w = xf.transform_rect_bbox(patronusdesign_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1)).width();
                         (shown_w > 0.0).then(|| (pw as f64 / (shown_w / 72.0)).round())
                     })();
                     let page = u.page.map(|p| d.page_name(p));
@@ -876,10 +876,10 @@ fn reload_capped(path: impl AsRef<Path>, cap: u64) -> Result<(Vec<u8>, (u32, u32
     if b.len() as u64 > cap {
         return Err(bad("links", format!("{}: the linked file is larger than {} MB", path.display(), cap / (1024 * 1024))));
     }
-    if designcraft_render::is_pdf(&b) {
-        designcraft_render::check_pdf_input_size(b.len()).map_err(|e| bad("links", format!("{}: {e}", path.display())))?;
+    if patronusdesign_render::is_pdf(&b) {
+        patronusdesign_render::check_pdf_input_size(b.len()).map_err(|e| bad("links", format!("{}: {e}", path.display())))?;
     }
-    let px = designcraft_render::image_size(&b).ok_or_else(|| bad("links", format!("{}: unsupported or corrupt image", path.display())))?;
+    let px = patronusdesign_render::image_size(&b).ok_or_else(|| bad("links", format!("{}: unsupported or corrupt image", path.display())))?;
     Ok((b, px))
 }
 
@@ -890,20 +890,20 @@ fn reload(path: impl AsRef<Path>) -> Result<(Vec<u8>, (u32, u32))> {
 
 /// The replacement for `a`: bytes read from the file at `read`, linked to it (its absolute path,
 /// and its path relative to the `document` file) with a new hash and proxy.
-fn relinked_asset(a: &designcraft_doc::Asset, read: &Path, document: Option<&Path>) -> Result<Arc<designcraft_doc::Asset>> {
+fn relinked_asset(a: &patronusdesign_doc::Asset, read: &Path, document: Option<&Path>) -> Result<Arc<patronusdesign_doc::Asset>> {
     // The size and time from before the read: a change during it is seen by the next check.
     let before = super::datamerge::fingerprint_of(read);
     let (bytes, px) = reload(read)?;
-    let page = if designcraft_render::is_pdf(&bytes) { a.page } else { 0 };
+    let page = if patronusdesign_render::is_pdf(&bytes) { a.page } else { 0 };
     let px = if page > 0 {
-        designcraft_render::pdf_page_size(&bytes, page as usize)
+        patronusdesign_render::pdf_page_size(&bytes, page as usize)
             .map(|(w, h)| (w.round().max(1.0) as u32, h.round().max(1.0) as u32))
             .ok_or_else(|| bad("links", format!("{}: can't read PDF page {}", read.display(), u64::from(page) + 1)))?
     } else {
         px
     };
     let mut a = a.clone();
-    a.mime = designcraft_render::image_mime(&bytes).to_string();
+    a.mime = patronusdesign_render::image_mime(&bytes).to_string();
     a.pixels = Some(px);
     a.page = page;
     a.name = file_name(&read.to_string_lossy());
@@ -946,7 +946,7 @@ fn relink(s: &mut Session, p: &Value) -> Result<Value> {
         Ok(json!({"name": name}))
     });
     s.link_checks.images.clear();
-    designcraft_doc::asset_data::links_changed();
+    patronusdesign_doc::asset_data::links_changed();
     r
 }
 
@@ -1023,7 +1023,7 @@ fn relink_folder(s: &mut Session, p: &Value) -> Result<Value> {
             Ok(())
         })?;
         images.clear();
-        designcraft_doc::asset_data::links_changed();
+        patronusdesign_doc::asset_data::links_changed();
     }
     s.link_checks.images = images;
     Ok(json!({"relinked": n, "notFound": not_found}))
@@ -1180,7 +1180,7 @@ fn unembed(s: &mut Session, p: &Value) -> Result<Value> {
             Ok(json!({"path": path}))
         });
         s.link_checks.images.clear();
-        designcraft_doc::asset_data::links_changed();
+        patronusdesign_doc::asset_data::links_changed();
         r
     }
     #[cfg(target_arch = "wasm32")]
@@ -1240,7 +1240,7 @@ fn update(s: &mut Session, p: &Value) -> Result<Value> {
         Ok(json!({"updated": n, "warnings": warnings}))
     });
     s.link_checks.images.clear();
-    designcraft_doc::asset_data::links_changed();
+    patronusdesign_doc::asset_data::links_changed();
     r
 }
 
@@ -1354,7 +1354,7 @@ mod shared_asset_tests {
     use super::*;
 
     fn png(w: u32, h: u32) -> Vec<u8> {
-        designcraft_render::Rendered { width: w, height: h, pixels: vec![200u8; (w * h * 4) as usize] }.to_png()
+        patronusdesign_render::Rendered { width: w, height: h, pixels: vec![200u8; (w * h * 4) as usize] }.to_png()
     }
 
     #[test]
@@ -1379,7 +1379,7 @@ mod shared_asset_tests {
         let d = &s.doc().unwrap().doc;
         assert_eq!(d.assets.len(), 3);
         assert_eq!(s.execute("links.list", &json!({})).unwrap().as_array().unwrap().len(), 2);
-        let back = designcraft_format::load(&designcraft_format::save(&s.doc().unwrap().doc).unwrap()).unwrap();
+        let back = patronusdesign_format::load(&patronusdesign_format::save(&s.doc().unwrap().doc).unwrap()).unwrap();
         let mut names: Vec<&str> = back.assets.values().map(|a| a.name.as_str()).collect();
         names.sort();
         assert_eq!(names, ["a.png", "c.png"]);
@@ -1420,13 +1420,13 @@ mod shared_asset_tests {
 
     #[test]
     fn pasted_graphics_reuse_the_identical_asset_of_the_target() {
-        use designcraft_doc::build::NewDocument;
-        use designcraft_doc::{Asset, Graphic, Item, ItemId, Shape, SpreadRef};
+        use patronusdesign_doc::build::NewDocument;
+        use patronusdesign_doc::{Asset, Graphic, Item, ItemId, Shape, SpreadRef};
         let asset = |id: u64, data: Vec<u8>| Asset {
             id: AssetId(id),
             name: "p.png".into(),
             mime: "image/png".into(),
-            data: designcraft_doc::AssetData::embedded(data),
+            data: patronusdesign_doc::AssetData::embedded(data),
             ..Default::default()
         };
         let mut src = Document::new(&NewDocument::default());
@@ -1445,13 +1445,13 @@ mod shared_asset_tests {
             iid,
             src.default_layer(),
             Shape::Rectangle,
-            designcraft_geom::shapes::rectangle(designcraft_geom::Rect::new(0.0, 0.0, 9.0, 9.0)),
+            patronusdesign_geom::shapes::rectangle(patronusdesign_geom::Rect::new(0.0, 0.0, 9.0, 9.0)),
         );
         it.content = Content::Graphic(Graphic {
             layer_options: None,
             asset: sid,
             size: (4.0, 4.0),
-            xf: designcraft_geom::Affine::IDENTITY,
+            xf: patronusdesign_geom::Affine::IDENTITY,
             clip: None,
             auto_fit: Default::default(),
             fit_align: 4,
@@ -1460,7 +1460,7 @@ mod shared_asset_tests {
             fill: Default::default(),
         });
         src.insert_item(SpreadRef::Doc(0), it, None).unwrap();
-        let ids = super::super::object::duplicate_from(&mut dst, &src, &[iid], SpreadRef::Doc(0), designcraft_geom::Vec2::ZERO).unwrap();
+        let ids = super::super::object::duplicate_from(&mut dst, &src, &[iid], SpreadRef::Doc(0), patronusdesign_geom::Vec2::ZERO).unwrap();
         let g = dst.item(ids[0]).and_then(|i| i.graphic()).unwrap();
         assert_eq!((g.asset, g.crop), (same, [1.0; 4]));
         assert_eq!(dst.assets.len(), 2);
@@ -1468,8 +1468,8 @@ mod shared_asset_tests {
 
     #[test]
     fn pasted_missing_graphic_does_not_show_an_unrelated_target_asset() {
-        use designcraft_doc::build::NewDocument;
-        use designcraft_doc::{Asset, Graphic, Item, ItemId, Shape, SpreadRef};
+        use patronusdesign_doc::build::NewDocument;
+        use patronusdesign_doc::{Asset, Graphic, Item, ItemId, Shape, SpreadRef};
         let mut src = Document::new(&NewDocument::default());
         let mut dst = Document::new(&NewDocument::default());
         // The source graphic points at an asset the source does not have; the target uses that id for another image.
@@ -1481,7 +1481,7 @@ mod shared_asset_tests {
                 name: "p.png".into(),
                 mime: "image/png".into(),
                 link: None,
-                data: designcraft_doc::AssetData::embedded(png(8, 4)),
+                data: patronusdesign_doc::AssetData::embedded(png(8, 4)),
                 pixels: None,
                 ..Default::default()
             }),
@@ -1491,13 +1491,13 @@ mod shared_asset_tests {
             iid,
             src.default_layer(),
             Shape::Rectangle,
-            designcraft_geom::shapes::rectangle(designcraft_geom::Rect::new(0.0, 0.0, 9.0, 9.0)),
+            patronusdesign_geom::shapes::rectangle(patronusdesign_geom::Rect::new(0.0, 0.0, 9.0, 9.0)),
         );
         it.content = Content::Graphic(Graphic {
             layer_options: None,
             asset: missing,
             size: (4.0, 4.0),
-            xf: designcraft_geom::Affine::IDENTITY,
+            xf: patronusdesign_geom::Affine::IDENTITY,
             clip: None,
             auto_fit: Default::default(),
             fit_align: 4,
@@ -1506,7 +1506,7 @@ mod shared_asset_tests {
             fill: Default::default(),
         });
         src.insert_item(SpreadRef::Doc(0), it, None).unwrap();
-        let ids = super::super::object::duplicate_from(&mut dst, &src, &[iid], SpreadRef::Doc(0), designcraft_geom::Vec2::ZERO).unwrap();
+        let ids = super::super::object::duplicate_from(&mut dst, &src, &[iid], SpreadRef::Doc(0), patronusdesign_geom::Vec2::ZERO).unwrap();
         let g = dst.item(ids[0]).and_then(|i| i.graphic()).unwrap();
         assert_ne!(g.asset, missing);
         assert!(!dst.assets.contains_key(&g.asset));
@@ -1514,8 +1514,8 @@ mod shared_asset_tests {
 
     #[test]
     fn pasted_missing_graphic_never_takes_an_asset_placed_later() {
-        use designcraft_doc::build::NewDocument;
-        use designcraft_doc::{Graphic, Item, ItemId, Shape, SpreadRef};
+        use patronusdesign_doc::build::NewDocument;
+        use patronusdesign_doc::{Graphic, Item, ItemId, Shape, SpreadRef};
         let mut src = Document::new(&NewDocument::default());
         let mut dst = Document::new(&NewDocument::default());
         // The source's missing id is ahead of the target's counter: the target would allocate it to its next image.
@@ -1528,13 +1528,13 @@ mod shared_asset_tests {
             iid,
             src.default_layer(),
             Shape::Rectangle,
-            designcraft_geom::shapes::rectangle(designcraft_geom::Rect::new(0.0, 0.0, 9.0, 9.0)),
+            patronusdesign_geom::shapes::rectangle(patronusdesign_geom::Rect::new(0.0, 0.0, 9.0, 9.0)),
         );
         it.content = Content::Graphic(Graphic {
             layer_options: None,
             asset: missing,
             size: (4.0, 4.0),
-            xf: designcraft_geom::Affine::IDENTITY,
+            xf: patronusdesign_geom::Affine::IDENTITY,
             clip: None,
             auto_fit: Default::default(),
             fit_align: 4,
@@ -1543,7 +1543,7 @@ mod shared_asset_tests {
             fill: Default::default(),
         });
         src.insert_item(SpreadRef::Doc(0), it, None).unwrap();
-        let ids = super::super::object::duplicate_from(&mut dst, &src, &[iid], SpreadRef::Doc(0), designcraft_geom::Vec2::ZERO).unwrap();
+        let ids = super::super::object::duplicate_from(&mut dst, &src, &[iid], SpreadRef::Doc(0), patronusdesign_geom::Vec2::ZERO).unwrap();
         let g = dst.item(ids[0]).and_then(|i| i.graphic()).unwrap().asset;
         assert!((0..100).all(|_| AssetId(dst.alloc()) != g), "a later image in the target takes the pasted graphic's id");
     }
@@ -1554,7 +1554,7 @@ mod text_link_tests {
     use serde_json::{Value, json};
 
     use crate::Session;
-    use designcraft_doc::{ItemId, StoryId};
+    use patronusdesign_doc::{ItemId, StoryId};
 
     /// A small Word file: a Title paragraph, then Body paragraphs (`body` is WordprocessingML).
     fn docx(body: &str) -> Vec<u8> {
@@ -1575,11 +1575,11 @@ mod text_link_tests {
         l.as_array().unwrap().iter().filter(|r| r.get("story").is_some()).cloned().collect()
     }
 
-    fn story(s: &Session, sid: StoryId) -> designcraft_doc::Story {
+    fn story(s: &Session, sid: StoryId) -> patronusdesign_doc::Story {
         s.doc().unwrap().doc.story(sid).unwrap().clone()
     }
 
-    fn styles(st: &designcraft_doc::Story) -> Vec<String> {
+    fn styles(st: &patronusdesign_doc::Story) -> Vec<String> {
         st.paras.iter().map(|p| p.style.clone()).collect()
     }
 
@@ -1619,7 +1619,7 @@ mod text_link_tests {
         s.execute("edit.redo", &json!({})).unwrap();
 
         // Saved and opened again: the link and its options are kept.
-        let back = designcraft_format::load(&designcraft_format::save(&s.doc().unwrap().doc).unwrap()).unwrap();
+        let back = patronusdesign_format::load(&patronusdesign_format::save(&s.doc().unwrap().doc).unwrap()).unwrap();
         assert_eq!(back.story(sid).unwrap().file_link, story(s, sid).file_link);
         assert_eq!(super::text_status(back.story(sid).unwrap().file_link.as_ref().unwrap(), &mut Default::default(), None), "ok");
     }
@@ -1798,7 +1798,7 @@ mod text_link_tests {
 mod text_link_read_tests {
     use std::time::Duration;
 
-    use designcraft_doc::TextFileLink;
+    use patronusdesign_doc::TextFileLink;
 
     use super::{MAX_TEXT_LINK_BYTES, read_text, text_status};
 

@@ -52,7 +52,7 @@ impl<'r> Importer<'r> {
                 tables.insert(t.id, Arc::new(t));
             }
         }
-        let notes = notes.into_iter().enumerate().map(|(i, text)| Arc::new(designcraft_doc::Footnote { id: i as u64 + 1, text })).collect();
+        let notes = notes.into_iter().enumerate().map(|(i, text)| Arc::new(patronusdesign_doc::Footnote { id: i as u64 + 1, text })).collect();
         let mut anchor_list = Vec::new();
         for (k, (me, name)) in anchors.into_iter().enumerate() {
             let aid = (id.0 << 24) | (k as u64 + 1);
@@ -66,7 +66,7 @@ impl<'r> Importer<'r> {
             } else {
                 self.anchor_ids.insert(me, aid);
             }
-            anchor_list.push(Arc::new(designcraft_doc::TextAnchor { id: aid, name }));
+            anchor_list.push(Arc::new(patronusdesign_doc::TextAnchor { id: aid, name }));
         }
         let mut xref_list = Vec::new();
         for (k, x) in xrefs.into_iter().enumerate() {
@@ -76,14 +76,19 @@ impl<'r> Importer<'r> {
             // exactly is dropped to be generated again (`drop_generated_xref_text`), and text
             // typed over it is kept, as InDesign shows it until the cross-reference is updated.
             let saved = !x.text.is_empty();
-            xref_list.push(Arc::new(designcraft_doc::CrossRef { target: 0, format, text: saved.then_some(x.text), page: x.page.filter(|_| saved) }));
+            xref_list.push(Arc::new(patronusdesign_doc::CrossRef {
+                target: 0,
+                format,
+                text: saved.then_some(x.text),
+                page: x.page.filter(|_| saved),
+            }));
         }
-        let optical_margin = designcraft_doc::OpticalMargin {
+        let optical_margin = patronusdesign_doc::OpticalMargin {
             on: source.optical_margin_enabled(),
             size: source
                 .optical_margin_size()
-                .and_then(designcraft_doc::OpticalMargin::clamp_size)
-                .unwrap_or(designcraft_doc::OpticalMargin::DEFAULT_SIZE),
+                .and_then(patronusdesign_doc::OpticalMargin::clamp_size)
+                .unwrap_or(patronusdesign_doc::OpticalMargin::DEFAULT_SIZE),
         };
         let mut st = Story {
             id,
@@ -91,7 +96,11 @@ impl<'r> Importer<'r> {
             paras,
             chars,
             frames: vec![],
-            direction: if source.right_to_left() { designcraft_doc::TextDirection::RightToLeft } else { designcraft_doc::TextDirection::LeftToRight },
+            direction: if source.right_to_left() {
+                patronusdesign_doc::TextDirection::RightToLeft
+            } else {
+                patronusdesign_doc::TextDirection::LeftToRight
+            },
             vertical: source.vertical(),
             optical_margin,
             rev: 0,
@@ -233,13 +242,17 @@ impl<'r> Importer<'r> {
                             b.notes.push(note);
                             let mut rcf = cf.clone();
                             rcf.over.position = None;
-                            b.push(&designcraft_doc::FOOTNOTE_REF.to_string(), &rcf);
+                            b.push(&patronusdesign_doc::FOOTNOTE_REF.to_string(), &rcf);
                         }
                         craft_idml::model::ContainerKind::Change => {
                             let mut ncf = cf.clone();
                             match container.change_kind() {
-                                Some(craft_idml::model::TrackedChangeKind::Deleted) => ncf.over.change = Some(designcraft_doc::ChangeMark::Deleted),
-                                Some(craft_idml::model::TrackedChangeKind::Inserted) => ncf.over.change = Some(designcraft_doc::ChangeMark::Inserted),
+                                Some(craft_idml::model::TrackedChangeKind::Deleted) => {
+                                    ncf.over.change = Some(patronusdesign_doc::ChangeMark::Deleted)
+                                }
+                                Some(craft_idml::model::TrackedChangeKind::Inserted) => {
+                                    ncf.over.change = Some(patronusdesign_doc::ChangeMark::Inserted)
+                                }
                                 _ => {}
                             }
                             self.walk_story_nodes(&container.children, b, pf, pchars, &ncf, brk);
@@ -254,7 +267,7 @@ impl<'r> Importer<'r> {
                                 match part {
                                     craft_idml::model::SavedCrossReferencePart::Text(value) => text.push_str(&value),
                                     craft_idml::model::SavedCrossReferencePart::PageNumber { result_text } => {
-                                        text.push_str(designcraft_doc::xref::PAGE_NUM_BLOCK);
+                                        text.push_str(patronusdesign_doc::xref::PAGE_NUM_BLOCK);
                                         if page.is_none() {
                                             page = result_text;
                                         }
@@ -275,17 +288,17 @@ impl<'r> Importer<'r> {
                                     self.range_format(style.as_deref(), &el, pchars, cf)
                                 },
                             );
-                            b.push(&designcraft_doc::XREF_MARK.to_string(), &f);
+                            b.push(&patronusdesign_doc::XREF_MARK.to_string(), &f);
                         }
                         craft_idml::model::ContainerKind::Note | craft_idml::model::ContainerKind::EndnoteRange => {}
                     }
                 }
                 craft_idml::model::TextNode::Anchor(anchor) => {
                     b.anchors.push((anchor.self_id().unwrap_or("").to_string(), anchor.label().unwrap_or("Anchor").to_string()));
-                    b.push(&designcraft_doc::ANCHOR_MARK.to_string(), cf);
+                    b.push(&patronusdesign_doc::ANCHOR_MARK.to_string(), cf);
                 }
                 craft_idml::model::TextNode::PageReference(reference) => {
-                    use designcraft_doc::index::IndexRange as R;
+                    use patronusdesign_doc::index::IndexRange as R;
                     let topic = reference.referenced_topic().and_then(|r| self.index_topics.get(r)).cloned().unwrap_or_default();
                     let range = match reference.reference_type() {
                         Some("ToEndOfStory" | "ToEndOfDocument" | "ToEndOfSection") => R::ToEndOfStory,
@@ -293,8 +306,8 @@ impl<'r> Importer<'r> {
                         Some("SuppressPageNumbers") => R::SuppressPageRange,
                         _ => R::CurrentPage,
                     };
-                    b.index_refs.push(designcraft_doc::IndexRef { topics: topic.path, sort: topic.sort, range });
-                    b.push(&designcraft_doc::INDEX_MARK.to_string(), cf);
+                    b.index_refs.push(patronusdesign_doc::IndexRef { topics: topic.path, sort: topic.sort, range });
+                    b.push(&patronusdesign_doc::INDEX_MARK.to_string(), cf);
                 }
                 craft_idml::model::TextNode::TextVariable(values) => {
                     let text = self.text_variable_instance(values);
@@ -303,8 +316,8 @@ impl<'r> Importer<'r> {
                 craft_idml::model::TextNode::Item(_) | craft_idml::model::TextNode::Other(_) => match c.local() {
                     // Anchored page items, including groups containing text frames.
                     "Rectangle" | "Oval" | "Polygon" | "GraphicLine" | "Group" | "TextFrame" => {
-                        if let Some(item) = self.item(&c, designcraft_geom::Affine::IDENTITY) {
-                            use designcraft_doc::anchored::AnchorAlign as A;
+                        if let Some(item) = self.item(&c, patronusdesign_geom::Affine::IDENTITY) {
+                            use patronusdesign_doc::anchored::AnchorAlign as A;
                             // Each setting the item leaves unset comes from its object style chain,
                             // then from the IDML defaults.
                             let style_chain = self.object_style_chain(&c);
@@ -313,7 +326,7 @@ impl<'r> Importer<'r> {
                             let model_refs: Vec<_> = model_levels.iter().collect();
                             let anchored = craft_idml::model::AnchoredObjectValues::from_elements(&model_refs);
                             let position = match anchored.position.as_str() {
-                                "AboveLine" => designcraft_doc::AnchorPosition::AboveLine {
+                                "AboveLine" => patronusdesign_doc::AnchorPosition::AboveLine {
                                     align: match anchored.horizontal_alignment.as_str() {
                                         "CenterAlign" => A::Center,
                                         "RightAlign" => A::Right,
@@ -333,7 +346,7 @@ impl<'r> Importer<'r> {
                                         "BottomAlign" => 2,
                                         _ => 0,
                                     };
-                                    designcraft_doc::AnchorPosition::Custom {
+                                    patronusdesign_doc::AnchorPosition::Custom {
                                         x_relative: names::anchor_rel_in(&anchored.horizontal_reference),
                                         y_relative: names::anchor_rel_in(&anchored.vertical_reference),
                                         // IDML measures a left-aligned object's X offset leftwards.
@@ -345,10 +358,10 @@ impl<'r> Importer<'r> {
                                         spine_relative: anchored.spine_relative,
                                     }
                                 }
-                                _ => designcraft_doc::AnchorPosition::Inline { y_offset: anchored.y_offset },
+                                _ => patronusdesign_doc::AnchorPosition::Inline { y_offset: anchored.y_offset },
                             };
-                            b.objects.push(designcraft_doc::AnchoredObject::new(item, position));
-                            b.push(&designcraft_doc::OBJECT_MARK.to_string(), cf);
+                            b.objects.push(patronusdesign_doc::AnchoredObject::new(item, position));
+                            b.push(&patronusdesign_doc::OBJECT_MARK.to_string(), cf);
                         }
                     }
                     "Properties" | "Note" | "StoryPreference" | "InCopyExportOption" => {}
@@ -429,7 +442,7 @@ impl<'r> Importer<'r> {
     /// cap style (the list's leading "through 1 Dropcap" entry, read into the drop cap style). A
     /// list of its own without that entry clears an inherited drop cap style.
     pub(super) fn clear_inherited_drop_cap_styles(&mut self) {
-        let clears = |a: &designcraft_doc::ParaAttrs| a.drop_cap_style.is_none() && a.nested_styles.is_some();
+        let clears = |a: &patronusdesign_doc::ParaAttrs| a.drop_cap_style.is_none() && a.nested_styles.is_some();
         let cleared: Vec<String> = self
             .styles
             .paragraph
@@ -463,11 +476,11 @@ struct StoryBuilder {
     notes: Vec<Story>,
     /// Text destinations (Self, name) and cross-reference sources (Self, format Self) in order.
     anchors: Vec<(String, String)>,
-    index_refs: Vec<designcraft_doc::IndexRef>,
+    index_refs: Vec<patronusdesign_doc::IndexRef>,
     xrefs: Vec<XrefSource>,
     /// `HyperlinkTextSource` Self and the byte range of the text it wrapped (#1446).
     link_srcs: Vec<(String, usize, usize)>,
-    objects: Vec<designcraft_doc::AnchoredObject>,
+    objects: Vec<patronusdesign_doc::AnchoredObject>,
 }
 
 /// A cross-reference source as saved: its id, its format's id, and its text with each page number

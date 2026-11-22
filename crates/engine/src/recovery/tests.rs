@@ -1056,7 +1056,7 @@ fn reverting_a_coincident_document_preserves_another_documents_retained_source()
     let checkpoint = files(root.path(), live_uid).0;
     let original = std::fs::read(&checkpoint).unwrap();
     let saved = root.path().join("saved-other.designcraft");
-    std::fs::write(&saved, designcraft_format::save(&session.docs[0].doc).unwrap()).unwrap();
+    std::fs::write(&saved, patronusdesign_format::save(&session.docs[0].doc).unwrap()).unwrap();
     session.docs[0].path = Some(saved.to_string_lossy().into_owned());
     session.execute("file.activate", &json!({"index": 0})).unwrap();
     session.execute("frame.create", &json!({"rect": [0,0,100,100]})).unwrap();
@@ -1123,8 +1123,8 @@ fn persisted_texts(dir: &Path) -> Vec<String> {
 #[test]
 #[ignore = "subprocess helper, executed by the restart recovery regression tests"]
 fn restart_recovery_child() {
-    let source = PathBuf::from(std::env::var("DESIGNCRAFT_TEST_RECOVERY_SOURCE").unwrap());
-    let mode = std::env::var("DESIGNCRAFT_TEST_RECOVERY_MODE").unwrap();
+    let source = PathBuf::from(std::env::var("PATRONUSDESIGN_TEST_RECOVERY_SOURCE").unwrap());
+    let mode = std::env::var("PATRONUSDESIGN_TEST_RECOVERY_MODE").unwrap();
     if mode == "occupied_destination" {
         let owned_root = tempfile::tempdir().unwrap();
         let destination = run_dir(owned_root.path()).unwrap();
@@ -1221,8 +1221,8 @@ fn run_restart_case(mode: &str) {
         let _spawning = SPAWN.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         std::process::Command::new(std::env::current_exe().unwrap())
             .args(["--exact", "recovery::tests::restart_recovery_child", "--ignored", "--nocapture"])
-            .env("DESIGNCRAFT_TEST_RECOVERY_SOURCE", source.path())
-            .env("DESIGNCRAFT_TEST_RECOVERY_MODE", mode)
+            .env("PATRONUSDESIGN_TEST_RECOVERY_SOURCE", source.path())
+            .env("PATRONUSDESIGN_TEST_RECOVERY_MODE", mode)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .spawn()

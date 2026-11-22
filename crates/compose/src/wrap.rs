@@ -18,8 +18,8 @@
 //!   is composed at most that many more times (at least [`MIN_PASSES`]), and never more than
 //!   [`MAX_PASSES`].
 
-use designcraft_doc::{AnchorPosition, AnchoredObject, Document, Item, OBJECT_MARK, PageSide, SpreadRef, Story, StoryId};
-use designcraft_geom::Affine;
+use patronusdesign_doc::{AnchorPosition, AnchoredObject, Document, Item, OBJECT_MARK, PageSide, SpreadRef, Story, StoryId};
+use patronusdesign_geom::Affine;
 
 use crate::reuse::{Reuse, Trace};
 use crate::{ComposeOptions, ComposedStory, Exclusion, FrameSpec};

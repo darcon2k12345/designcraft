@@ -1,9 +1,9 @@
 //! Table fragments as native PowerPoint tables: the grid from the cells' edges, merged cells as
 //! spans, fills, edges as cell borders, and each cell's composed text.
 
-use designcraft_compose::{FrameText, PlacedCell, StrokeSeg, TableFrag};
-use designcraft_doc::StrokeType;
-use designcraft_geom::{Affine, Rect};
+use patronusdesign_compose::{FrameText, PlacedCell, StrokeSeg, TableFrag};
+use patronusdesign_doc::StrokeType;
+use patronusdesign_geom::{Affine, Rect};
 
 use crate::slide::{Exporter, box_of};
 

@@ -5,13 +5,13 @@
 
 use std::sync::Arc;
 
-use designcraft_color::swatch::apply_tint;
-use designcraft_compose::Cache;
-use designcraft_doc::build::NewDocument;
-use designcraft_doc::{Asset, AssetId, Content, Document, Fill, Graphic, Item, ItemId, Shape, SpreadRef, Stroke};
-use designcraft_geom::{Affine, Rect, shapes};
-use designcraft_render::{RenderOptions, Renderer, color_of};
 use image::{ExtendedColorType, ImageEncoder};
+use patronusdesign_color::swatch::apply_tint;
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::build::NewDocument;
+use patronusdesign_doc::{Asset, AssetId, Content, Document, Fill, Graphic, Item, ItemId, Shape, SpreadRef, Stroke};
+use patronusdesign_geom::{Affine, Rect, shapes};
+use patronusdesign_render::{RenderOptions, Renderer, color_of};
 
 const RED: &str = "C=15 M=100 Y=100 K=0";
 const CYAN: &str = "C=100 M=0 Y=0 K=0";
@@ -40,7 +40,7 @@ fn shown(file: Vec<u8>, fill: Fill) -> Vec<[u8; 4]> {
             name: "a".into(),
             mime: "image/png".into(),
             link: None,
-            data: designcraft_doc::AssetData::embedded(file),
+            data: patronusdesign_doc::AssetData::embedded(file),
             pixels: Some((3, 1)),
             ..Default::default()
         }),

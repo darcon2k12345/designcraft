@@ -5,10 +5,10 @@ use std::sync::Arc;
 
 use craft_pdf::write::backend as krilla;
 
-use designcraft_compose::Cache;
-use designcraft_doc::{Asset, AssetId, Content, Document, Graphic, Item, ItemId, Shape, SpreadRef};
-use designcraft_geom::{Affine, Rect, shapes};
-use designcraft_pdf::{BookletOptions, PdfOptions, Standard, export_booklet, export_pdf, export_pdf_with_report};
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::{Asset, AssetId, Content, Document, Graphic, Item, ItemId, Shape, SpreadRef};
+use patronusdesign_geom::{Affine, Rect, shapes};
+use patronusdesign_pdf::{BookletOptions, PdfOptions, Standard, export_booklet, export_pdf, export_pdf_with_report};
 
 use crate::image_fixtures as fixtures;
 
@@ -31,7 +31,7 @@ fn place_named(d: &mut Document, data: Vec<u8>, x: f64, name: &str, mime: &str, 
             id: aid,
             name: name.into(),
             mime: mime.into(),
-            data: designcraft_doc::AssetData::embedded(data),
+            data: patronusdesign_doc::AssetData::embedded(data),
             page,
             ..Default::default()
         }),
@@ -243,7 +243,7 @@ fn successful_fallback_warns_for_both_names_and_preserves_rgb_samples() {
     let reason = "converted to RGB (a CMYK TIFF that uses other inks or is over 256 MiB)";
     let expected_warnings = [format!("other-inks-a.tif: {reason}"), format!("other-inks-b.tif: {reason}")];
     // The fallback is the RGB the screen shows: converted through the working CMYK space.
-    let rgb: Vec<u8> = designcraft_images::decode_rgba(&bytes).unwrap().pixels().flat_map(|p| [p[0], p[1], p[2]]).collect();
+    let rgb: Vec<u8> = patronusdesign_images::decode_rgba(&bytes).unwrap().pixels().flat_map(|p| [p[0], p[1], p[2]]).collect();
     for compress_images in [false, true] {
         let report = export_pdf_with_report(&d, &Cache::new(), &PdfOptions { compress_images, ..Default::default() }).unwrap();
         assert_eq!(report.warnings, expected_warnings);
@@ -262,7 +262,7 @@ fn successful_fallback_warns_for_both_names_and_preserves_rgb_samples() {
 fn pdfa_rgb_conversion_does_not_poison_later_cmyk_exports() {
     let bytes = fixtures::cmyk_tiff(None, false);
     // PDF/A gets the RGB the screen shows: converted through the working CMYK space.
-    let rgb: Vec<u8> = designcraft_images::decode_rgba(&bytes).unwrap().pixels().flat_map(|p| [p[0], p[1], p[2]]).collect();
+    let rgb: Vec<u8> = patronusdesign_images::decode_rgba(&bytes).unwrap().pixels().flat_map(|p| [p[0], p[1], p[2]]).collect();
     let mut d = Document::new(&Default::default());
     place_named(&mut d, bytes.clone(), 36.0, "a.tif", "image/tiff", 0);
     place_named(&mut d, bytes, 66.0, "b.tif", "image/tiff", 0);

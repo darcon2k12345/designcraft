@@ -57,14 +57,14 @@ impl<'a> Ex<'a> {
         }
         self.char_decoration_attrs(el, a);
         if let Some(list) = &a.otf_features {
-            for (tag, _, attr) in designcraft_doc::otf::TOGGLES {
-                el.set(attr, bool_s(designcraft_doc::otf::is_on(list, tag)));
+            for (tag, _, attr) in patronusdesign_doc::otf::TOGGLES {
+                el.set(attr, bool_s(patronusdesign_doc::otf::is_on(list, tag)));
             }
-            let fig = designcraft_doc::otf::figures(list);
-            if let Some(f) = designcraft_doc::otf::FIGURES.iter().find(|f| f.0 == fig) {
+            let fig = patronusdesign_doc::otf::figures(list);
+            if let Some(f) = patronusdesign_doc::otf::FIGURES.iter().find(|f| f.0 == fig) {
                 el.set("OTFFigureStyle", f.3);
             }
-            el.set("OTFStylisticSets", designcraft_doc::otf::stylistic_sets(list).to_string());
+            el.set("OTFStylisticSets", patronusdesign_doc::otf::stylistic_sets(list).to_string());
         }
         if let Some(v) = &a.glyph_form {
             el.set("GlyphForm", v);
@@ -129,10 +129,10 @@ impl<'a> Ex<'a> {
         }
         if let Some(k) = a.kerning {
             match k {
-                designcraft_doc::Kerning::Metrics => el.set("KerningMethod", "$ID/Metrics"),
-                designcraft_doc::Kerning::Optical => el.set("KerningMethod", "$ID/Optical"),
-                designcraft_doc::Kerning::None => el.set("KerningMethod", "None"),
-                designcraft_doc::Kerning::Manual(v) => el.set("KerningValue", num(v)),
+                patronusdesign_doc::Kerning::Metrics => el.set("KerningMethod", "$ID/Metrics"),
+                patronusdesign_doc::Kerning::Optical => el.set("KerningMethod", "$ID/Optical"),
+                patronusdesign_doc::Kerning::None => el.set("KerningMethod", "None"),
+                patronusdesign_doc::Kerning::Manual(v) => el.set("KerningValue", num(v)),
             }
         }
         if let Some(v) = a.tracking {
@@ -242,7 +242,7 @@ impl<'a> Ex<'a> {
         if let (Some(cap), Some(list)) = (cap, list.as_mut()) {
             match list.first_mut() {
                 Some(ns) if ns.is_drop_cap() => ns.style = cap.to_string(),
-                _ if real(cap) => list.insert(0, designcraft_doc::NestedStyle::drop_cap(cap)),
+                _ if real(cap) => list.insert(0, patronusdesign_doc::NestedStyle::drop_cap(cap)),
                 _ => {}
             }
         }
@@ -292,11 +292,11 @@ impl<'a> Ex<'a> {
             None
         };
         let (grid_alignment, grid_align_first_line_only) = match a.grid_align {
-            Some(designcraft_doc::GridAlign::None) => (Some("None".to_string()), None),
-            Some(designcraft_doc::GridAlign::AllLines) => {
+            Some(patronusdesign_doc::GridAlign::None) => (Some("None".to_string()), None),
+            Some(patronusdesign_doc::GridAlign::AllLines) => {
                 (Some(crate::cjk::grid_reference_out(a.grid_reference.unwrap_or_default()).into()), Some(false))
             }
-            Some(designcraft_doc::GridAlign::FirstLineOnly) => {
+            Some(patronusdesign_doc::GridAlign::FirstLineOnly) => {
                 (Some(crate::cjk::grid_reference_out(a.grid_reference.unwrap_or_default()).into()), Some(true))
             }
             None => (None, None),
@@ -304,7 +304,7 @@ impl<'a> Ex<'a> {
         let values = craft_idml::model::ParagraphAlignmentValues {
             justification: a.align.map(|value| names::align_out(value).into()),
             direction: a.direction.map(|value| {
-                if value == designcraft_doc::TextDirection::RightToLeft { "RightToLeftDirection" } else { "LeftToRightDirection" }.into()
+                if value == patronusdesign_doc::TextDirection::RightToLeft { "RightToLeftDirection" } else { "LeftToRightDirection" }.into()
             }),
             kashidas: a.kashidas.map(|value| if value { "DefaultKashidas" } else { "KashidasOff" }.into()),
             paragraph_justification: a.arabic_justification.clone(),
@@ -323,10 +323,10 @@ impl<'a> Ex<'a> {
             grid_align_first_line_only,
             composer: a.composer.map(|value| {
                 match value {
-                    designcraft_doc::Composer::Paragraph => "HL Composer",
-                    designcraft_doc::Composer::SingleLine => "HL Single",
-                    designcraft_doc::Composer::Japanese => "HL Composer J",
-                    designcraft_doc::Composer::JapaneseSingleLine => "HL Single J",
+                    patronusdesign_doc::Composer::Paragraph => "HL Composer",
+                    patronusdesign_doc::Composer::SingleLine => "HL Single",
+                    patronusdesign_doc::Composer::Japanese => "HL Composer J",
+                    patronusdesign_doc::Composer::JapaneseSingleLine => "HL Single J",
                 }
                 .into()
             }),
@@ -442,7 +442,7 @@ impl<'a> Ex<'a> {
     }
 
     fn para_box_attrs(&self, el: &mut El, props: &mut Vec<El>, a: &ParaAttrs) {
-        let corners = |values: Option<[designcraft_geom::corners::Corner; 4]>| {
+        let corners = |values: Option<[patronusdesign_geom::corners::Corner; 4]>| {
             values.map(|corners| corners.map(|corner| (names::corner_out(corner.shape).to_string(), corner.size)))
         };
         let values = craft_idml::model::ParagraphBoxValues {
@@ -488,9 +488,9 @@ impl<'a> Ex<'a> {
     pub(super) fn para_attrs(&mut self, el: &mut El, props: &mut Vec<El>, a: &ParaAttrs, parent: Option<&str>) {
         let cjk = craft_idml::model::CjkParagraphValues {
             kinsoku_hang: a.kinsoku_hang.map(|value| match value {
-                designcraft_doc::cjk::KinsokuHang::None => "None".into(),
-                designcraft_doc::cjk::KinsokuHang::Regular => "KinsokuHangRegular".into(),
-                designcraft_doc::cjk::KinsokuHang::Force => "KinsokuHangForce".into(),
+                patronusdesign_doc::cjk::KinsokuHang::None => "None".into(),
+                patronusdesign_doc::cjk::KinsokuHang::Regular => "KinsokuHangRegular".into(),
+                patronusdesign_doc::cjk::KinsokuHang::Force => "KinsokuHangForce".into(),
             }),
             mojikumi: a.mojikumi.clone(),
             kinsoku_type: a.kinsoku_type.clone(),
@@ -521,7 +521,7 @@ impl<'a> Ex<'a> {
 impl Ex<'_> {
     /// Kenten Settings, Kenten Color and Shatai of a character range or style.
     fn cjk_settings_chars(&self, el: &mut El, props: &mut Vec<El>, a: &CharAttrs) {
-        use designcraft_doc::cjk_settings::KentenKind;
+        use patronusdesign_doc::cjk_settings::KentenKind;
         if let Some(k) = a.kenten_kind
             && a.kenten != Some(false)
         {

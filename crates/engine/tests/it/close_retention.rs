@@ -2,8 +2,8 @@
 
 use std::sync::Arc;
 
-use designcraft_doc::StoryId;
-use designcraft_engine::Session;
+use patronusdesign_doc::StoryId;
+use patronusdesign_engine::Session;
 use serde_json::json;
 
 fn text_document(s: &mut Session, title: &str) -> StoryId {

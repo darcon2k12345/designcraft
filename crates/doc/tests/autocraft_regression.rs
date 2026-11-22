@@ -1,5 +1,5 @@
-use designcraft_doc::Styles;
-use designcraft_doc::mojikumi::{Rules, class};
+use patronusdesign_doc::Styles;
+use patronusdesign_doc::mojikumi::{Rules, class};
 
 #[test]
 fn middle_dot_keeps_quarter_em_beside_untrimmed_bracket() {

@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use designcraft_geom::Rect;
+use patronusdesign_geom::Rect;
 use serde::{Deserialize, Serialize};
 
 use crate::attrs::NumberStyle;

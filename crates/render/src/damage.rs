@@ -8,8 +8,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use designcraft_doc::{Document, Item, ItemId, SpreadRef, Story, StoryId};
-use designcraft_geom::Rect;
+use patronusdesign_doc::{Document, Item, ItemId, SpreadRef, Story, StoryId};
+use patronusdesign_geom::Rect;
 
 use crate::fx::max_scale;
 
@@ -20,7 +20,7 @@ pub fn damage(old: &Document, new: &Document) -> Option<Vec<(SpreadRef, Rect)>> 
 
 /// [`damage`] using the composition cache: of a changed story, only the frames whose composed
 /// text actually changed are damaged (typing on page 40 of a chapter repaints page 40).
-pub fn damage_with(old: &Document, new: &Document, cache: Option<&designcraft_compose::Cache>) -> Option<Vec<(SpreadRef, Rect)>> {
+pub fn damage_with(old: &Document, new: &Document, cache: Option<&patronusdesign_compose::Cache>) -> Option<Vec<(SpreadRef, Rect)>> {
     if std::ptr::eq(old, new) {
         return Some(vec![]);
     }
@@ -99,7 +99,7 @@ pub fn damage_with(old: &Document, new: &Document, cache: Option<&designcraft_co
         }
         // Its anchored objects' text wrap reflows the other stories on its spreads.
         for d in [old, new] {
-            for other in designcraft_compose::wrap::wrapped_by(d, sid) {
+            for other in patronusdesign_compose::wrap::wrapped_by(d, sid) {
                 for f in d.story(other).map(|s| s.frames.clone()).unwrap_or_default() {
                     out.push(frame_area(d, f)?);
                 }
@@ -110,7 +110,7 @@ pub fn damage_with(old: &Document, new: &Document, cache: Option<&designcraft_co
             && let Some(prev) = c.composed_for(old, sid)
         {
             let cur = c.get(new, sid, None);
-            let changed = designcraft_compose::Cache::changed_frames(&prev, &cur);
+            let changed = patronusdesign_compose::Cache::changed_frames(&prev, &cur);
             for f in changed {
                 for d in [old, new] {
                     if d.find(f).is_some() {
@@ -153,7 +153,7 @@ fn text_stories(it: &Item) -> Vec<StoryId> {
 
 /// Does the story show text generated from other stories or pages?
 fn shows_other_text(d: &Document, s: &Story) -> bool {
-    !s.xrefs.is_empty() || s.text.chars().any(|c| designcraft_doc::vars::var_index(c).is_some()) || d.toc.as_ref().is_some_and(|t| t.story == s.id)
+    !s.xrefs.is_empty() || s.text.chars().any(|c| patronusdesign_doc::vars::var_index(c).is_some()) || d.toc.as_ref().is_some_and(|t| t.story == s.id)
 }
 
 /// Area an item paints (spread coordinates), or None when it can't be bounded cheaply.
@@ -208,8 +208,8 @@ fn frame_area(d: &Document, f: ItemId) -> Option<(SpreadRef, Rect)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use designcraft_doc::ParaFormat;
-    use designcraft_doc::build::NewDocument;
+    use patronusdesign_doc::ParaFormat;
+    use patronusdesign_doc::build::NewDocument;
 
     #[test]
     fn typing_damages_only_the_frame() {
@@ -221,12 +221,12 @@ mod tests {
         d.story_mut(sid).unwrap().insert(5, " world");
         let dmg = damage(&old, &d).unwrap();
         assert!(!dmg.is_empty());
-        assert!(dmg.iter().all(|(r, rect)| *r == SpreadRef::Doc(0) && rect.contains(designcraft_geom::Point::new(100.0, 100.0))));
+        assert!(dmg.iter().all(|(r, rect)| *r == SpreadRef::Doc(0) && rect.contains(patronusdesign_geom::Point::new(100.0, 100.0))));
         // Nothing changed.
         assert_eq!(damage(&d, &d.clone()).unwrap().len(), 0);
         // A style change repaints everything.
         let old = d.clone();
-        d.styles_mut().paragraph.push(designcraft_doc::ParagraphStyle {
+        d.styles_mut().paragraph.push(patronusdesign_doc::ParagraphStyle {
             name: "X".into(),
             based_on: None,
             next_style: None,
@@ -238,15 +238,15 @@ mod tests {
         // Moving an item damages where it was and where it is.
         let old = d.clone();
         let id = d.spreads[0].items[0].id;
-        d.item_mut(id).unwrap().xf = designcraft_geom::Affine::translate((100.0, 0.0));
+        d.item_mut(id).unwrap().xf = patronusdesign_geom::Affine::translate((100.0, 0.0));
         let dmg = damage(&old, &d).unwrap();
-        assert!(dmg.iter().any(|(_, r)| r.contains(designcraft_geom::Point::new(100.0, 100.0))));
-        assert!(dmg.iter().any(|(_, r)| r.contains(designcraft_geom::Point::new(350.0, 100.0))));
+        assert!(dmg.iter().any(|(_, r)| r.contains(patronusdesign_geom::Point::new(100.0, 100.0))));
+        assert!(dmg.iter().any(|(_, r)| r.contains(patronusdesign_geom::Point::new(350.0, 100.0))));
     }
 
     #[test]
     fn relinking_an_asset_damages_the_frame_showing_it() {
-        use designcraft_doc::{Asset, AssetId, Content, Graphic};
+        use patronusdesign_doc::{Asset, AssetId, Content, Graphic};
         let mut d = Document::new(&NewDocument { pages: 1, ..Default::default() });
         let lid = d.default_layer();
         let aid = AssetId(d.alloc());
@@ -254,14 +254,14 @@ mod tests {
         let mut it = Item::new(
             ItemId(d.alloc()),
             lid,
-            designcraft_doc::Shape::Rectangle,
-            designcraft_geom::shapes::rectangle(Rect::new(100.0, 100.0, 200.0, 200.0)),
+            patronusdesign_doc::Shape::Rectangle,
+            patronusdesign_geom::shapes::rectangle(Rect::new(100.0, 100.0, 200.0, 200.0)),
         );
         it.content = Content::Graphic(Graphic {
             layer_options: None,
             asset: aid,
             size: (100.0, 100.0),
-            xf: designcraft_geom::Affine::IDENTITY,
+            xf: patronusdesign_geom::Affine::IDENTITY,
             clip: None,
             auto_fit: Default::default(),
             fit_align: 4,
@@ -272,11 +272,12 @@ mod tests {
         Arc::make_mut(&mut d.spreads[0]).items.push(Arc::new(it));
         let old = d.clone();
         // Relink: the same asset id now holds other bytes; the item itself is unchanged.
-        let fresh = Asset { data: designcraft_doc::AssetData::embedded(vec![1, 2, 3]), link: Some("/new/a.png".into()), ..(*d.assets[&aid]).clone() };
+        let fresh =
+            Asset { data: patronusdesign_doc::AssetData::embedded(vec![1, 2, 3]), link: Some("/new/a.png".into()), ..(*d.assets[&aid]).clone() };
         d.assets.insert(aid, Arc::new(fresh));
         let dmg = damage(&old, &d);
         assert!(
-            dmg.as_ref().is_none_or(|v| v.iter().any(|(_, r)| r.contains(designcraft_geom::Point::new(150.0, 150.0)))),
+            dmg.as_ref().is_none_or(|v| v.iter().any(|(_, r)| r.contains(patronusdesign_geom::Point::new(150.0, 150.0)))),
             "relink reported damage {dmg:?}"
         );
     }
@@ -287,24 +288,24 @@ mod tests {
         let lid = d.default_layer();
         let (_, a) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(36.0, 36.0, 200.0, 200.0), lid, "Anchor", ParaFormat::default()).unwrap();
         let (_, _) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(300.0, 400.0, 500.0, 600.0), lid, "Wrapped", ParaFormat::default()).unwrap();
-        let mut it = designcraft_doc::Item::new(
-            designcraft_doc::ItemId(d.alloc()),
+        let mut it = patronusdesign_doc::Item::new(
+            patronusdesign_doc::ItemId(d.alloc()),
             lid,
-            designcraft_doc::Shape::Rectangle,
-            designcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 20.0, 20.0)),
+            patronusdesign_doc::Shape::Rectangle,
+            patronusdesign_geom::shapes::rectangle(Rect::new(0.0, 0.0, 20.0, 20.0)),
         );
-        it.wrap.mode = designcraft_doc::WrapMode::BoundingBox;
+        it.wrap.mode = patronusdesign_doc::WrapMode::BoundingBox;
         let old = d.clone();
-        d.story_mut(a).unwrap().insert_object(0, designcraft_doc::AnchoredObject::new(it, Default::default()));
+        d.story_mut(a).unwrap().insert_object(0, patronusdesign_doc::AnchoredObject::new(it, Default::default()));
         let dmg = damage(&old, &d).unwrap();
-        assert!(dmg.iter().any(|(_, r)| r.contains(designcraft_geom::Point::new(400.0, 500.0))));
+        assert!(dmg.iter().any(|(_, r)| r.contains(patronusdesign_geom::Point::new(400.0, 500.0))));
     }
 
     /// Channels where `old`'s render patched over `new`'s damage differs from `new`'s full render.
     fn patched_diff(old: &Document, new: &Document, (w, h): (u32, u32), zoom: f64) -> usize {
         use crate::{Placed, RenderOptions, Renderer};
-        use designcraft_geom::{Affine, Vec2};
-        let cache = designcraft_compose::Cache::new();
+        use patronusdesign_geom::{Affine, Vec2};
+        let cache = patronusdesign_compose::Cache::new();
         let placed = [Placed { spread: SpreadRef::Doc(0), xf: Affine::translate(Vec2::ZERO) }];
         let view = Affine::scale(zoom);
         let mut r = Renderer::new();
@@ -343,7 +344,7 @@ mod tests {
 
     #[test]
     fn moving_a_sheared_turned_text_frame_leaves_no_trail() {
-        use designcraft_geom::Affine;
+        use patronusdesign_geom::Affine;
         let mut d = Document::new(&NewDocument { pages: 1, ..Default::default() });
         let lid = d.default_layer();
         let text = "Lorem ipsum dolor sit amet. ".repeat(60);
@@ -351,7 +352,7 @@ mod tests {
         // Sheared outline (its box's corners are outside it, the text's first and last lines in
         // them), then turned: the text reaches past the outline's bounds.
         let it = d.item_mut(f).unwrap();
-        it.path = designcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 300.0, 200.0)).transformed(Affine::skew(0.5, 0.0));
+        it.path = patronusdesign_geom::shapes::rectangle(Rect::new(0.0, 0.0, 300.0, 200.0)).transformed(Affine::skew(0.5, 0.0));
         it.xf = Affine::translate((150.0, 60.0)) * Affine::rotate(30f64.to_radians());
         let old = d.clone();
         d.item_mut(f).unwrap().xf = Affine::translate((210.0, 90.0)) * Affine::rotate(30f64.to_radians());
@@ -369,7 +370,7 @@ mod tests {
         let (f3, _) = d.add_text_frame(SpreadRef::Doc(2), Rect::new(72.0, 72.0, 300.0, 300.0), lid, "", ParaFormat::default()).unwrap();
         d.thread(f1, f2).unwrap();
         d.thread(f2, f3).unwrap();
-        let cache = designcraft_compose::Cache::new();
+        let cache = patronusdesign_compose::Cache::new();
         let _ = cache.get(&d, sid, None);
         // Change a word in the last frame's text (same length): only that frame changes.
         let old = d.clone();
@@ -392,7 +393,7 @@ mod tests {
         let old = d.clone();
         let _ = cache.get(&d, sid, None);
         let it = d.item_mut(f1).unwrap();
-        it.path = designcraft_geom::shapes::rectangle(Rect::new(72.0, 72.0, 300.0, 150.0));
+        it.path = patronusdesign_geom::shapes::rectangle(Rect::new(72.0, 72.0, 300.0, 150.0));
         let dmg = damage_with(&old, &d, Some(&cache)).unwrap();
         let spreads: Vec<SpreadRef> = dmg.iter().map(|(r, _)| *r).collect();
         assert!(spreads.contains(&SpreadRef::Doc(1)), "{dmg:?}");
@@ -407,20 +408,24 @@ mod tests {
             let mut d = Document::new(&NewDocument { pages: 1, ..Default::default() });
             let lid = d.default_layer();
             let id = ItemId(d.alloc());
-            let mut it =
-                Item::new(id, lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(Rect::new(100.0, 100.0, 250.0, 200.0)));
-            it.fill = designcraft_doc::Fill::swatch(designcraft_color::swatch::BLACK);
+            let mut it = Item::new(
+                id,
+                lid,
+                patronusdesign_doc::Shape::Rectangle,
+                patronusdesign_geom::shapes::rectangle(Rect::new(100.0, 100.0, 250.0, 200.0)),
+            );
+            it.fill = patronusdesign_doc::Fill::swatch(patronusdesign_color::swatch::BLACK);
             if glow {
                 let g = &mut it.effects.outer_glow;
-                (g.on, g.color, g.opacity, g.size, g.spread) = (true, designcraft_color::swatch::BLACK.into(), 1.0, 30.0, 20.0);
+                (g.on, g.color, g.opacity, g.size, g.spread) = (true, patronusdesign_color::swatch::BLACK.into(), 1.0, 30.0, 20.0);
             } else {
                 let s = &mut it.effects.drop_shadow;
-                (s.on, s.color, s.opacity, s.size, s.distance, s.spread) = (true, designcraft_color::swatch::BLACK.into(), 1.0, 20.0, 25.0, 30.0);
+                (s.on, s.color, s.opacity, s.size, s.distance, s.spread) = (true, patronusdesign_color::swatch::BLACK.into(), 1.0, 20.0, 25.0, 30.0);
             }
             d.insert_item(SpreadRef::Doc(0), it, None).unwrap();
             let old = d.clone();
             let it = d.item_mut(id).unwrap();
-            it.path.transform(designcraft_geom::Affine::translate((60.0, 40.0)));
+            it.path.transform(patronusdesign_geom::Affine::translate((60.0, 40.0)));
             let changed = changed_pixels_in_damage(&old, &d);
             assert!(changed.iter().any(|p| !Rect::new(98.0, 98.0, 312.0, 242.0).contains(*p)), "glow {glow}: the effect paints outside the object");
         }
@@ -429,30 +434,35 @@ mod tests {
         let mut d = Document::new(&NewDocument { pages: 1, ..Default::default() });
         let lid = d.default_layer();
         let id = ItemId(d.alloc());
-        let mut it = Item::new(id, lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(Rect::new(50.0, 50.0, 90.0, 90.0)));
-        it.xf = designcraft_geom::Affine::scale(3.0);
-        it.fill = designcraft_doc::Fill::swatch(designcraft_color::swatch::BLACK);
+        let mut it =
+            Item::new(id, lid, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(Rect::new(50.0, 50.0, 90.0, 90.0)));
+        it.xf = patronusdesign_geom::Affine::scale(3.0);
+        it.fill = patronusdesign_doc::Fill::swatch(patronusdesign_color::swatch::BLACK);
         let g = &mut it.effects.outer_glow;
-        (g.on, g.color, g.opacity, g.size, g.spread) = (true, designcraft_color::swatch::BLACK.into(), 1.0, 20.0, 100.0);
+        (g.on, g.color, g.opacity, g.size, g.spread) = (true, patronusdesign_color::swatch::BLACK.into(), 1.0, 20.0, 100.0);
         d.insert_item(SpreadRef::Doc(0), it, None).unwrap();
         let old = d.clone();
         let it = d.item_mut(id).unwrap();
-        it.xf = designcraft_geom::Affine::translate((60.0, 40.0)) * it.xf;
+        it.xf = patronusdesign_geom::Affine::translate((60.0, 40.0)) * it.xf;
         // The square covers 150..270 before the move; its glow reaches 60 pt past that.
         let changed = changed_pixels_in_damage(&old, &d);
         assert!(changed.iter().any(|p| p.x < 110.0), "the hard glow grows with the object's scale");
         // An effect on an object inside a group is drawn through the group's transform: unbounded.
         let mut d = Document::new(&NewDocument { pages: 1, ..Default::default() });
         let lid = d.default_layer();
-        let mut child =
-            Item::new(ItemId(d.alloc()), lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 9.0, 9.0)));
+        let mut child = Item::new(
+            ItemId(d.alloc()),
+            lid,
+            patronusdesign_doc::Shape::Rectangle,
+            patronusdesign_geom::shapes::rectangle(Rect::new(0.0, 0.0, 9.0, 9.0)),
+        );
         child.effects.drop_shadow.on = true;
         let gid = ItemId(d.alloc());
-        let mut group = Item::new(gid, lid, designcraft_doc::Shape::Group, Default::default());
-        group.content = designcraft_doc::Content::Group { items: vec![Arc::new(child)] };
+        let mut group = Item::new(gid, lid, patronusdesign_doc::Shape::Group, Default::default());
+        group.content = patronusdesign_doc::Content::Group { items: vec![Arc::new(child)] };
         d.insert_item(SpreadRef::Doc(0), group, None).unwrap();
         let old = d.clone();
-        d.item_mut(gid).unwrap().xf = designcraft_geom::Affine::scale(4.0);
+        d.item_mut(gid).unwrap().xf = patronusdesign_geom::Affine::scale(4.0);
         assert!(damage(&old, &d).is_none());
     }
 
@@ -463,17 +473,18 @@ mod tests {
         let mut d = Document::new(&NewDocument { pages: 1, ..Default::default() });
         let lid = d.default_layer();
         let id = ItemId(d.alloc());
-        let mut it = Item::new(id, lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(Rect::new(50.0, 50.0, 125.0, 100.0)));
-        it.xf = designcraft_geom::Affine::scale(2.0);
-        it.stroke.swatch = designcraft_color::swatch::BLACK.into();
+        let mut it =
+            Item::new(id, lid, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(Rect::new(50.0, 50.0, 125.0, 100.0)));
+        it.xf = patronusdesign_geom::Affine::scale(2.0);
+        it.stroke.swatch = patronusdesign_color::swatch::BLACK.into();
         it.stroke.weight = 20.0;
-        it.stroke.align = designcraft_doc::StrokeAlign::Outside;
+        it.stroke.align = patronusdesign_doc::StrokeAlign::Outside;
         it.effects.outer_glow.on = true;
         it.effects.outer_glow.size = 0.0;
         d.insert_item(SpreadRef::Doc(0), it, None).unwrap();
         let old = d.clone();
         let it = d.item_mut(id).unwrap();
-        it.xf = designcraft_geom::Affine::translate((60.0, 40.0)) * it.xf;
+        it.xf = patronusdesign_geom::Affine::translate((60.0, 40.0)) * it.xf;
         // The stroke reaches 40 pt past the frame's 100..250 × 100..200 outline on the spread.
         let changed = changed_pixels_in_damage(&old, &d);
         assert!(changed.iter().any(|p| p.x < 70.0), "the stroke paints its scaled width");
@@ -483,22 +494,22 @@ mod tests {
         child.effects = Default::default();
         child.id = ItemId(d.alloc());
         let gid = ItemId(d.alloc());
-        let outline = designcraft_geom::shapes::rectangle(Rect::new(100.0, 100.0, 250.0, 200.0));
-        let mut group = Item::new(gid, d.default_layer(), designcraft_doc::Shape::Group, outline);
-        group.content = designcraft_doc::Content::Group { items: vec![Arc::new(child)] };
+        let outline = patronusdesign_geom::shapes::rectangle(Rect::new(100.0, 100.0, 250.0, 200.0));
+        let mut group = Item::new(gid, d.default_layer(), patronusdesign_doc::Shape::Group, outline);
+        group.content = patronusdesign_doc::Content::Group { items: vec![Arc::new(child)] };
         let gf = &mut group.effects.gradient_feather;
         (gf.on, gf.start, gf.end) = (true, 1.0, 0.5);
         d.insert_item(SpreadRef::Doc(0), group, None).unwrap();
         let old = d.clone();
-        d.item_mut(gid).unwrap().xf = designcraft_geom::Affine::translate((60.0, 40.0));
+        d.item_mut(gid).unwrap().xf = patronusdesign_geom::Affine::translate((60.0, 40.0));
         let changed = changed_pixels_in_damage(&old, &d);
         assert!(changed.iter().any(|p| p.x < 70.0), "the child's stroke paints its scaled width");
     }
 
     /// The pixels a page render changes from `old` to `new`, each checked to lie in the damage.
-    fn changed_pixels_in_damage(old: &Document, new: &Document) -> Vec<designcraft_geom::Point> {
+    fn changed_pixels_in_damage(old: &Document, new: &Document) -> Vec<patronusdesign_geom::Point> {
         let dmg = damage(old, new).expect("bounded damage");
-        let cache = designcraft_compose::Cache::new();
+        let cache = patronusdesign_compose::Cache::new();
         let mut r = crate::Renderer::new();
         r.threads = 0;
         let opts = crate::RenderOptions::default();
@@ -510,7 +521,7 @@ mod tests {
                 if before.pixel(x, y) == after.pixel(x, y) {
                     continue;
                 }
-                let p = designcraft_geom::Point::new(f64::from(x) + 0.5, f64::from(y) + 0.5);
+                let p = patronusdesign_geom::Point::new(f64::from(x) + 0.5, f64::from(y) + 0.5);
                 assert!(dmg.iter().any(|(_, r)| r.inflate(1.0, 1.0).contains(p)), "changed pixel {p:?} outside {dmg:?}");
                 changed.push(p);
             }

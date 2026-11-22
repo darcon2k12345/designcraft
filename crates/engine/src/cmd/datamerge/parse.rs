@@ -6,9 +6,9 @@
 
 use std::path::{Path, PathBuf};
 
-use designcraft_doc::{DataField, DataFieldKind, Delimiter, Fingerprint, SourceStatus};
-use designcraft_geom::Rect;
-use designcraft_textimport::{DATA_MERGE_MAX_COLS, DATA_MERGE_MAX_ROWS};
+use patronusdesign_doc::{DataField, DataFieldKind, Delimiter, Fingerprint, SourceStatus};
+use patronusdesign_geom::Rect;
+use patronusdesign_textimport::{DATA_MERGE_MAX_COLS, DATA_MERGE_MAX_ROWS};
 use serde_json::Value;
 
 /// A parsed table. `rows` does not include the header. Every row matches `fields` in length.
@@ -441,7 +441,7 @@ fn table_from_raw(raw: &[RawRow]) -> Result<Table, String> {
     Ok(Table { fields, rows, warnings, delimiter: Delimiter::Comma })
 }
 
-/// Parse delimited text with the shared CSV grammar, then apply DesignCraft's table limits and row policy.
+/// Parse delimited text with the shared CSV grammar, then apply Patronus Design's table limits and row policy.
 fn parse_delimited(s: &str, delim: char) -> Result<Vec<RawRow>, String> {
     let mut rows = Vec::new();
     let mut line = 1usize;

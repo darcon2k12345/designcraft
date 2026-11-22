@@ -1,7 +1,7 @@
 use super::*;
 
 fn png(w: u32, h: u32) -> Vec<u8> {
-    designcraft_render::Rendered { width: w, height: h, pixels: vec![200u8; (w * h * 4) as usize] }.to_png()
+    patronusdesign_render::Rendered { width: w, height: h, pixels: vec![200u8; (w * h * 4) as usize] }.to_png()
 }
 
 /// The Links panel polls `links.list` twice a second: a linked image whose file keeps its size
@@ -18,7 +18,7 @@ fn unchanged_linked_images_are_not_read_again() {
     // Two valid images of the same byte length (a uniform fill compresses to the same size
     // whatever its value), so a change shows only in the bytes.
     let a = png(40, 40);
-    let b = designcraft_render::Rendered { width: 40, height: 40, pixels: vec![100u8; 40 * 40 * 4] }.to_png();
+    let b = patronusdesign_render::Rendered { width: 40, height: 40, pixels: vec![100u8; 40 * 40 * 4] }.to_png();
     assert_eq!(a.len(), b.len(), "the test needs two files of one size");
     assert_ne!(a, b);
     std::fs::write(&path, &a).unwrap();
@@ -98,21 +98,21 @@ fn a_linked_image_at_its_loaded_size_and_time_is_not_read() {
     std::fs::write(&path, b"file").unwrap();
     set_age(&path, 60);
     let loaded = crate::cmd::datamerge::fingerprint_of(&path).unwrap();
-    let asset = |link_fingerprint| designcraft_doc::Asset {
+    let asset = |link_fingerprint| patronusdesign_doc::Asset {
         id: AssetId(1),
         link: Some(path.to_string_lossy().into_owned()),
         link_fingerprint,
-        data: designcraft_doc::AssetData::embedded(b"data".to_vec()),
+        data: patronusdesign_doc::AssetData::embedded(b"data".to_vec()),
         ..Default::default()
     };
-    let status = |a: &designcraft_doc::Asset| status_cached(a, None, &mut ImageChecks::default());
+    let status = |a: &patronusdesign_doc::Asset| status_cached(a, None, &mut ImageChecks::default());
 
     assert_eq!(status(&asset(Some(loaded))), "ok", "the size and time it was loaded at: not read");
     // No fingerprint (a document from before they were kept) or another time: compared.
     assert_eq!(status(&asset(None)), "modified");
     assert_eq!(status(&asset(Some(Fingerprint { mtime: loaded.mtime - 60, ..loaded }))), "modified", "a new time alone is compared");
     // Bytes replaced without their fingerprint: it is of another size, so it isn't theirs.
-    let swapped = designcraft_doc::Asset { data: designcraft_doc::AssetData::embedded(b"other bytes".to_vec()), ..asset(Some(loaded)) };
+    let swapped = patronusdesign_doc::Asset { data: patronusdesign_doc::AssetData::embedded(b"other bytes".to_vec()), ..asset(Some(loaded)) };
     assert_eq!(status(&swapped), "modified");
     // A time too recent to trust: another write in the same second would keep it.
     set_age(&path, 0);
@@ -193,7 +193,7 @@ fn preview_rows_look_at_no_file() {
     let st = s.doc().unwrap();
     assert!(st.doc.assets[&ids[0]].link_fingerprint.is_some(), "a placed file is remembered by its size and time");
     let copy = &st.doc.assets[&ids[1]];
-    assert_eq!(copy.storage, designcraft_doc::Storage::Embedded);
+    assert_eq!(copy.storage, patronusdesign_doc::Storage::Embedded);
     assert!(copy.link.is_some() && copy.link_hash.is_some(), "embed keeps the link record for Unembed");
     let statuses = |rows: &[Value]| -> Vec<String> {
         ids.iter().map(|id| rows.iter().find(|r| r["asset"] == id.0).unwrap()["status"].as_str().unwrap().to_string()).collect()
@@ -421,8 +421,8 @@ fn eps_web_exports_convert_tiff_and_skip_bad_used_assets() {
     let encoded = html["text"].as_str().unwrap().split("data:image/png;base64,").nth(1).unwrap().split('"').next().unwrap();
     let png = super::super::file::base64_decode(encoded);
     assert!(png.starts_with(b"\x89PNG"));
-    assert_eq!(designcraft_render::image_size(&png), Some((2, 2)));
-    assert_eq!(designcraft_render::decode_pixmap(&png).unwrap().data()[0], designcraft_render::decode_pixmap(&bytes).unwrap().data()[0]);
+    assert_eq!(patronusdesign_render::image_size(&png), Some((2, 2)));
+    assert_eq!(patronusdesign_render::decode_pixmap(&png).unwrap().data()[0], patronusdesign_render::decode_pixmap(&bytes).unwrap().data()[0]);
     let result = s.execute("file.exportEpub", &json!({})).unwrap();
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(super::super::file::base64_decode(result["base64"].as_str().unwrap()))).unwrap();
     let mut image = Vec::new();
@@ -434,7 +434,7 @@ fn eps_web_exports_convert_tiff_and_skip_bad_used_assets() {
     assert!(!opf.contains("image/tiff"));
     assert!(Arc::ptr_eq(&before, &s.doc().unwrap().doc));
     s.edit(|d, _| {
-        Arc::make_mut(d.assets.get_mut(&aid).unwrap()).data = designcraft_doc::AssetData::embedded(b"%!PS-Adobe-3.0 EPSF-3.0\n%%EOF\n".to_vec());
+        Arc::make_mut(d.assets.get_mut(&aid).unwrap()).data = patronusdesign_doc::AssetData::embedded(b"%!PS-Adobe-3.0 EPSF-3.0\n%%EOF\n".to_vec());
         Ok(())
     })
     .unwrap();
@@ -463,7 +463,7 @@ fn eps_status_tracks_source_bytes_across_save_update_relink_and_embed() {
     let first = b"%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 20 10\n0 0 0 setrgbcolor\n%%EOF\n";
     let changed = b"%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 20 10\n1 0 0 setrgbcolor\n%%EOF\n";
     assert_eq!(first.len(), changed.len());
-    assert_eq!(designcraft_images::eps_proxy(first), designcraft_images::eps_proxy(changed), "same preview, different source");
+    assert_eq!(patronusdesign_images::eps_proxy(first), patronusdesign_images::eps_proxy(changed), "same preview, different source");
     std::fs::write(&path, first).unwrap();
     let mut s = Session::new();
     s.execute("file.new", &json!({})).unwrap();
@@ -473,8 +473,8 @@ fn eps_status_tracks_source_bytes_across_save_update_relink_and_embed() {
     let before = s.doc().unwrap().doc.clone();
     assert_eq!(s.execute("links.update", &json!({})).unwrap()["updated"], 0);
     assert!(Arc::ptr_eq(&s.doc().unwrap().doc, &before), "unchanged EPS must not create an edit");
-    let saved = designcraft_format::save(&before).unwrap();
-    let reopened = designcraft_format::load(&saved).unwrap();
+    let saved = patronusdesign_format::save(&before).unwrap();
+    let reopened = patronusdesign_format::load(&saved).unwrap();
     assert_eq!(reopened.assets[&aid].data.load().unwrap().as_slice(), first);
     let mut s = Session::new();
     s.add_document(crate::DocState::new(reopened, None));
@@ -497,11 +497,11 @@ fn eps_status_tracks_source_bytes_across_save_update_relink_and_embed() {
     s.execute("links.embed", &json!({"asset": aid.0})).unwrap();
     assert_eq!(s.execute("links.list", &json!({})).unwrap()[0]["status"], "embedded");
     std::fs::remove_file(&replacement).unwrap();
-    let embedded = designcraft_format::load(&designcraft_format::save(&s.doc().unwrap().doc).unwrap()).unwrap();
+    let embedded = patronusdesign_format::load(&patronusdesign_format::save(&s.doc().unwrap().doc).unwrap()).unwrap();
     // The asset is embedded, so no link is followed and the document is irrelevant.
     assert_eq!(status_cached(&embedded.assets[&aid], None, &mut Default::default()), "embedded");
     assert_eq!(embedded.assets[&aid].data.load().unwrap().as_slice(), changed);
-    assert!(designcraft_render::decode_pixmap(&embedded.assets[&aid].data.load().unwrap()).is_some());
+    assert!(patronusdesign_render::decode_pixmap(&embedded.assets[&aid].data.load().unwrap()).is_some());
     let _ = std::fs::remove_dir_all(dir);
 }
 
@@ -516,26 +516,29 @@ fn eps_legacy_preview_document_is_upgraded_by_update() {
     s.execute("file.new", &json!({})).unwrap();
     let aid = AssetId(s.execute("file.place", &json!({"path": path.to_string_lossy()})).unwrap()["asset"].as_u64().unwrap());
     crate::cmd::native_links::wait(&mut s);
-    let proxy = designcraft_images::eps_proxy(source).unwrap().0;
+    let proxy = patronusdesign_images::eps_proxy(source).unwrap().0;
     // A document saved before linked storage: the preview embedded, a link without a hash.
     s.edit(|d, _| {
         let a = Arc::make_mut(d.assets.get_mut(&aid).unwrap());
-        a.data = designcraft_doc::AssetData::embedded(proxy);
+        a.data = patronusdesign_doc::AssetData::embedded(proxy);
         a.mime = "image/png".into();
-        a.storage = designcraft_doc::Storage::Embedded;
+        a.storage = patronusdesign_doc::Storage::Embedded;
         a.link_hash = None;
         a.proxy = None;
         Ok(())
     })
     .unwrap();
-    let old = designcraft_format::load(&designcraft_format::save(&s.doc().unwrap().doc).unwrap()).unwrap();
+    let old = patronusdesign_format::load(&patronusdesign_format::save(&s.doc().unwrap().doc).unwrap()).unwrap();
     let mut s = Session::new();
     s.add_document(crate::DocState::new(old, None));
     assert_eq!(s.execute("links.update", &json!({})).unwrap()["updated"], 1);
     assert_eq!(s.execute("links.list", &json!({})).unwrap()[0]["status"], "ok");
     assert_eq!(s.doc().unwrap().doc.assets[&aid].data.load().unwrap().as_slice(), source);
     s.execute("edit.undo", &json!({})).unwrap();
-    assert!(designcraft_render::decode_pixmap(&s.doc().unwrap().doc.assets[&aid].data.load().unwrap()).is_some(), "old preview remains renderable");
+    assert!(
+        patronusdesign_render::decode_pixmap(&s.doc().unwrap().doc.assets[&aid].data.load().unwrap()).is_some(),
+        "old preview remains renderable"
+    );
     s.execute("edit.redo", &json!({})).unwrap();
     assert_eq!(s.execute("links.list", &json!({})).unwrap()[0]["status"], "ok");
     let _ = std::fs::remove_dir_all(dir);
@@ -547,7 +550,7 @@ fn eps_source_exports_preview_to_pdf_html_and_epub_without_editing_document() {
     use std::io::Read;
 
     let source = b"%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 20 10\n%%EOF\n";
-    let proxy = designcraft_images::eps_proxy(source).unwrap().0;
+    let proxy = patronusdesign_images::eps_proxy(source).unwrap().0;
     let mut s = Session::new();
     s.execute("file.new", &json!({})).unwrap();
     let aid = AssetId(
@@ -558,7 +561,7 @@ fn eps_source_exports_preview_to_pdf_html_and_epub_without_editing_document() {
     // A document retaining the original EPS rather than the legacy preview-only asset.
     s.edit(|d, _| {
         let a = Arc::make_mut(d.assets.get_mut(&aid).unwrap());
-        a.data = designcraft_doc::AssetData::embedded(source.to_vec());
+        a.data = patronusdesign_doc::AssetData::embedded(source.to_vec());
         a.mime = "application/postscript".into();
         Ok(())
     })
@@ -639,7 +642,7 @@ fn pdf_relink_and_update_preserve_selected_page_size() {
     let a = &s.doc().unwrap().doc.assets[&aid];
     assert_eq!(a.page, 1);
     assert_eq!(a.pixels, Some((50, 60)));
-    assert!(designcraft_render::render_pdf_page(&a.data.load().unwrap(), a.page as usize, 64).is_some());
+    assert!(patronusdesign_render::render_pdf_page(&a.data.load().unwrap(), a.page as usize, 64).is_some());
     std::fs::write(&replacement, pdf(&[(70, 70), (80, 90)])).unwrap();
     assert_eq!(s.execute("links.update", &json!({})).unwrap()["updated"], 1);
     assert_eq!(s.doc().unwrap().doc.assets[&aid].pixels, Some((80, 90)));
@@ -686,7 +689,7 @@ fn pdf_reload_rejects_missing_page_without_edit() {
         assert_eq!(st.revision, revision);
         assert_eq!(st.history.undo.len(), undo);
         assert_eq!(s.journal.len(), journal);
-        assert!(designcraft_render::render_pdf_page(&st.doc.assets[&aid].data.load().unwrap(), 1, 64).is_some());
+        assert!(patronusdesign_render::render_pdf_page(&st.doc.assets[&aid].data.load().unwrap(), 1, 64).is_some());
     }
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -751,8 +754,8 @@ impl Drop for TempDir {
 
 /// Two valid PNGs of one byte length with other pixels (a uniform fill compresses to the same size).
 fn same_size_pngs() -> (Vec<u8>, Vec<u8>) {
-    let a = designcraft_render::Rendered { width: 30, height: 20, pixels: vec![200u8; 30 * 20 * 4] }.to_png();
-    let b = designcraft_render::Rendered { width: 30, height: 20, pixels: vec![100u8; 30 * 20 * 4] }.to_png();
+    let a = patronusdesign_render::Rendered { width: 30, height: 20, pixels: vec![200u8; 30 * 20 * 4] }.to_png();
+    let b = patronusdesign_render::Rendered { width: 30, height: 20, pixels: vec![100u8; 30 * 20 * 4] }.to_png();
     assert_eq!(a.len(), b.len());
     (a, b)
 }
@@ -764,7 +767,7 @@ fn placed(s: &mut Session, params: Value) -> AssetId {
     id
 }
 
-fn asset_of(s: &Session, id: AssetId) -> Arc<designcraft_doc::Asset> {
+fn asset_of(s: &Session, id: AssetId) -> Arc<patronusdesign_doc::Asset> {
     Arc::clone(&s.doc().unwrap().doc.assets[&id])
 }
 
@@ -794,7 +797,7 @@ fn bundle_version(bytes: &[u8]) -> (u64, Vec<String>) {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn a_file_placed_from_a_path_links_to_it_and_embed_true_embeds_it() {
-    use designcraft_doc::Storage;
+    use patronusdesign_doc::Storage;
     let dir = TempDir::new("place");
     let path = dir.0.join("art.png");
     let (bytes, _) = same_size_pngs();
@@ -813,7 +816,7 @@ fn a_file_placed_from_a_path_links_to_it_and_embed_true_embeds_it() {
     assert_eq!(a.data.resident().as_deref(), Some(&bytes), "the bytes read for placing are kept for the first draw");
     let r = row(&mut s, id);
     assert_eq!((r["storage"].as_str(), r["status"].as_str()), (Some("linked"), Some("ok")));
-    let (version, stored) = bundle_version(&designcraft_format::save(&s.doc().unwrap().doc).unwrap());
+    let (version, stored) = bundle_version(&patronusdesign_format::save(&s.doc().unwrap().doc).unwrap());
     assert_eq!((version, stored), (5, vec![]), "linked: format 5 and no copy of the file");
 
     let e = placed(&mut s, json!({"path": path.to_string_lossy(), "embed": true, "x": 200}));
@@ -832,7 +835,7 @@ fn a_file_placed_from_a_path_links_to_it_and_embed_true_embeds_it() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn placing_leaves_the_proxy_and_hash_to_the_background() {
-    use designcraft_doc::Storage;
+    use patronusdesign_doc::Storage;
     let dir = TempDir::new("deferred");
     let path = dir.0.join("big.png");
     let bytes = png(1600, 1200);
@@ -884,7 +887,7 @@ fn a_save_right_after_placing_writes_no_copy_of_the_file() {
             if i % 4 == 3 { 255 } else { (seed >> 24) as u8 }
         })
         .collect();
-    let bytes = designcraft_render::Rendered { width: 800, height: 600, pixels }.to_png();
+    let bytes = patronusdesign_render::Rendered { width: 800, height: 600, pixels }.to_png();
     std::fs::write(&path, &bytes).unwrap();
     set_age(&path, 60);
     let mut s = Session::new();
@@ -929,7 +932,7 @@ fn a_modified_link_is_updated_undoably() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn embed_refuses_a_missing_link_and_unembed_links_to_the_original_or_into_a_folder() {
-    use designcraft_doc::Storage;
+    use patronusdesign_doc::Storage;
     let dir = TempDir::new("embed");
     let path = dir.0.join("art.png");
     let (first, second) = same_size_pngs();
@@ -994,5 +997,5 @@ fn every_image_the_place_cursor_loads_is_linked() {
     let d = &s.doc().unwrap().doc;
     let used = d.used_assets();
     assert_eq!(used.len(), 3);
-    assert!(used.iter().all(|id| d.assets[id].storage == designcraft_doc::Storage::Linked && d.assets[id].data.is_linked()));
+    assert!(used.iter().all(|id| d.assets[id].storage == patronusdesign_doc::Storage::Linked && d.assets[id].data.is_linked()));
 }

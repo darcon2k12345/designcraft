@@ -63,7 +63,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are used as in RFC 2119
 ## This repository
 <!-- craft-agents:end -->
 
-DesignCraft is a Rust-native page-layout application (egui/eframe), run natively and on the web through WASM. It is clean-room work targeting InDesign parity. Siblings with the same conventions: `../vectorcraft`, `../photocraft`, `../pdfcraft`, `../filmcraft`, `../lightcraft`.
+Patronus Design is a Rust-native page-layout application (egui/eframe), run natively and on the web through WASM. It is clean-room work targeting InDesign parity. Siblings with the same conventions: `../vectorcraft`, `../photocraft`, `../pdfcraft`, `../filmcraft`, `../lightcraft`.
 
 Layout:
 
@@ -76,8 +76,8 @@ Paths and conventions:
 
 - No crate allows `unsafe` (`unsafe_code = "forbid"` in the workspace).
 - Attribution file: `ASSETS.md` (`cargo xtask assets`). `docs/brand/` holds ArtCraft brand files under `docs/brand/LICENSE-brand.txt`.
-- Fonts: storytold/craft-fonts through the optional `CRAFT_FONTS_DIR` build input, embedded by `crates/fonts/build.rs` as `designcraft_fonts::CRAFT_FONTS`; unset, it is empty and the app uses bundled and system fonts. The Latin UI and document fonts in `assets/fonts/` stay.
+- Fonts: storytold/craft-fonts through the optional `CRAFT_FONTS_DIR` build input, embedded by `crates/fonts/build.rs` as `patronusdesign_fonts::CRAFT_FONTS`; unset, it is empty and the app uses bundled and system fonts. The Latin UI and document fonts in `assets/fonts/` stay.
 - Test corpora: `storytold/photocraft-corpus`, fetched pinned and sha256-verified.
 - Progress log: `ROADMAP.md`. `plan/` is an optional gitignored notebook.
-- Run with a control channel: `cargo run --release -p designcraft -- --sample --control 7979`. Methods are in `crates/ui-egui/src/control.rs`, the protocol in `docs/control-protocol.md`. Headless: `designcraft-cli run --sample --cmd 'frame.create={"rect":[0,0,100,100]}' --export out.png`; `--all-pages DIR` renders every page.
+- Run with a control channel: `cargo run --release -p patronusdesign -- --sample --control 7979`. Methods are in `crates/ui-egui/src/control.rs`, the protocol in `docs/control-protocol.md`. Headless: `patronusdesign-cli run --sample --cmd 'frame.create={"rect":[0,0,100,100]}' --export out.png`; `--all-pages DIR` renders every page.
 - Docs: `ROADMAP.md`, `docs/gaps.md` (ranked work), `docs/target-app-parity.md`, `docs/roadmap.md`, `docs/agents.md`, `docs/contributors.md`.

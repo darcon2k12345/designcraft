@@ -32,12 +32,12 @@ use crate::{DocState, EngineError, Result, Session};
 pub fn default_dir() -> Option<PathBuf> {
     let home = std::env::var_os("HOME").map(PathBuf::from);
     if cfg!(target_os = "macos") {
-        return home.map(|h| h.join("Library/Application Support/DesignCraft/Recovery"));
+        return home.map(|h| h.join("Library/Application Support/Patronus Design/Recovery"));
     }
     if cfg!(target_os = "windows") {
-        return std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("DesignCraft").join("Recovery"));
+        return std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("Patronus Design").join("Recovery"));
     }
-    std::env::var_os("XDG_DATA_HOME").map(PathBuf::from).or_else(|| home.map(|h| h.join(".local/share"))).map(|d| d.join("designcraft/recovery"))
+    std::env::var_os("XDG_DATA_HOME").map(PathBuf::from).or_else(|| home.map(|h| h.join(".local/share"))).map(|d| d.join("patronusdesign/recovery"))
 }
 
 /// This process's folder in a recovery folder, with the lock that says it is still running.
@@ -348,8 +348,9 @@ fn access(dir: &Path, created: bool, owner: u64) -> Result<Access> {
 #[cfg(not(target_arch = "wasm32"))]
 fn check_unheld(dir: &Path) -> Result<()> {
     let path = dir.join(LOCK);
-    let in_use =
-        || EngineError::Other(format!("{}: another running DesignCraft keeps its recovery data here; choose another recovery folder", dir.display()));
+    let in_use = || {
+        EngineError::Other(format!("{}: another running Patronus Design keeps its recovery data here; choose another recovery folder", dir.display()))
+    };
     match std::fs::symlink_metadata(&path) {
         Ok(metadata) if is_link_like(&metadata) || !metadata.file_type().is_file() => return Err(in_use()),
         Ok(_) => {}
@@ -709,7 +710,7 @@ struct Snapshot {
     dir: PathBuf,
     uid: u64,
     /// The document as it was when the write started (data-merge previews save the unfilled one).
-    doc: std::sync::Arc<designcraft_doc::Document>,
+    doc: std::sync::Arc<patronusdesign_doc::Document>,
     path: Option<String>,
     title: String,
     /// Whether this run may replace an entry already in the folder.
@@ -827,7 +828,9 @@ fn write_snapshot(entry: &Snapshot, cancelled: impl Fn() -> bool) -> Written {
         &doc,
         entry.own,
         // A cancel stops the write at its next chunk instead of after the whole package.
-        |out| designcraft_format::write(&mut StopWhen { out, cancelled: &cancelled }, document, None).map_err(|e| EngineError::Other(e.to_string())),
+        |out| {
+            patronusdesign_format::write(&mut StopWhen { out, cancelled: &cancelled }, document, None).map_err(|e| EngineError::Other(e.to_string()))
+        },
         &cancelled,
         // Written: in a folder that is not this run's own, the entry is now this session's to
         // replace and remove (Save and Close must clean up the snapshot they wrote). Recorded with
@@ -851,7 +854,7 @@ fn write_snapshot(entry: &Snapshot, cancelled: impl Fn() -> bool) -> Written {
         Err(e) if landed.get() => return Written { published: true, error: Some(e) },
         Err(e) => return Written { published: false, error: Some(e) },
     }
-    let metadata = json!({"path": entry.path, "title": entry.title, "saved": designcraft_doc::vars::now()});
+    let metadata = json!({"path": entry.path, "title": entry.title, "saved": patronusdesign_doc::vars::now()});
     // A cancel after the primary landed removes it; the metadata must not be left without it.
     let bytes = metadata.to_string();
     let error = publish_recovery_written(
@@ -866,7 +869,7 @@ fn write_snapshot(entry: &Snapshot, cancelled: impl Fn() -> bool) -> Written {
 }
 
 /// Write recovery entries for dirty documents on a background thread and drop clean checkpoints
-/// now. The interface thread only snapshots what to write: `designcraft_format::write` deflates
+/// now. The interface thread only snapshots what to write: `patronusdesign_format::write` deflates
 /// and copies placed files, which takes minutes on a catalogue with gigabytes of links. Returns
 /// how many documents were queued.
 pub(crate) fn start_tracked(s: &mut Session, dir: &Path) -> Result<usize> {
@@ -1231,7 +1234,7 @@ mod worker {
             .get_or_init(|| {
                 let (jobs, job_rx) = std::sync::mpsc::channel::<Snapshot>();
                 let (done_tx, done_rx) = std::sync::mpsc::channel::<Done>();
-                let spawned = std::thread::Builder::new().name("designcraft-recovery".into()).spawn(move || {
+                let spawned = std::thread::Builder::new().name("patronusdesign-recovery".into()).spawn(move || {
                     while let Ok(first) = job_rx.recv() {
                         let mut queued = Some(first);
                         while let Some(job) = queued.take() {
@@ -1816,14 +1819,14 @@ fn open_with_publisher(s: &mut Session, dir: &Path, mut publish: impl FnMut(&Pat
         // clean up every snapshot this document actually owns rather than an unrelated same uid.
         if let Some(state) = s.docs.get_mut(index) {
             let (document, metadata) = files(&destination, state.uid);
-            let published = designcraft_format::save(state.doc.as_ref())
+            let published = patronusdesign_format::save(state.doc.as_ref())
                 .map_err(|e| EngineError::Other(e.to_string()))
                 .and_then(|bytes| publish(&document, &bytes));
             match published {
                 Ok(()) => {
                     target.record(state.uid);
                     state.recovery_entries.push((destination.clone(), state.uid));
-                    let meta = json!({"path": state.path, "title": state.title(), "saved": designcraft_doc::vars::now()});
+                    let meta = json!({"path": state.path, "title": state.title(), "saved": patronusdesign_doc::vars::now()});
                     match publish(&metadata, meta.to_string().as_bytes()) {
                         Ok(()) => {
                             discard(dir, uid, owner);

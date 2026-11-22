@@ -1,6 +1,6 @@
 //! Character Styles panel's existing `fromSelection` command contract.
-use designcraft_doc::{CharAttrs, StoryId};
-use designcraft_engine::Session;
+use patronusdesign_doc::{CharAttrs, StoryId};
+use patronusdesign_engine::Session;
 use serde_json::{Value, json};
 
 fn story(text: &str) -> (Session, u64) {

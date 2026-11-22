@@ -1,5 +1,5 @@
 //! Photoshop's merged composite, decoded by the shared PSD implementation and colour managed by
-//! DesignCraft for its active display profile.
+//! Patronus Design for its active display profile.
 
 use craft_psd::header::ColorMode;
 

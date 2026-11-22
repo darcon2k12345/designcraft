@@ -99,13 +99,13 @@ pub(crate) fn stylesheet_with(doc: &Document, generics: &BTreeMap<String, String
     );
     let (pc, cc) = (para_classes(st), char_classes(st));
     for ps in &st.paragraph {
-        if ps.name == designcraft_doc::NO_PARA_STYLE {
+        if ps.name == patronusdesign_doc::NO_PARA_STYLE {
             continue;
         }
         let (pp, cp) = st.resolve_para_style(&ps.name);
         let lead = match cp.leading {
-            designcraft_doc::Leading::Auto => pp.auto_leading,
-            designcraft_doc::Leading::Points(v) => v / cp.size.max(1.0),
+            patronusdesign_doc::Leading::Auto => pp.auto_leading,
+            patronusdesign_doc::Leading::Points(v) => v / cp.size.max(1.0),
         };
         let mut rule = String::new();
         para_css(&pp, base, lead, &mut rule);
@@ -153,13 +153,13 @@ fn attrs_decor_css(c: &CharAttrs, out: &mut String) {
 }
 
 /// Tracking, capitalization and line decorations as CSS declarations; defaults write nothing.
-fn decor_css(tracking: f64, caps: designcraft_doc::Capitalization, underline: bool, strikethrough: bool, out: &mut String) {
+fn decor_css(tracking: f64, caps: patronusdesign_doc::Capitalization, underline: bool, strikethrough: bool, out: &mut String) {
     if tracking != 0.0 {
         let _ = write!(out, "letter-spacing: {:.3}em; ", tracking / 1000.0);
     }
     match caps {
-        designcraft_doc::Capitalization::AllCaps => out.push_str("text-transform: uppercase; "),
-        designcraft_doc::Capitalization::SmallCaps | designcraft_doc::Capitalization::OpenTypeAllSmallCaps => {
+        patronusdesign_doc::Capitalization::AllCaps => out.push_str("text-transform: uppercase; "),
+        patronusdesign_doc::Capitalization::SmallCaps | patronusdesign_doc::Capitalization::OpenTypeAllSmallCaps => {
             out.push_str("font-variant: small-caps; ")
         }
         _ => {}

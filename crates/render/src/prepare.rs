@@ -90,7 +90,7 @@ mod background {
             return Queued::Yes;
         }
         if q.threads < THREADS {
-            if std::thread::Builder::new().name("designcraft-prepare".into()).spawn(run).is_ok() {
+            if std::thread::Builder::new().name("patronusdesign-prepare".into()).spawn(run).is_ok() {
                 q.threads += 1;
             } else if q.threads == 0 {
                 drop(q);

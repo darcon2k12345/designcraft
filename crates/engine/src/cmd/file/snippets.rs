@@ -31,8 +31,8 @@ pub(crate) fn snippet_place(s: &mut Session, p: &Value) -> Result<Value> {
     let sr = crate::cmd::spread_param(p, "snippet.place")?;
     let bounds = ids.iter().filter_map(|i| src.item(*i).map(|it| it.bounds())).reduce(|a, b| a.union(b)).unwrap_or(Rect::ZERO);
     let off = match (p.get("x").and_then(Value::as_f64), p.get("y").and_then(Value::as_f64)) {
-        (Some(x), Some(y)) => designcraft_geom::Vec2::new(x - bounds.x0, y - bounds.y0),
-        _ => designcraft_geom::Vec2::ZERO,
+        (Some(x), Some(y)) => patronusdesign_geom::Vec2::new(x - bounds.x0, y - bounds.y0),
+        _ => patronusdesign_geom::Vec2::ZERO,
     };
     s.edit(|d, sel| {
         // Bring over styles and swatches the snippet uses that this document lacks.

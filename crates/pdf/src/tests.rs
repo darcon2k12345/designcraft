@@ -1,9 +1,9 @@
-use designcraft_color::swatch::{ColorType, SwatchValue};
-use designcraft_color::{Color, Swatch};
-use designcraft_compose::Cache;
-use designcraft_doc::build::NewDocument;
-use designcraft_doc::{Document, Fill, Item, ItemId, ParaFormat, SpreadRef};
-use designcraft_geom::Rect;
+use patronusdesign_color::swatch::{ColorType, SwatchValue};
+use patronusdesign_color::{Color, Swatch};
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::build::NewDocument;
+use patronusdesign_doc::{Document, Fill, Item, ItemId, ParaFormat, SpreadRef};
+use patronusdesign_geom::Rect;
 
 use crate::*;
 
@@ -17,7 +17,7 @@ fn doc_with_text(text: &str) -> Document {
 fn add_box(d: &mut Document, r: Rect, swatch: &str) {
     let lid = d.default_layer();
     let id = ItemId(d.alloc());
-    let mut b = Item::new(id, lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(r));
+    let mut b = Item::new(id, lid, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(r));
     b.fill = Fill::swatch(swatch);
     d.insert_item(SpreadRef::Doc(0), b, None).unwrap();
 }
@@ -69,7 +69,7 @@ pub(crate) fn extract_text(bytes: &[u8]) -> Vec<String> {
 
 #[test]
 fn exports_valid_pdf_with_one_page_per_page() {
-    let d = doc_with_text("Hello DesignCraft");
+    let d = doc_with_text("Hello Patronus Design");
     let bytes = export_pdf(&d, &Cache::new(), &PdfOptions::default()).unwrap();
     assert!(bytes.starts_with(b"%PDF-1.7"));
     let pdf = craft_pdf::syntax::Pdf::new(bytes.clone()).expect("parse");
@@ -79,11 +79,11 @@ fn exports_valid_pdf_with_one_page_per_page() {
 #[test]
 fn discretionary_hyphen_pdf_text_follows_visible_breaks() {
     let text = "Wir möchten uns ganz besonders herzlich bei folgenden Personen bedanken, die auf unterschied\u{ad}lichste Weise zur Entstehung dieses Lehrbuches beigetragen haben:";
-    for composer in [designcraft_doc::Composer::SingleLine, designcraft_doc::Composer::Paragraph] {
+    for composer in [patronusdesign_doc::Composer::SingleLine, patronusdesign_doc::Composer::Paragraph] {
         for (width, expected) in [(430.0, "unterschied-lichste"), (540.0, "unterschiedlichste")] {
             let mut d = Document::new(&NewDocument::default());
             let lid = d.default_layer();
-            let para = designcraft_doc::ParaAttrs { composer: Some(composer), hyphenate: Some(false), ..Default::default() };
+            let para = patronusdesign_doc::ParaAttrs { composer: Some(composer), hyphenate: Some(false), ..Default::default() };
             let (_, sid) = d
                 .add_text_frame(SpreadRef::Doc(0), Rect::new(36.0, 36.0, 36.0 + width, 400.0), lid, text, ParaFormat { para, ..Default::default() })
                 .unwrap();
@@ -100,7 +100,7 @@ fn discretionary_hyphen_pdf_text_follows_visible_breaks() {
 
 #[test]
 fn text_is_real_text() {
-    let d = doc_with_text("Hello DesignCraft — efficient affine");
+    let d = doc_with_text("Hello Patronus Design — efficient affine");
     let s = uncompressed(&d, PdfOptions::default());
     assert!(s.contains("/FontFile2") || s.contains("/FontFile3"), "font embedded");
     assert!(s.contains("/ToUnicode"));
@@ -109,7 +109,7 @@ fn text_is_real_text() {
     let text = extract_text(&bytes);
     let flat: String = text[0].split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(flat.contains("Hello"), "{flat}");
-    assert!(text[0].contains("DesignCraft"), "{text:?}");
+    assert!(text[0].contains("Patronus Design"), "{text:?}");
     assert!(text[0].contains("efficient") && text[0].contains("affine"), "ligatures map back: {text:?}");
 }
 
@@ -142,7 +142,7 @@ fn paper_prints_as_no_ink() {
     assert!(s.contains("0 0 0 0 k"), "CMYK, no ink");
     assert!(!s.contains("1 1 1 rg"), "no RGB white");
     // A web document keeps the paper colour.
-    d.settings.intent = designcraft_doc::Intent::Web;
+    d.settings.intent = patronusdesign_doc::Intent::Web;
     assert!(uncompressed(&d, PdfOptions::default()).contains("1 1 1 rg"));
     // PDF/X has a CMYK output intent whatever the document's intent.
     assert!(!uncompressed(&d, PdfOptions { standard: Standard::PdfX4, ..Default::default() }).contains("1 1 1 rg"));
@@ -233,14 +233,14 @@ fn standards() {
 #[test]
 fn table_gradient_fill_exports_a_shading() {
     let mut d = Document::new(&NewDocument::default());
-    let mut gradient = designcraft_color::Gradient::default();
+    let mut gradient = patronusdesign_color::Gradient::default();
     gradient.stops[0].color = Color::rgb(1.0, 0.0, 0.0);
     gradient.stops[1].color = Color::rgb(0.0, 0.0, 1.0);
     d.swatches.push(Swatch { name: "Table gradient".into(), value: SwatchValue::Gradient { gradient }, locked: false, named: true, hidden: false });
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(36.0, 36.0, 336.0, 300.0), d.default_layer(), "", ParaFormat::default()).unwrap();
-    let mut t = designcraft_doc::Table::new(1, 1, 2, 0, 0, 200.0);
+    let mut t = patronusdesign_doc::Table::new(1, 1, 2, 0, 0, 200.0);
     t.rows[0].height = 40.0;
-    t.rows[0].mode = designcraft_doc::RowHeightMode::Exactly;
+    t.rows[0].mode = patronusdesign_doc::RowHeightMode::Exactly;
     for cell in &mut t.cells {
         cell.fill = "Table gradient".into();
     }
@@ -254,7 +254,7 @@ fn tables_export_cell_text() {
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(36.0, 36.0, 336.0, 400.0), lid, "Before", ParaFormat::default()).unwrap();
-    let mut t = designcraft_doc::Table::new(9, 2, 2, 1, 0, 300.0);
+    let mut t = patronusdesign_doc::Table::new(9, 2, 2, 1, 0, 300.0);
     t.cell_mut(0, 0).unwrap().text.insert(0, "Ink");
     t.cell_mut(0, 0).unwrap().fill = "C=100 M=0 Y=0 K=0".into();
     t.cell_mut(1, 1).unwrap().text.insert(0, "Plum");
@@ -273,17 +273,17 @@ fn cell_diagonal_lines_export_in_front_of_or_behind_the_cell_text() {
         let mut d = Document::new(&NewDocument::default());
         let lid = d.default_layer();
         let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(36.0, 36.0, 336.0, 400.0), lid, "", ParaFormat::default()).unwrap();
-        let mut t = designcraft_doc::Table::new(9, 1, 1, 0, 0, 200.0);
+        let mut t = patronusdesign_doc::Table::new(9, 1, 1, 0, 0, 200.0);
         let cell = t.cell_mut(0, 0).unwrap();
         cell.text.insert(0, "Ink");
-        let stroke = designcraft_doc::CellStroke { weight: 3.0, ..Default::default() };
-        cell.diagonal = designcraft_doc::CellDiagonal { lines, stroke, in_front };
+        let stroke = patronusdesign_doc::CellStroke { weight: 3.0, ..Default::default() };
+        cell.diagonal = patronusdesign_doc::CellDiagonal { lines, stroke, in_front };
         d.story_mut(sid).unwrap().insert_table(0, t);
         let bytes = export_pdf(&d, &Cache::new(), &PdfOptions::default()).unwrap();
         // The table's edges are 1 pt; the diagonals are the 3 pt strokes.
         paint_order(&bytes).into_iter().filter(|(op, w)| op.ends_with("text") || *w == 3.0).map(|(op, _)| op).collect::<Vec<_>>()
     };
-    use designcraft_doc::DiagonalLines;
+    use patronusdesign_doc::DiagonalLines;
     let (text, line) = ("fill text".to_string(), "stroke path".to_string());
     assert_eq!(export(DiagonalLines::None, true), [text.clone(), text.clone(), text.clone()]);
     assert_eq!(export(DiagonalLines::Crossed, true), [text.clone(), text.clone(), text.clone(), line.clone(), line.clone()], "Diagonal In Front");
@@ -294,7 +294,7 @@ fn cell_diagonal_lines_export_in_front_of_or_behind_the_cell_text() {
 fn drop_cap_text_extracts_in_order() {
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
-    let para = designcraft_doc::ParaAttrs { drop_cap_lines: Some(3), drop_cap_chars: Some(2), ..Default::default() };
+    let para = patronusdesign_doc::ParaAttrs { drop_cap_lines: Some(3), drop_cap_chars: Some(2), ..Default::default() };
     let text = "Drop caps read in order with the rest of the paragraph, which runs on for a few lines beside the enlarged letters.";
     d.add_text_frame(SpreadRef::Doc(0), Rect::new(36.0, 36.0, 236.0, 300.0), lid, text, ParaFormat { para, ..Default::default() }).unwrap();
     let bytes = export_pdf(&d, &Cache::new(), &PdfOptions::default()).unwrap();
@@ -338,11 +338,11 @@ pub(crate) fn blank_png(side: u32) -> Vec<u8> {
 }
 
 fn place(d: &mut Document, data: Vec<u8>, px: (u32, u32)) {
-    let asset = designcraft_doc::AssetId(d.alloc());
-    let mime = designcraft_images::mime(&data).into();
+    let asset = patronusdesign_doc::AssetId(d.alloc());
+    let mime = patronusdesign_images::mime(&data).into();
     d.assets.insert(
         asset,
-        std::sync::Arc::new(designcraft_doc::Asset {
+        std::sync::Arc::new(patronusdesign_doc::Asset {
             id: asset,
             name: "scan.tif".into(),
             mime,
@@ -353,14 +353,15 @@ fn place(d: &mut Document, data: Vec<u8>, px: (u32, u32)) {
     );
     let lid = d.default_layer();
     let id = ItemId(d.alloc());
-    let mut it = Item::new(id, lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(Rect::new(72.0, 72.0, 272.0, 172.0)));
-    it.content = designcraft_doc::Content::Graphic(designcraft_doc::Graphic {
+    let mut it =
+        Item::new(id, lid, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(Rect::new(72.0, 72.0, 272.0, 172.0)));
+    it.content = patronusdesign_doc::Content::Graphic(patronusdesign_doc::Graphic {
         layer_options: None,
         asset,
         size: (px.0 as f64, px.1 as f64),
-        xf: designcraft_geom::Affine::translate((72.0, 72.0)) * designcraft_geom::Affine::scale(50.0),
+        xf: patronusdesign_geom::Affine::translate((72.0, 72.0)) * patronusdesign_geom::Affine::scale(50.0),
         clip: None,
-        auto_fit: designcraft_doc::Fitting::FillProportionally,
+        auto_fit: patronusdesign_doc::Fitting::FillProportionally,
         fit_align: 4,
         crop: [0.0; 4],
         wrap: Default::default(),
@@ -625,7 +626,7 @@ fn stroke_behind_fill_strokes_the_run_before_filling_it() {
         let mut d = doc_with_text("I");
         let sid = *d.stories.keys().next().unwrap();
         d.story_mut(sid).unwrap().format_chars(0..1, |f| {
-            f.over.stroke = Some(designcraft_color::swatch::BLACK.into());
+            f.over.stroke = Some(patronusdesign_color::swatch::BLACK.into());
             f.over.stroke_weight = Some(4.0);
             f.over.stroke_behind_fill = Some(behind);
         });
@@ -645,9 +646,10 @@ fn pdfa_leaves_out_form_fields_added_after_validation() {
     let mut d = doc_with_text("Archive me");
     let lid = d.default_layer();
     let id = ItemId(d.alloc());
-    let mut b = Item::new(id, lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(Rect::new(36.0, 400.0, 200.0, 430.0)));
-    b.form_field = Some(designcraft_doc::FormField {
-        kind: designcraft_doc::FieldKind::TextField,
+    let mut b =
+        Item::new(id, lid, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(Rect::new(36.0, 400.0, 200.0, 430.0)));
+    b.form_field = Some(patronusdesign_doc::FormField {
+        kind: patronusdesign_doc::FieldKind::TextField,
         name: "name".into(),
         value: String::new(),
         options: Vec::new(),
@@ -678,10 +680,10 @@ fn missing_glyphs_print_as_boxes() {
     assert_eq!(boxes(&paths), 1, "{paths:?}");
     let a = export_pdf_with_report(&d, &Cache::new(), &PdfOptions { standard: Standard::PdfA2b, ..Default::default() });
     assert!(a.is_ok(), "PDF/A takes the box: {:?}", a.err());
-    // A font whose .notdef is empty: the box DesignCraft draws for it.
+    // A font whose .notdef is empty: the box Patronus Design draws for it.
     const FAMILY: &str = "DC Test PDF Empty Notdef";
-    let font = designcraft_fonts::testing::font_mapping(FAMILY, &[('a', 'a'), ('b', 'b')]).unwrap();
-    designcraft_fonts::FontDb::global().add_font(designcraft_fonts::testing::with_empty_notdef(font).unwrap());
+    let font = patronusdesign_fonts::testing::font_mapping(FAMILY, &[('a', 'a'), ('b', 'b')]).unwrap();
+    patronusdesign_fonts::FontDb::global().add_font(patronusdesign_fonts::testing::with_empty_notdef(font).unwrap());
     let mut d = doc_with_text("a語b");
     let sid = *d.stories.keys().next().unwrap();
     d.story_mut(sid).unwrap().format_chars(0.."a語b".len(), |f| f.over.font_family = Some(FAMILY.into()));
@@ -692,7 +694,7 @@ fn missing_glyphs_print_as_boxes() {
 
 #[test]
 fn exports_embedded_text_from_footnotes() {
-    use designcraft_doc::{AnchorPosition, AnchoredObject};
+    use patronusdesign_doc::{AnchorPosition, AnchoredObject};
     use std::sync::Arc;
     let mut d = doc_with_text("Body");
     let body = *d.stories.keys().next().unwrap();
@@ -712,7 +714,7 @@ fn exports_embedded_text_from_footnotes() {
 #[test]
 fn fills_open_contours_without_changing_strokes() {
     let mut d = Document::new(&NewDocument::default());
-    add_box(&mut d, Rect::new(40.0, 50.0, 62.0, 67.0), designcraft_color::swatch::BLACK);
+    add_box(&mut d, Rect::new(40.0, 50.0, 62.0, 67.0), patronusdesign_color::swatch::BLACK);
     let id = d.spreads[0].items[0].id;
     d.item_mut(id).unwrap().path.subpaths[0].closed = false;
     let (_, paths) = drawn(&export_pdf(&d, &Cache::new(), &PdfOptions::default()).unwrap());
@@ -733,7 +735,7 @@ fn column_rules_are_drawn() {
         // The rules run from the top line's ascent to the bottom line's descent, not the 264 pt
         // of the columns.
         let sid = *d.stories.keys().next().unwrap();
-        let cs = designcraft_compose::compose_story(&d, sid, &designcraft_compose::ComposeOptions::default());
+        let cs = patronusdesign_compose::compose_story(&d, sid, &patronusdesign_compose::ComposeOptions::default());
         let line = &cs.frames[0].lines[0];
         let depth = line.ascent + line.descent;
         assert!(cs.frames[0].lines.len() == 1 && depth < 264.0 - 1.0, "{depth}");
@@ -752,7 +754,7 @@ fn small_caps_and_small_cap_figures_extract_as_typed() {
     // Source Sans 3 substitutes letters and figures under `smcp` / `c2sc` (`one` → `one.s`),
     // in typed text, in a page number and in a list label alike (each with its own figures, so
     // one's mapping can't stand in for another's).
-    use designcraft_doc::{Capitalization, ListType, story::PAGE_NUMBER};
+    use patronusdesign_doc::{Capitalization, ListType, story::PAGE_NUMBER};
     for caps in [Capitalization::SmallCaps, Capitalization::OpenTypeAllSmallCaps] {
         let text = format!("Abc 234 x{PAGE_NUMBER}\nItem");
         let mut d = doc_with_text(&text);
@@ -784,8 +786,8 @@ fn small_caps_and_small_cap_figures_extract_as_typed() {
 /// Links and buttons from an imported document still go through the export allowlist.
 #[test]
 fn link_annotation_export_refuses_non_web_schemes() {
-    use designcraft_doc::{ButtonAction, Hyperlink, HyperlinkDest, HyperlinkSource, Shape};
-    use designcraft_geom::shapes::rectangle;
+    use patronusdesign_doc::{ButtonAction, Hyperlink, HyperlinkDest, HyperlinkSource, Shape};
+    use patronusdesign_geom::shapes::rectangle;
 
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
@@ -830,13 +832,13 @@ fn clipping_path_clips_the_image() {
     png(&mut d);
     let plain = uncompressed(&d, PdfOptions::default());
     let id = d.spreads[0].items.iter().find(|i| i.graphic().is_some()).unwrap().id;
-    let triangle = designcraft_geom::PathData::single(designcraft_geom::path::SubPath::polyline(
-        &[designcraft_geom::Point::new(0.0, 4.0), designcraft_geom::Point::new(2.0, 0.0), designcraft_geom::Point::new(4.0, 4.0)],
+    let triangle = patronusdesign_geom::PathData::single(patronusdesign_geom::path::SubPath::polyline(
+        &[patronusdesign_geom::Point::new(0.0, 4.0), patronusdesign_geom::Point::new(2.0, 0.0), patronusdesign_geom::Point::new(4.0, 4.0)],
         true,
     ));
-    let mut clip = designcraft_doc::ClippingPath::new(designcraft_doc::ClippingKind::DetectEdges, triangle);
-    let set = |d: &mut Document, c: &designcraft_doc::ClippingPath| {
-        if let Some(designcraft_doc::Content::Graphic(g)) = d.item_mut(id).map(|it| &mut it.content) {
+    let mut clip = patronusdesign_doc::ClippingPath::new(patronusdesign_doc::ClippingKind::DetectEdges, triangle);
+    let set = |d: &mut Document, c: &patronusdesign_doc::ClippingPath| {
+        if let Some(patronusdesign_doc::Content::Graphic(g)) = d.item_mut(id).map(|it| &mut it.content) {
             g.clip = Some(std::sync::Arc::new(c.clone()));
         }
     };
@@ -858,12 +860,12 @@ fn based_on_parent_items_export_base_first() {
     d.swatches.push(Swatch::color("Base Cyan", Color::cmyk(1.0, 0.0, 0.0, 0.0)));
     d.swatches.push(Swatch::color("Parent Magenta", Color::cmyk(0.0, 1.0, 0.0, 0.0)));
     let a = d.parents[0].id;
-    let b = d.add_parent("B", "Opening", 1, 12.0, designcraft_doc::Margins::uniform(36.0));
+    let b = d.add_parent("B", "Opening", 1, 12.0, patronusdesign_doc::Margins::uniform(36.0));
     std::sync::Arc::make_mut(&mut d.parents[1]).parent.as_mut().unwrap().based_on = Some(a);
     d.apply_parent(&[0], Some(b)).unwrap();
     let lid = d.default_layer();
     for (pi, swatch, r) in [(0, "Base Cyan", Rect::new(36.0, 36.0, 136.0, 136.0)), (1, "Parent Magenta", Rect::new(200.0, 36.0, 300.0, 136.0))] {
-        let mut it = Item::new(ItemId(d.alloc()), lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(r));
+        let mut it = Item::new(ItemId(d.alloc()), lid, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(r));
         it.fill = Fill::swatch(swatch);
         d.insert_item(SpreadRef::Parent(pi), it, None).unwrap();
     }
@@ -877,8 +879,8 @@ fn based_on_parent_items_export_base_first() {
 /// hidden or non-printing layer, or non-printing themselves (#726).
 #[test]
 fn only_printed_fields_and_buttons_export() {
-    use designcraft_doc::{ButtonAction, Content, FieldKind, FormField, LayerId, Shape};
-    use designcraft_geom::shapes::rectangle;
+    use patronusdesign_doc::{ButtonAction, Content, FieldKind, FormField, LayerId, Shape};
+    use patronusdesign_geom::shapes::rectangle;
     fn control(d: &mut Document, layer: LayerId, y: f64, name: &str, button: bool) -> Item {
         let r = Rect::new(if button { 300.0 } else { 72.0 }, y, if button { 400.0 } else { 250.0 }, y + 24.0);
         let mut it = Item::new(ItemId(d.alloc()), layer, Shape::Rectangle, rectangle(r));
@@ -941,8 +943,8 @@ fn only_printed_fields_and_buttons_export() {
 
 #[test]
 fn form_field_border_follows_the_item_stroke() {
-    use designcraft_doc::{FieldKind, FormField, Shape, Stroke};
-    use designcraft_geom::shapes::rectangle;
+    use patronusdesign_doc::{FieldKind, FormField, Shape, Stroke};
+    use patronusdesign_geom::shapes::rectangle;
     let export = |stroke: Stroke| {
         let mut d = Document::new(&NewDocument::default());
         let lid = d.default_layer();
@@ -960,7 +962,7 @@ fn form_field_border_follows_the_item_stroke() {
         d.insert_item(SpreadRef::Doc(0), it, None).unwrap();
         uncompressed(&d, PdfOptions::default())
     };
-    let none = export(Stroke { weight: 0.0, swatch: designcraft_color::swatch::NONE.into(), ..Stroke::default() });
+    let none = export(Stroke { weight: 0.0, swatch: patronusdesign_color::swatch::NONE.into(), ..Stroke::default() });
     assert!(none.contains("/Subtype/Widget"));
     assert!(none.contains("/BS<</W 0>>"), "no border width");
     assert!(!none.contains("/BC"), "no border colour");
@@ -1048,7 +1050,7 @@ fn a_swatch_colours_a_greyscale_image() {
         place(&mut d, file.to_vec(), (3, 1));
         if let Some(sw) = swatch {
             let id = d.spreads[0].items.last().unwrap().id;
-            if let designcraft_doc::Content::Graphic(g) = &mut d.item_mut(id).unwrap().content {
+            if let patronusdesign_doc::Content::Graphic(g) = &mut d.item_mut(id).unwrap().content {
                 g.fill = Fill::swatch(sw);
             }
         }
@@ -1073,16 +1075,16 @@ fn a_swatch_colours_a_greyscale_image() {
 /// frame reaches down into the next line (a negative Y offset) doesn't hide that line.
 #[test]
 fn inline_objects_are_painted_under_the_text() {
-    use designcraft_doc::{AnchorPosition, AnchoredObject};
+    use patronusdesign_doc::{AnchorPosition, AnchoredObject};
     let mut d = doc_with_text("A\nWWWW");
     let sid = *d.stories.keys().next().unwrap();
     let mut item = Item::new(
         ItemId(d.alloc()),
         d.default_layer(),
-        designcraft_doc::Shape::Rectangle,
-        designcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 200.0, 30.0)),
+        patronusdesign_doc::Shape::Rectangle,
+        patronusdesign_geom::shapes::rectangle(Rect::new(0.0, 0.0, 200.0, 30.0)),
     );
-    item.fill = Fill::swatch(designcraft_color::swatch::BLACK);
+    item.fill = Fill::swatch(patronusdesign_color::swatch::BLACK);
     d.story_mut(sid).unwrap().insert_object(1, AnchoredObject::new(item, AnchorPosition::Inline { y_offset: -20.0 }));
     let order = paint_order(&export_pdf(&d, &Cache::new(), &PdfOptions::default()).unwrap());
     let first_text = order.iter().position(|(op, _)| op.ends_with("text")).unwrap();
@@ -1095,24 +1097,24 @@ fn inline_objects_are_painted_under_the_text() {
 /// half-transparent too), after the frame's fill and before its text and stroke.
 #[test]
 fn inline_objects_share_their_frames_transparency() {
-    use designcraft_doc::{AnchorPosition, AnchoredObject};
+    use patronusdesign_doc::{AnchorPosition, AnchoredObject};
     let mut d = doc_with_text("A\nWWWW");
     let sid = *d.stories.keys().next().unwrap();
     let fid = d.stories[&sid].frames[0];
     {
         let host = d.item_mut(fid).unwrap();
         host.opacity = 0.5;
-        host.fill = Fill::swatch(designcraft_color::swatch::PAPER);
+        host.fill = Fill::swatch(patronusdesign_color::swatch::PAPER);
         host.stroke.weight = 3.0;
-        host.stroke.swatch = designcraft_color::swatch::BLACK.into();
+        host.stroke.swatch = patronusdesign_color::swatch::BLACK.into();
     }
     let mut item = Item::new(
         ItemId(d.alloc()),
         d.default_layer(),
-        designcraft_doc::Shape::Rectangle,
-        designcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 200.0, 30.0)),
+        patronusdesign_doc::Shape::Rectangle,
+        patronusdesign_geom::shapes::rectangle(Rect::new(0.0, 0.0, 200.0, 30.0)),
     );
-    item.fill = Fill::swatch(designcraft_color::swatch::BLACK);
+    item.fill = Fill::swatch(patronusdesign_color::swatch::BLACK);
     d.story_mut(sid).unwrap().insert_object(1, AnchoredObject::new(item, AnchorPosition::Inline { y_offset: -20.0 }));
     let ev = paint_events(&export_pdf(&d, &Cache::new(), &PdfOptions::default()).unwrap(), true);
     let at = |op: &str| ev.iter().position(|(o, _)| o == op).unwrap_or_else(|| panic!("no {op}: {ev:?}"));
@@ -1131,7 +1133,7 @@ fn inline_objects_share_their_frames_transparency() {
 /// frame's own lines.
 #[test]
 fn each_page_shows_its_own_composition() {
-    use designcraft_doc::story::PAGE_NUMBER;
+    use patronusdesign_doc::story::PAGE_NUMBER;
     let mut d = Document::new(&NewDocument { pages: 3, facing_pages: false, ..NewDocument::default() });
     let lid = d.default_layer();
     d.add_text_frame(SpreadRef::Parent(0), Rect::new(36.0, 700.0, 300.0, 740.0), lid, &format!("Folio{PAGE_NUMBER}"), ParaFormat::default()).unwrap();
@@ -1140,7 +1142,7 @@ fn each_page_shows_its_own_composition() {
     let mut prev = first;
     for si in 1..3 {
         let id = ItemId(d.alloc());
-        let it = Item::new(id, lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(Rect::new(36.0, 36.0, 300.0, 56.0)));
+        let it = Item::new(id, lid, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(Rect::new(36.0, 36.0, 300.0, 56.0)));
         d.insert_item(SpreadRef::Doc(si), it, None).unwrap();
         d.thread(prev, id).unwrap();
         prev = id;
@@ -1165,8 +1167,8 @@ fn an_item_a_parent_overrode_and_deleted_is_not_exported() {
     let b = d.add_parent("B", "Parent", 1, 0.0, margins);
     let box_id = ItemId(d.alloc());
     let rect = Rect::new(100.0, 100.0, 200.0, 160.0);
-    let mut it = Item::new(box_id, lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(rect));
-    it.fill = Fill::swatch(designcraft_color::swatch::BLACK);
+    let mut it = Item::new(box_id, lid, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(rect));
+    it.fill = Fill::swatch(patronusdesign_color::swatch::BLACK);
     d.insert_item(SpreadRef::Parent(0), it, None).unwrap();
     std::sync::Arc::make_mut(&mut d.parents[1]).parent.as_mut().unwrap().based_on = Some(a);
     std::sync::Arc::make_mut(&mut d.spreads[0]).pages[0].parent = Some(b);

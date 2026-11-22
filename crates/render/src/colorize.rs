@@ -6,9 +6,9 @@ use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::{Arc, Mutex, PoisonError};
 
-use designcraft_color::swatch::apply_tint;
-use designcraft_doc::{AssetData, Document, Fill, SourceKey};
-use designcraft_images::Tone;
+use patronusdesign_color::swatch::apply_tint;
+use patronusdesign_doc::{AssetData, Document, Fill, SourceKey};
+use patronusdesign_images::Tone;
 use vello_cpu::Pixmap;
 use vello_cpu::color::PremulRgba8;
 
@@ -27,7 +27,7 @@ fn known_tone(key: SourceKey) -> Option<Option<Tone>> {
 
 /// Find the tone of `bytes` (named by `key`, outside the lock) and remember it.
 fn find_tone(key: SourceKey, bytes: &[u8]) -> Option<Tone> {
-    let tone = designcraft_images::tone(bytes);
+    let tone = patronusdesign_images::tone(bytes);
     let mut guard = TONES.lock().unwrap_or_else(PoisonError::into_inner);
     let map = guard.get_or_insert_with(HashMap::new);
     if map.len() >= MAX_TONES {
@@ -80,7 +80,7 @@ pub(crate) fn colorized(doc: &Document, fill: &Fill, data: &AssetData, pm: &Arc<
 }
 
 /// `pm`, a `tone` image, coloured `color`.
-fn coloured(color: designcraft_color::Color, tone: Tone, pm: &Arc<Pixmap>) -> Arc<Pixmap> {
+fn coloured(color: patronusdesign_color::Color, tone: Tone, pm: &Arc<Pixmap>) -> Arc<Pixmap> {
     // The swatch at each ink coverage as the screen shows it (or the plate being previewed).
     let lut: Vec<[u8; 4]> = (0..=255u8)
         .map(|i| {
@@ -95,10 +95,10 @@ fn coloured(color: designcraft_color::Color, tone: Tone, pm: &Arc<Pixmap>) -> Ar
     // As for plate previews: source pixmaps are kept alive (their addresses are keys), new colour
     // settings start over, and the derived pixels have a memory budget.
     type Entry = (Arc<Pixmap>, Arc<Pixmap>);
-    type Cache = (designcraft_color::cms::ColorSettings, HashMap<(usize, Tone, u64), Entry>, usize);
+    type Cache = (patronusdesign_color::cms::ColorSettings, HashMap<(usize, Tone, u64), Entry>, usize);
     const BUDGET: usize = 64 << 20;
     static CACHE: Mutex<Option<Cache>> = Mutex::new(None);
-    let settings = designcraft_color::cms::active_settings();
+    let settings = patronusdesign_color::cms::active_settings();
     {
         let mut guard = CACHE.lock().unwrap_or_else(PoisonError::into_inner);
         if let Some((previous, map, _)) = guard.as_ref() {
@@ -158,13 +158,13 @@ mod tests {
     /// frame that doesn't wait finds the tone in the background.
     #[test]
     fn a_tone_is_found_off_the_drawing_thread_and_a_missing_file_is_read_once() {
-        let generation = designcraft_doc::asset_data::link_generation();
+        let generation = patronusdesign_doc::asset_data::link_generation();
         let missing = linked::file("mem:/missing-tone.png", None, 100);
         for _ in 0..5 {
             assert!(matches!(tone_of(&missing, true), Prepared::Failed));
             assert!(matches!(tone_of(&missing, false), Prepared::Failed));
         }
-        if designcraft_doc::asset_data::link_generation() == generation {
+        if patronusdesign_doc::asset_data::link_generation() == generation {
             assert_eq!(linked::reads("mem:/missing-tone.png"), 1);
         }
         let mut grey = Vec::new();
@@ -181,7 +181,7 @@ mod tests {
                 Prepared::Failed => break,
             }
         }
-        assert_eq!(tone, designcraft_images::tone(&grey));
+        assert_eq!(tone, patronusdesign_images::tone(&grey));
         assert!(tone.is_some());
     }
 }

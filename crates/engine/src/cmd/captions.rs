@@ -1,8 +1,8 @@
 //! Object › Captions › Generate Static Caption: a text frame beside each selected object, filled
 //! from its metadata.
 
-use designcraft_doc::{Document, Item, ItemId, ParaFormat, Selection};
-use designcraft_geom::Rect;
+use patronusdesign_doc::{Document, Item, ItemId, ParaFormat, Selection};
+use patronusdesign_geom::Rect;
 use serde_json::{Value, json};
 
 use super::{CommandSpec, bad, cmd, has_selection, str_param, targets};
@@ -21,7 +21,7 @@ pub fn specs() -> Vec<CommandSpec> {
 }
 
 /// The metadata variables of `it`.
-fn variable(d: &Document, it: &Item, xf: designcraft_geom::Affine, name: &str) -> String {
+fn variable(d: &Document, it: &Item, xf: patronusdesign_geom::Affine, name: &str) -> String {
     let g = it.graphic();
     let asset = g.and_then(|g| d.assets.get(&g.asset));
     match name {
@@ -44,7 +44,7 @@ fn variable(d: &Document, it: &Item, xf: designcraft_geom::Affine, name: &str) -
     }
 }
 
-pub(crate) fn fill(d: &Document, it: &Item, xf: designcraft_geom::Affine, template: &str) -> String {
+pub(crate) fn fill(d: &Document, it: &Item, xf: patronusdesign_geom::Affine, template: &str) -> String {
     let mut out = String::new();
     let mut rest = template;
     while let Some(i) = rest.find('{') {
@@ -100,7 +100,7 @@ fn caption(s: &mut Session, p: &Value) -> Result<Value> {
             let source = *id;
             let (cid, _) = d.add_text_frame(loc.spread, r, lid, &text, para)?;
             if live && let Some(c) = d.item_mut(cid) {
-                c.live_caption = Some(designcraft_doc::LiveCaption { source, template: template.clone() });
+                c.live_caption = Some(patronusdesign_doc::LiveCaption { source, template: template.clone() });
             }
             made.push(cid);
         }
@@ -155,8 +155,8 @@ pub(crate) fn clamp_text_selection(d: &Document, sel: &mut Selection) {
         && ts.cell.is_none()
         && let Some(st) = d.story(ts.story)
     {
-        ts.anchor = designcraft_doc::floor_char_boundary(&st.text, ts.anchor);
-        ts.focus = designcraft_doc::floor_char_boundary(&st.text, ts.focus);
+        ts.anchor = patronusdesign_doc::floor_char_boundary(&st.text, ts.anchor);
+        ts.focus = patronusdesign_doc::floor_char_boundary(&st.text, ts.focus);
     }
 }
 
@@ -174,7 +174,7 @@ mod tests {
         s.execute("object.altText", &json!({"text": "Harbour at dawn", "ids": [a]})).unwrap();
         s.execute("object.label", &json!({"label": "fig-1", "ids": [a]})).unwrap();
         let r = s.execute("object.caption", &json!({"ids": [a], "text": "Figure {label}: {altText}", "offset": 6})).unwrap();
-        let cid = designcraft_doc::ItemId(r["ids"][0].as_u64().unwrap());
+        let cid = patronusdesign_doc::ItemId(r["ids"][0].as_u64().unwrap());
         let d = &s.doc().unwrap().doc;
         let c = d.item(cid).unwrap();
         let b = c.bounds();
@@ -191,7 +191,7 @@ mod tests {
         let a = s.execute("frame.create", &json!({"rect": [72, 72, 272, 172]})).unwrap()["id"].as_u64().unwrap();
         s.execute("object.altText", &json!({"text": "First", "ids": [a]})).unwrap();
         let r = s.execute("object.caption", &json!({"ids": [a], "text": "Photo: {altText}", "live": true})).unwrap();
-        let cid = designcraft_doc::ItemId(r["ids"][0].as_u64().unwrap());
+        let cid = patronusdesign_doc::ItemId(r["ids"][0].as_u64().unwrap());
         let text = |s: &Session| {
             let d = &s.doc().unwrap().doc;
             d.stories[&d.item(cid).unwrap().text_frame().unwrap().story].text.clone()
@@ -210,7 +210,7 @@ mod tests {
         let a = s.execute("frame.create", &json!({"rect": [72, 72, 272, 172]})).unwrap()["id"].as_u64().unwrap();
         s.execute("object.altText", &json!({"text": "First", "ids": [a]})).unwrap();
         let r = s.execute("object.caption", &json!({"ids": [a], "text": "Photo: {altText}", "live": true})).unwrap();
-        let cid = designcraft_doc::ItemId(r["ids"][0].as_u64().unwrap());
+        let cid = patronusdesign_doc::ItemId(r["ids"][0].as_u64().unwrap());
         let text = |s: &Session| {
             let d = &s.doc().unwrap().doc;
             d.stories[&d.item(cid).unwrap().text_frame().unwrap().story].text.clone()
@@ -234,7 +234,7 @@ mod tests {
         let r = s.execute("object.caption", &json!({"ids": [a], "text": "Photo: {altText}", "live": true})).unwrap();
         let cid = r["ids"][0].as_u64().unwrap();
         s.execute("object.textFrameOptions", &json!({"ids": [cid], "autoSize": "heightOnly"})).unwrap();
-        let height = |s: &Session| s.doc().unwrap().doc.item(designcraft_doc::ItemId(cid)).unwrap().bounds().height();
+        let height = |s: &Session| s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(cid)).unwrap().bounds().height();
         let short = height(&s);
         let long = "A harbour at dawn, with the fishing boats coming in one after another past the lighthouse and the long stone pier";
         s.begin_interaction("Alt Text").unwrap();
@@ -251,7 +251,7 @@ mod tests {
         let b = s.execute("frame.create", &json!({"rect": [300, 72, 400, 172]})).unwrap()["id"].as_u64().unwrap();
         s.execute("object.altText", &json!({"text": "First", "ids": [a]})).unwrap();
         let r = s.execute("object.caption", &json!({"ids": [a], "text": "Photo: {altText}", "live": true})).unwrap();
-        let cid = designcraft_doc::ItemId(r["ids"][0].as_u64().unwrap());
+        let cid = patronusdesign_doc::ItemId(r["ids"][0].as_u64().unwrap());
         // The only live caption sits inside a group, not at the top of the spread.
         s.execute("object.group", &json!({"ids": [cid.0, b]})).unwrap();
         let text = |s: &Session| {
@@ -267,20 +267,20 @@ mod tests {
     }
 
     /// A session with a live caption reading "Photo: First" and the caret at its end.
-    fn caret_at_end_of_live_caption() -> (Session, designcraft_doc::StoryId) {
+    fn caret_at_end_of_live_caption() -> (Session, patronusdesign_doc::StoryId) {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let a = s.execute("frame.create", &json!({"rect": [72, 72, 272, 172]})).unwrap()["id"].as_u64().unwrap();
         s.execute("object.altText", &json!({"text": "First", "ids": [a]})).unwrap();
         let r = s.execute("object.caption", &json!({"ids": [a], "text": "Photo: {altText}", "live": true})).unwrap();
-        let cid = designcraft_doc::ItemId(r["ids"][0].as_u64().unwrap());
+        let cid = patronusdesign_doc::ItemId(r["ids"][0].as_u64().unwrap());
         let sid = s.doc().unwrap().doc.item(cid).unwrap().text_frame().unwrap().story;
         let len = "Photo: First".len();
         s.execute("text.select", &json!({"story": sid.0, "anchor": len, "focus": len})).unwrap();
         (s, sid)
     }
 
-    fn assert_caret_inside(s: &Session, sid: designcraft_doc::StoryId) {
+    fn assert_caret_inside(s: &Session, sid: patronusdesign_doc::StoryId) {
         let st = s.doc().unwrap();
         let len = st.doc.stories[&sid].text.len();
         let ts = st.selection.text.unwrap();

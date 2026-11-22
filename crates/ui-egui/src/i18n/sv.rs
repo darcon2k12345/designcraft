@@ -1,4 +1,4 @@
-//! Swedish (sv) interface translations for DesignCraft, written from the English source with ordinary
+//! Swedish (sv) interface translations for Patronus Design, written from the English source with ordinary
 //! Swedish software vocabulary; no other catalog and no proprietary localisation was used.
 //! AI-drafted with Claude Code; spot-checked by a native Swedish speaker, not every string reviewed.
 pub(super) const TABLE: &[(&str, &str)] = &[
@@ -210,9 +210,9 @@ pub(super) const TABLE: &[(&str, &str)] = &[
     ("Hyperlinks", "Hyperlänkar"),
     ("Bookmarks", "Bokmärken"),
     ("Show All Menu Items", "Visa alla menyalternativ"),
-    ("About DesignCraft", "Om DesignCraft"),
-    ("Quit DesignCraft", "Avsluta DesignCraft"),
-    ("Welcome to DesignCraft", "Välkommen till DesignCraft"),
+    ("About Patronus Design", "Om Patronus Design"),
+    ("Quit Patronus Design", "Avsluta Patronus Design"),
+    ("Welcome to Patronus Design", "Välkommen till Patronus Design"),
     ("Page layout for print and screen — fast, open and scriptable.", "Sidlayout för tryck och skärm – snabb, öppen och skriptbar."),
     ("  New file  ", "  Ny fil  "),
     ("  Open  ", "  Öppna  "),
@@ -1302,8 +1302,8 @@ pub(super) const TABLE: &[(&str, &str)] = &[
     ("Delete Item", "Radera objekt"),
     ("Delete Text Variable", "Radera textvariabel"),
     ("Delete Workspace…", "Radera arbetslayout…"),
-    ("DesignCraft Website…", "DesignCrafts webbplats…"),
-    ("DesignCraft on GitHub…", "DesignCraft på GitHub…"),
+    ("Patronus Design Website…", "Patronus Designs webbplats…"),
+    ("Patronus Design on GitHub…", "Patronus Design på GitHub…"),
     ("Detach All Objects from Parent", "Koppla bort alla objekt från mallsidan"),
     ("Directional Feather", "Riktad fjädring"),
     ("Distribute", "Fördela"),
@@ -1595,7 +1595,7 @@ pub(super) const TABLE: &[(&str, &str)] = &[
     ),
     ("Convert Cell Type", "Konvertera celltyp"),
     ("Copy Link(s", "Kopiera länk(ar"),
-    ("DesignCraft", "DesignCraft"),
+    ("Patronus Design", "Patronus Design"),
     ("Export EPUB (Fixed Layout", "Exportera EPUB (fast layout"),
     ("Export EPUB (Reflowable", "Exportera EPUB (flytande"),
     ("Hyperlinks & Cross-References", "Hyperlänkar och korsreferenser"),
@@ -1647,8 +1647,8 @@ pub(super) const TABLE: &[(&str, &str)] = &[
     ("Define Lists", "Definiera listor"),
     ("Define Text Variable", "Definiera textvariabel"),
     ("Delete Type from Path", "Radera text från bana"),
-    ("DesignCraft Website", "DesignCrafts webbplats"),
-    ("DesignCraft on GitHub", "DesignCraft på GitHub"),
+    ("Patronus Design Website", "Patronus Designs webbplats"),
+    ("Patronus Design on GitHub", "Patronus Design på GitHub"),
     ("Detect Edges", "Identifiera kanter"),
     ("Discretionary Hyphen", "Mjukt bindestreck"),
     ("Document CMYK", "Dokument-CMYK"),
@@ -2324,7 +2324,7 @@ pub(super) const TABLE: &[(&str, &str)] = &[
     ("Corner Size", "Hörnstorlek"),
     ("Couldn't write recovery data: {error}", "Kunde inte skriva återställningsdata: {error}"),
     ("Delete Anchor Point Tool", "Verktyg för att radera ankarpunkt"),
-    ("DesignCraft page", "DesignCraft-sida"),
+    ("Patronus Design page", "Patronus Design-sida"),
     ("Direct Selection Tool", "Direktmarkeringsverktyg"),
     ("Display name", "Visningsnamn"),
     ("Ellipse Frame Tool", "Ellipsramverktyg"),

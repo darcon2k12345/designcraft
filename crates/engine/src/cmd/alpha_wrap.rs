@@ -1,13 +1,13 @@
 //! Text Wrap › Contour › Alpha Channel: the outline of a placed raster's visible pixels.
 //!
 //! The outline is traced once per image and threshold, in the image's pixel space, and kept on
-//! the document ([`designcraft_doc::AlphaOutline`]). Composition maps it through the graphic's
+//! the document ([`patronusdesign_doc::AlphaOutline`]). Composition maps it through the graphic's
 //! current transform, so it follows the image when it is moved, scaled or refitted.
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use designcraft_doc::{AlphaOutline, AssetData, AssetId, ContourType, Document, Item, WrapMode};
-use designcraft_geom::{BezPath, PathData, Point};
+use patronusdesign_doc::{AlphaOutline, AssetData, AssetId, ContourType, Document, Item, WrapMode};
+use patronusdesign_geom::{BezPath, PathData, Point};
 
 /// Images larger than this many pixels aren't traced (their contour follows the frame).
 const MAX_PIXELS: u64 = 40_000_000;
@@ -97,12 +97,12 @@ pub(crate) fn trace(data: &AssetData, asset: AssetId, threshold: u8) -> Option<A
 
 /// [`trace`] of encoded `bytes` standing for the data under `source`. With `size`, the outline
 /// is scaled to an image of that size (a preview traced for the original it stands for).
-fn trace_bytes(bytes: &[u8], source: designcraft_doc::SourceKey, size: Option<(u32, u32)>, asset: AssetId, threshold: u8) -> Option<AlphaOutline> {
-    let (w, h) = designcraft_images::pixel_size(bytes)?;
+fn trace_bytes(bytes: &[u8], source: patronusdesign_doc::SourceKey, size: Option<(u32, u32)>, asset: AssetId, threshold: u8) -> Option<AlphaOutline> {
+    let (w, h) = patronusdesign_images::pixel_size(bytes)?;
     if w == 0 || h == 0 || u64::from(w) * u64::from(h) > MAX_PIXELS {
         return None;
     }
-    let img = designcraft_images::decode_rgba(bytes)?;
+    let img = patronusdesign_images::decode_rgba(bytes)?;
     if img.width() != w || img.height() != h {
         return None;
     }
@@ -118,7 +118,7 @@ fn trace_bytes(bytes: &[u8], source: designcraft_doc::SourceKey, size: Option<(u
         // Composition follows an outline of at most MAX_CONTOUR_POINTS path elements (holes
         // included, for Include Inside Edges): a ring of k points is k + 1 elements with its close.
         let fits = |outer: &[Vec<(i32, i32)>], holes: &[Vec<(i32, i32)>]| {
-            outer.iter().chain(holes).map(|r| r.len() + 1).sum::<usize>() <= designcraft_compose::MAX_CONTOUR_POINTS
+            outer.iter().chain(holes).map(|r| r.len() + 1).sum::<usize>() <= patronusdesign_compose::MAX_CONTOUR_POINTS
         };
         if let Some((outer, holes)) = rings(&mask, cols as usize, rows as usize).filter(|(o, h)| fits(o, h)) {
             let (tw, th) = size.filter(|&(a, b)| a > 0 && b > 0).unwrap_or((w, h));
@@ -279,7 +279,7 @@ mod tests {
                 pixels[i + 3] = if on(x, y) { 255 } else { 0 };
             }
         }
-        designcraft_render::Rendered { width: size as u32, height: size as u32, pixels }.to_png()
+        patronusdesign_render::Rendered { width: size as u32, height: size as u32, pixels }.to_png()
     }
 
     /// An outline too detailed for composition (here 4,096 separate dots, 20,480 path elements
@@ -289,7 +289,7 @@ mod tests {
         let dots = png_sized(256, |x, y| x % 4 == 0 && y % 4 == 0);
         let o = trace(&AssetData::embedded(dots), AssetId(1), 25).unwrap();
         let elements = o.outer.to_bezpath().elements().len() + o.holes.to_bezpath().elements().len();
-        assert!(elements > 0 && elements <= designcraft_compose::MAX_CONTOUR_POINTS, "{elements} path elements");
+        assert!(elements > 0 && elements <= patronusdesign_compose::MAX_CONTOUR_POINTS, "{elements} path elements");
     }
 
     /// An image with no pixel more opaque than the threshold leaves the text alone: with the
@@ -426,14 +426,14 @@ mod tests {
         let image = place(&mut s, 100);
         // The wrap on the graphic (Direct Selection), not the frame.
         s.execute("object.textWrap", &json!({"ids": [image], "content": true, "mode": "contour", "contour": "alphaChannel"})).unwrap();
-        let frame_wrap = s.doc().unwrap().doc.item(designcraft_doc::ItemId(image)).unwrap().wrap.mode;
+        let frame_wrap = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(image)).unwrap().wrap.mode;
         assert_eq!(frame_wrap, WrapMode::None, "the frame has no wrap of its own");
         assert_eq!(s.doc().unwrap().doc.alpha_outlines.len(), 1, "traced for the graphic's wrap");
         // In a group with another frame: still traced.
         let other = s.execute("frame.create", &json!({"rect": [300, 100, 350, 150]})).unwrap()["id"].as_u64().unwrap();
         s.execute("object.group", &json!({"ids": [image, other]})).unwrap();
         let d = &s.doc().unwrap().doc;
-        assert!(d.find(designcraft_doc::ItemId(image)).unwrap().path.len() > 1, "the frame is nested");
+        assert!(d.find(patronusdesign_doc::ItemId(image)).unwrap().path.len() > 1, "the frame is nested");
         assert_eq!(d.alpha_outlines.len(), 1, "a nested frame keeps its outline");
         // A frame placed and grouped before its wrap is set: traced too.
         let second = place(&mut s, 400);
@@ -442,7 +442,7 @@ mod tests {
         s.execute("object.textWrap", &json!({"ids": [second], "mode": "contour", "contour": "alphaChannel", "threshold": 200})).unwrap();
         assert_eq!(s.doc().unwrap().doc.alpha_outlines.len(), 2);
         // The image data replaced under the same asset, as a relink does: traced again.
-        let Some(designcraft_doc::Content::Graphic(g)) = s.doc().unwrap().doc.item(designcraft_doc::ItemId(image)).map(|it| it.content.clone())
+        let Some(patronusdesign_doc::Content::Graphic(g)) = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(image)).map(|it| it.content.clone())
         else {
             panic!("a graphic")
         };
@@ -456,7 +456,7 @@ mod tests {
         })
         .unwrap();
         let d = &s.doc().unwrap().doc;
-        let o = d.alpha_outline(g.asset, designcraft_doc::DEFAULT_ALPHA_THRESHOLD).unwrap();
+        let o = d.alpha_outline(g.asset, patronusdesign_doc::DEFAULT_ALPHA_THRESHOLD).unwrap();
         assert!(o.traced_from(&narrower));
         let b = o.outer.bounds().unwrap();
         assert_eq!((b.x0, b.x1), (24.0, 40.0), "the new image's outline");
@@ -479,8 +479,8 @@ mod tests {
         s.execute("object.textWrap", &json!({"ids": [image], "mode": "contour", "contour": "alphaChannel"})).unwrap();
         let d = &s.doc().unwrap().doc;
         assert_eq!(d.alpha_outlines.len(), 2, "one outline for each threshold");
-        let Some(g) = d.item(designcraft_doc::ItemId(image)).and_then(|it| it.graphic()) else { panic!("a graphic") };
-        for threshold in [designcraft_doc::DEFAULT_ALPHA_THRESHOLD, 200] {
+        let Some(g) = d.item(patronusdesign_doc::ItemId(image)).and_then(|it| it.graphic()) else { panic!("a graphic") };
+        for threshold in [patronusdesign_doc::DEFAULT_ALPHA_THRESHOLD, 200] {
             let o = d.alpha_outline(g.asset, threshold);
             assert!(o.is_some_and(|o| o.threshold == threshold), "the outline at {threshold} is found");
         }
@@ -491,11 +491,11 @@ mod tests {
     /// threshold is saved.
     #[test]
     fn the_default_threshold_is_left_out_of_a_saved_wrap() {
-        let v = serde_json::to_value(designcraft_doc::TextWrap::default()).unwrap();
+        let v = serde_json::to_value(patronusdesign_doc::TextWrap::default()).unwrap();
         assert!(v.get("alphaThreshold").is_none(), "{v}");
-        let back: designcraft_doc::TextWrap = serde_json::from_value(v).unwrap();
-        assert_eq!(back.alpha_threshold, designcraft_doc::DEFAULT_ALPHA_THRESHOLD);
-        let w = designcraft_doc::TextWrap { alpha_threshold: 200, ..Default::default() };
+        let back: patronusdesign_doc::TextWrap = serde_json::from_value(v).unwrap();
+        assert_eq!(back.alpha_threshold, patronusdesign_doc::DEFAULT_ALPHA_THRESHOLD);
+        let w = patronusdesign_doc::TextWrap { alpha_threshold: 200, ..Default::default() };
         assert_eq!(serde_json::to_value(w).unwrap()["alphaThreshold"], 200);
     }
 
@@ -505,8 +505,8 @@ mod tests {
         let (mut s, image, story) = page(&png(|x, _| x < 32), [180.0, 150.0, 220.0, 178.0]);
         s.execute("object.textWrap", &json!({"ids": [image], "contour": "alphaChannel"})).unwrap();
         assert!(!overset(&s, story), "the left half is visible: the caption on the right is set");
-        let Some(designcraft_doc::Content::Graphic(g)) =
-            s.doc().unwrap().doc.item(designcraft_doc::ItemId(image.as_u64().unwrap())).map(|it| it.content.clone())
+        let Some(patronusdesign_doc::Content::Graphic(g)) =
+            s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(image.as_u64().unwrap())).map(|it| it.content.clone())
         else {
             panic!("a graphic")
         };
@@ -538,7 +538,7 @@ mod tests {
         let t = s.execute("frame.create", &json!({"rect": [36, 300, 400, 500], "content": "text", "text": "Before after."})).unwrap();
         s.execute("anchored.insert", &json!({"ids": [image], "story": t["story"], "pos": 7})).unwrap();
         let d = &s.doc().unwrap().doc;
-        assert!(d.anchored_item(designcraft_doc::ItemId(image)).is_some(), "the image is in the text");
+        assert!(d.anchored_item(patronusdesign_doc::ItemId(image)).is_some(), "the image is in the text");
         assert_eq!(d.alpha_outlines.len(), 1, "the anchored image keeps its outline");
     }
 
@@ -559,7 +559,7 @@ mod tests {
     }
 
     fn overset(s: &Session, story: u64) -> bool {
-        s.cache.get(&s.doc().unwrap().doc, designcraft_doc::StoryId(story), None).is_overset()
+        s.cache.get(&s.doc().unwrap().doc, patronusdesign_doc::StoryId(story), None).is_overset()
     }
 
     use serde_json::Value;

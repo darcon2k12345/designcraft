@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use designcraft_doc::{Asset, AssetData, AssetId, LinkedSource, Storage, Unavailable};
+use patronusdesign_doc::{Asset, AssetData, AssetId, LinkedSource, Storage, Unavailable};
 use serde_json::json;
 
 use super::{LinkStatus, wait};
@@ -28,7 +28,7 @@ impl Drop for Dir {
 }
 
 fn png(red: u8) -> Vec<u8> {
-    designcraft_render::Rendered { width: 40, height: 20, pixels: [red, 90, 180, 255].repeat(800) }.to_png()
+    patronusdesign_render::Rendered { width: 40, height: 20, pixels: [red, 90, 180, 255].repeat(800) }.to_png()
 }
 
 /// Place `bytes` in the active document (embedded, from base64) → its asset.

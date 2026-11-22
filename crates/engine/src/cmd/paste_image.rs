@@ -2,8 +2,8 @@
 //! image editor, an image file copied in a file manager) as a placed image. The pixels are
 //! embedded in the document, so a save and reopen or an IDML export keeps them.
 
-use designcraft_doc::Content;
-use designcraft_geom::Point;
+use patronusdesign_doc::Content;
+use patronusdesign_geom::Point;
 use serde_json::{Value, json};
 
 use super::{CommandSpec, Result, Session, bad, cmd, has_doc, spread_param};
@@ -67,24 +67,24 @@ pub fn pasted_png(width: u32, height: u32, rgba: Vec<u8>) -> std::result::Result
     if (rgba.len() as u64) != u64::from(width) * u64::from(height) * 4 {
         return Err("the image on the clipboard has the wrong number of pixels".into());
     }
-    designcraft_images::png_from_rgba(width, height, rgba).ok_or_else(|| "the image on the clipboard can't be stored".to_string())
+    patronusdesign_images::png_from_rgba(width, height, rgba).ok_or_else(|| "the image on the clipboard can't be stored".to_string())
 }
 
 /// An image file's pixels: (width, height, unpremultiplied RGBA). `None` when it is not a raster
-/// DesignCraft reads or has more pixels than [`MAX_PASTED_PIXELS`].
+/// Patronus Design reads or has more pixels than [`MAX_PASTED_PIXELS`].
 pub fn pasted_pixels(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
     let (w, h) = raster_size(bytes)?;
     check_pasted_size(w, h).ok()?;
-    let img = designcraft_images::decode_rgba(bytes)?;
+    let img = patronusdesign_images::decode_rgba(bytes)?;
     Some((img.width(), img.height(), img.into_raw()))
 }
 
 /// A raster's pixel size; `None` for vector formats (PDF, SVG, EPS) and unreadable data.
 fn raster_size(bytes: &[u8]) -> Option<(u32, u32)> {
-    if designcraft_images::is_pdf(bytes) || designcraft_images::is_svg(bytes) || designcraft_images::is_eps(bytes) {
+    if patronusdesign_images::is_pdf(bytes) || patronusdesign_images::is_svg(bytes) || patronusdesign_images::is_eps(bytes) {
         return None;
     }
-    designcraft_images::pixel_size(bytes)
+    patronusdesign_images::pixel_size(bytes)
 }
 
 fn paste_image(s: &mut Session, p: &Value) -> Result<Value> {
@@ -105,11 +105,11 @@ fn paste_image(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad(ID, format!("`name` must end in an image extension ({})", IMAGE_EXTENSIONS.join(", "))));
     }
     let bytes = super::base64_decode(b64);
-    let (pw, ph) = raster_size(&bytes).ok_or_else(|| bad(ID, "the clipboard doesn't hold an image DesignCraft can read"))?;
+    let (pw, ph) = raster_size(&bytes).ok_or_else(|| bad(ID, "the clipboard doesn't hold an image Patronus Design can read"))?;
     check_pasted_size(pw, ph).map_err(|e| bad(ID, e))?;
     // The header can be whole while the pixels after it are cut off: decode the whole raster so
     // a damaged image is refused instead of stored.
-    if designcraft_images::decode_rgba(&bytes).is_none() {
+    if patronusdesign_images::decode_rgba(&bytes).is_none() {
         return Err(bad(ID, "the image on the clipboard is damaged and can't be read"));
     }
     let sr = spread_param(p, ID)?;
@@ -140,9 +140,9 @@ fn paste_image(s: &mut Session, p: &Value) -> Result<Value> {
         Some(at) => at,
         None => sp.pages.first().map_or(Point::ZERO, |pg| pg.bounds().center()),
     };
-    // The size File › Place gives it (`designcraft_images::natural_size`): the resolution stored in
+    // The size File › Place gives it (`patronusdesign_images::natural_size`): the resolution stored in
     // the file, or one point per pixel when it stores none, at most 60% of the page width.
-    let (nw, nh) = designcraft_render::natural_size(&bytes, 0).unwrap_or((f64::from(pw), f64::from(ph)));
+    let (nw, nh) = patronusdesign_render::natural_size(&bytes, 0).unwrap_or((f64::from(pw), f64::from(ph)));
     let w = nw.min(d.settings.page_width * 0.6);
     let h = nh * w / nw;
     let spread = p.get("spread").cloned().unwrap_or(Value::Null);
@@ -162,7 +162,7 @@ fn place(s: &mut Session, params: &Value) -> Result<Value> {
 mod tests {
     use super::*;
     use crate::cmd::{base64_decode, base64_encode};
-    use designcraft_doc::{ItemId, SpreadRef};
+    use patronusdesign_doc::{ItemId, SpreadRef};
 
     /// A `w × h` PNG whose pixels count up, so a changed pixel shows.
     fn png(w: u32, h: u32) -> Vec<u8> {
@@ -200,7 +200,7 @@ mod tests {
             "{b:?}"
         );
         assert_eq!(placed_png(&s, id), png);
-        assert_eq!(s.doc().unwrap().doc.assets[&designcraft_doc::AssetId(r["asset"].as_u64().unwrap())].name, PASTED_IMAGE_NAME);
+        assert_eq!(s.doc().unwrap().doc.assets[&patronusdesign_doc::AssetId(r["asset"].as_u64().unwrap())].name, PASTED_IMAGE_NAME);
 
         let saved = s.execute("file.serialize", &json!({})).unwrap();
         let mut t = Session::new();
@@ -208,7 +208,7 @@ mod tests {
         assert_eq!(placed_png(&t, id), png, "saved with the document");
 
         let idml = s.execute("file.exportIdml", &json!({})).unwrap();
-        let imported = designcraft_idml::import_idml(&base64_decode(idml["base64"].as_str().unwrap())).unwrap();
+        let imported = patronusdesign_idml::import_idml(&base64_decode(idml["base64"].as_str().unwrap())).unwrap();
         assert!(imported.assets.values().any(|a| **a.data.embedded_bytes().unwrap() == png), "the IDML package carries the pixels");
     }
 

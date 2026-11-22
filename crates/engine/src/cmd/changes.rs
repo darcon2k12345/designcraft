@@ -1,6 +1,6 @@
 //! Type › Track Changes: record edits as inserted / deleted text; accept or reject them.
 
-use designcraft_doc::{ChangeMark, Document, Selection, Story, StoryId};
+use patronusdesign_doc::{ChangeMark, Document, Selection, Story, StoryId};
 use serde_json::{Value, json};
 
 use super::{CommandSpec, cmd, has_doc};
@@ -191,7 +191,7 @@ mod tests {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let r = s.execute("frame.create", &json!({"rect": [72, 72, 400, 200], "content": "text", "text": "The cat sat"})).unwrap();
-        let sid = designcraft_doc::StoryId(r["story"].as_u64().unwrap());
+        let sid = patronusdesign_doc::StoryId(r["story"].as_u64().unwrap());
         s.execute("changes.track", &json!({"on": true})).unwrap();
         // Replace "cat" with "dog", then type and erase a typo (gone without a trace).
         s.execute("text.select", &json!({"story": sid.0, "anchor": 4, "focus": 7})).unwrap();
@@ -228,7 +228,7 @@ mod tests {
     /// Removing a tracked run follows the selected text by UTF-8 byte offsets, including undo.
     #[test]
     fn resolving_a_removed_change_follows_the_text_selection() {
-        use designcraft_doc::ChangeMark;
+        use patronusdesign_doc::ChangeMark;
 
         for (command, mark) in [
             ("changes.accept", ChangeMark::Deleted),
@@ -242,14 +242,14 @@ mod tests {
                 .as_u64()
                 .unwrap();
             s.edit(|d, _| {
-                d.story_mut(designcraft_doc::StoryId(sid)).unwrap().format_chars(2..5, |f| f.over.change = Some(mark));
+                d.story_mut(patronusdesign_doc::StoryId(sid)).unwrap().format_chars(2..5, |f| f.over.change = Some(mark));
                 Ok(())
             })
             .unwrap();
             s.execute("text.select", &json!({"story": sid, "anchor": 9, "focus": 5})).unwrap();
             let params = if command.ends_with("All") { json!({"story": sid}) } else { json!({"story": sid, "start": 2}) };
             s.execute(command, &params).unwrap();
-            assert_eq!(s.doc().unwrap().doc.story(designcraft_doc::StoryId(sid)).unwrap().text, "abcdéfg", "{command}");
+            assert_eq!(s.doc().unwrap().doc.story(patronusdesign_doc::StoryId(sid)).unwrap().text, "abcdéfg", "{command}");
             let selected = s.doc().unwrap().selection.text.unwrap();
             assert_eq!((selected.anchor, selected.focus), (6, 2), "{command}");
             s.execute("edit.undo", &json!({})).unwrap();
@@ -264,7 +264,7 @@ mod tests {
     /// All-change resolution removes disjoint runs from the end and maps each one once.
     #[test]
     fn resolving_all_changes_follows_multiple_removed_runs() {
-        use designcraft_doc::ChangeMark;
+        use patronusdesign_doc::ChangeMark;
 
         for (command, mark) in [("changes.acceptAll", ChangeMark::Deleted), ("changes.rejectAll", ChangeMark::Inserted)] {
             let mut s = Session::new();
@@ -273,7 +273,7 @@ mod tests {
                 .as_u64()
                 .unwrap();
             s.edit(|d, _| {
-                let story = d.story_mut(designcraft_doc::StoryId(sid)).unwrap();
+                let story = d.story_mut(patronusdesign_doc::StoryId(sid)).unwrap();
                 story.format_chars(1..4, |f| f.over.change = Some(mark));
                 story.format_chars(5..7, |f| f.over.change = Some(mark));
                 Ok(())
@@ -281,7 +281,7 @@ mod tests {
             .unwrap();
             s.execute("text.select", &json!({"story": sid, "anchor": 10, "focus": 4})).unwrap();
             s.execute(command, &json!({"story": sid})).unwrap();
-            assert_eq!(s.doc().unwrap().doc.story(designcraft_doc::StoryId(sid)).unwrap().text, "abcδd", "{command}");
+            assert_eq!(s.doc().unwrap().doc.story(patronusdesign_doc::StoryId(sid)).unwrap().text, "abcδd", "{command}");
             let selected = s.doc().unwrap().selection.text.unwrap();
             assert_eq!((selected.anchor, selected.focus), (5, 1), "{command}");
         }
@@ -300,9 +300,9 @@ mod tests {
             s.execute("footnote.insert", &json!({"text": "Footnote text beyond body"})).unwrap();
             let before = s.doc().unwrap().selection.text.unwrap();
             s.edit(|d, _| {
-                d.story_mut(designcraft_doc::StoryId(sid))
+                d.story_mut(patronusdesign_doc::StoryId(sid))
                     .unwrap()
-                    .format_chars(0..1, |f| f.over.change = Some(designcraft_doc::ChangeMark::Deleted));
+                    .format_chars(0..1, |f| f.over.change = Some(patronusdesign_doc::ChangeMark::Deleted));
                 Ok(())
             })
             .unwrap();

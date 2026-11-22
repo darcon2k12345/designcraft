@@ -9,11 +9,11 @@ mod parse;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use designcraft_doc::{
+use patronusdesign_doc::{
     DataField, DataFieldKind, DataSource, Delimiter, Document, ItemId, MergeOptions, Page, Placeholder, PlaceholderAnchor, PlaceholderRole,
     Selection, SourceStatus, SpreadRef, StoryId,
 };
-use designcraft_geom::{Rect, Vec2};
+use patronusdesign_geom::{Rect, Vec2};
 use serde_json::{Value, json};
 
 use super::{CommandSpec, bad, cmd, has_doc, id_param, ok, str_param};
@@ -26,7 +26,7 @@ use parse::{Table, TileInput, select_records, status_of, table_from_bytes, table
 pub(crate) use parse::fingerprint_from;
 pub(crate) use parse::fingerprint_of;
 
-pub(crate) fn fingerprint_from_path(path: &str) -> Option<designcraft_doc::Fingerprint> {
+pub(crate) fn fingerprint_from_path(path: &str) -> Option<patronusdesign_doc::Fingerprint> {
     fingerprint_of(Path::new(path))
 }
 
@@ -490,7 +490,7 @@ fn assign_page(dst: &mut Document, loc: Option<(usize, usize)>, from: &Page) {
 fn overset_count(doc: &Document) -> usize {
     doc.stories
         .keys()
-        .filter(|sid| designcraft_compose::compose_story(doc, **sid, &designcraft_compose::ComposeOptions::default()).is_overset())
+        .filter(|sid| patronusdesign_compose::compose_story(doc, **sid, &patronusdesign_compose::ComposeOptions::default()).is_overset())
         .count()
 }
 
@@ -583,18 +583,18 @@ fn add_placeholder(d: &mut Document, sel: &mut Selection, p: &Value, name: &str)
             // A position a merged cell covers is the merged cell's: the field goes where it shows.
             let cell = d.story(t.story).and_then(|st| st.tables.get(&pressed.table)).map_or(pressed, |tab| {
                 let (row, col) = tab.owner(pressed.row, pressed.col);
-                designcraft_doc::CellAddr { row, col, ..pressed }
+                patronusdesign_doc::CellAddr { row, col, ..pressed }
             });
             let marker = format!("<<{name}>>");
             let st = d.text_story_mut(t.story, Some(cell)).ok_or_else(|| bad("data.placeholder.add", "no table cell there"))?;
             let at = if cell == pressed { t.range().start.min(st.text.len()) } else { st.text.len() };
-            let at = designcraft_doc::floor_char_boundary(&st.text, at);
+            let at = patronusdesign_doc::floor_char_boundary(&st.text, at);
             st.replace(at..at, &marker);
             // The caret goes after the field, in that text, as after typing; a cell selection
             // would have the next keystroke replace the whole cell, field and all.
             let end = at + marker.len();
             sel.cells = None;
-            sel.text = Some(designcraft_doc::TextSel { anchor: end, focus: end, cell: Some(cell), ..t });
+            sel.text = Some(patronusdesign_doc::TextSel { anchor: end, focus: end, cell: Some(cell), ..t });
             return Ok(json!({"cell": true, "marker": marker}));
         }
         let (story, at, end) = text_target(p, sel).ok_or_else(|| bad("data.placeholder.add", "select text or a frame"))?;
@@ -605,7 +605,7 @@ fn add_placeholder(d: &mut Document, sel: &mut Selection, p: &Value, name: &str)
             let marker = format!("<<{name}>>");
             let at = {
                 let text = d.story(story).map(|st| st.text.clone()).unwrap_or_default();
-                designcraft_doc::floor_char_boundary(&text, at.min(text.len()))
+                patronusdesign_doc::floor_char_boundary(&text, at.min(text.len()))
             };
             if let Some(st) = d.story_mut(story) {
                 st.replace(at..at, &marker);
@@ -619,8 +619,8 @@ fn add_placeholder(d: &mut Document, sel: &mut Selection, p: &Value, name: &str)
             PlaceholderAnchor::Text { story, start: at, end: at.saturating_add(marker.len()) }
         } else {
             let text = d.story(story).map(|st| st.text.clone()).unwrap_or_default();
-            let start = designcraft_doc::floor_char_boundary(&text, at.min(text.len()));
-            let end = designcraft_doc::floor_char_boundary(&text, end.min(text.len())).max(start);
+            let start = patronusdesign_doc::floor_char_boundary(&text, at.min(text.len()));
+            let end = patronusdesign_doc::floor_char_boundary(&text, end.min(text.len())).max(start);
             PlaceholderAnchor::Text { story, start, end }
         }
     };
@@ -851,7 +851,7 @@ fn parse_file(bytes: &[u8], name: &str, delimiter: Option<Delimiter>, sheet: Opt
         return Err("legacy Excel .xls/.xlsm workbooks are not supported".into());
     }
     if craft_file_formats::detect(name, bytes) == Some(craft_file_formats::Format::Xlsx) {
-        let grid = designcraft_textimport::xlsx_records(bytes, sheet).map_err(|e| e.to_string())?;
+        let grid = patronusdesign_textimport::xlsx_records(bytes, sheet).map_err(|e| e.to_string())?;
         return table_from_grid(grid, Delimiter::Comma);
     }
     table_from_bytes(bytes, name, delimiter)

@@ -9,10 +9,10 @@
 //! [`LineBreaks::Reflow`]: one box per frame, native columns, paragraph attributes from the
 //! styles.
 
-use designcraft_color::swatch::resolve_gradient;
-use designcraft_compose::{ComposedStory, FrameText, Line, PlacedGlyph, RunStyle};
-use designcraft_doc::{Item, TextFrame};
-use designcraft_geom::{Affine, Rect};
+use patronusdesign_color::swatch::resolve_gradient;
+use patronusdesign_compose::{ComposedStory, FrameText, Line, PlacedGlyph, RunStyle};
+use patronusdesign_doc::{Item, TextFrame};
+use patronusdesign_geom::{Affine, Rect};
 
 use crate::LineBreaks;
 use crate::slide::{Exporter, XfrmBox, box_of};
@@ -24,7 +24,7 @@ const BASELINE_IN_LINE: f64 = 0.75;
 /// Largest drift (points) a run's character spacing may leave before a new run starts.
 const TOLERANCE: f64 = 0.3;
 
-/// Private-use characters DesignCraft stores for markers (page numbers, section markers, breaks).
+/// Private-use characters Patronus Design stores for markers (page numbers, section markers, breaks).
 fn is_marker(c: char) -> bool {
     ('\u{E000}'..='\u{E1FF}').contains(&c)
 }
@@ -34,7 +34,7 @@ fn is_marker(c: char) -> bool {
 struct Unit {
     text: String,
     style: u32,
-    face: designcraft_fonts::FaceRef,
+    face: patronusdesign_fonts::FaceRef,
     size: f64,
     /// Baseline shift (points, down positive).
     y: f64,
@@ -51,7 +51,7 @@ struct Unit {
 struct Run {
     text: String,
     style: u32,
-    face: designcraft_fonts::FaceRef,
+    face: patronusdesign_fonts::FaceRef,
     size: f64,
     y: f64,
     /// Character spacing, points.
@@ -428,7 +428,7 @@ pub(crate) fn model_body(ex: &mut Exporter, seg: &Segment, k: f64, opacity: f32,
                 props.strike = Some(craft_pptx::text::Strike::Single);
             }
             props.fill = Some(color(ex, &style.fill, style.fill_tint, opacity).map_or(craft_pptx::Fill::None, craft_pptx::Fill::solid));
-            if style.stroke != designcraft_color::swatch::NONE
+            if style.stroke != patronusdesign_color::swatch::NONE
                 && style.stroke_weight > 0.0
                 && let Some(color) = color(ex, &style.stroke, style.stroke_tint, opacity)
             {
@@ -612,10 +612,10 @@ fn reflow_model(
     body.body.col_spacing = Some(tfr.options.gutter * k);
     body.body.vert = vertical.then_some(craft_pptx::text::TextDir::EaVertical);
     body.body.anchor = Some(match tfr.options.vertical_justification {
-        designcraft_doc::VerticalJustification::Top => craft_pptx::text::Anchor::Top,
-        designcraft_doc::VerticalJustification::Center => craft_pptx::text::Anchor::Middle,
-        designcraft_doc::VerticalJustification::Bottom => craft_pptx::text::Anchor::Bottom,
-        designcraft_doc::VerticalJustification::Justify => craft_pptx::text::Anchor::Justified,
+        patronusdesign_doc::VerticalJustification::Top => craft_pptx::text::Anchor::Top,
+        patronusdesign_doc::VerticalJustification::Center => craft_pptx::text::Anchor::Middle,
+        patronusdesign_doc::VerticalJustification::Bottom => craft_pptx::text::Anchor::Bottom,
+        patronusdesign_doc::VerticalJustification::Justify => craft_pptx::text::Anchor::Justified,
     });
     for paragraph in &mut body.paragraphs {
         for run in &mut paragraph.runs {

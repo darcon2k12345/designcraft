@@ -1,4 +1,4 @@
-//! DesignCraft's IDML model adapter, using `craft-xml` for parsing and writing XML.
+//! Patronus Design's IDML model adapter, using `craft-xml` for parsing and writing XML.
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Node {

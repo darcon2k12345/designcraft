@@ -75,8 +75,8 @@ mod variables;
 mod xml;
 mod xref;
 
-use designcraft_doc::{ItemId, SpreadRef};
-use designcraft_geom::{Point, Rect};
+use patronusdesign_doc::{ItemId, SpreadRef};
+use patronusdesign_geom::{Point, Rect};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -258,7 +258,7 @@ pub(crate) fn bad(cmd: &str, msg: impl Into<String>) -> EngineError {
 }
 
 /// The bytes of `asset`, or why `cmd` can't have them.
-pub(crate) fn asset_bytes(cmd: &str, asset: &designcraft_doc::Asset) -> Result<std::sync::Arc<Vec<u8>>> {
+pub(crate) fn asset_bytes(cmd: &str, asset: &patronusdesign_doc::Asset) -> Result<std::sync::Arc<Vec<u8>>> {
     asset.data.load().map_err(|e| bad(cmd, format!("{}: {e}", asset.name)))
 }
 /// `p` with `key` set to `v`. Parameters come from callers (control channel, MCP, scripts) and
@@ -286,7 +286,7 @@ pub(crate) fn text_param(p: &Value, key: &str) -> String {
         .unwrap_or("")
         .replace("\r\n", "\n")
         .replace('\r', "\n")
-        .replace('\u{B}', designcraft_doc::story::FORCED_LINE_BREAK.encode_utf8(&mut [0; 4]))
+        .replace('\u{B}', patronusdesign_doc::story::FORCED_LINE_BREAK.encode_utf8(&mut [0; 4]))
 }
 pub(crate) fn id_param(p: &Value, key: &str) -> Option<ItemId> {
     p.get(key).and_then(Value::as_u64).map(ItemId)
@@ -379,10 +379,10 @@ pub(crate) fn ok() -> Result<Value> {
     Ok(Value::Null)
 }
 
-pub fn file_bytes(d: &designcraft_doc::Document) -> Result<Vec<u8>> {
+pub fn file_bytes(d: &patronusdesign_doc::Document) -> Result<Vec<u8>> {
     file::to_bytes(d)
 }
-pub fn file_from(b: &[u8]) -> Result<designcraft_doc::Document> {
+pub fn file_from(b: &[u8]) -> Result<patronusdesign_doc::Document> {
     file::from_bytes(b)
 }
 pub(crate) use datamerge::sync_placeholders;

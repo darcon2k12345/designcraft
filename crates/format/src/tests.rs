@@ -1,9 +1,9 @@
 use super::*;
 use std::io::{Cursor, Read, Write};
 
-use designcraft_doc::build::NewDocument;
-use designcraft_doc::geom::Rect;
-use designcraft_doc::{Asset, AssetData, ParaFormat, SpreadRef};
+use patronusdesign_doc::build::NewDocument;
+use patronusdesign_doc::geom::Rect;
+use patronusdesign_doc::{Asset, AssetData, ParaFormat, SpreadRef};
 use serde_json::json;
 
 fn png_asset(d: &mut Document, data: &[u8]) -> AssetId {
@@ -20,9 +20,9 @@ fn png_asset(d: &mut Document, data: &[u8]) -> AssetId {
     aid
 }
 
-fn place(d: &mut Document, asset: AssetId, crop: f64) -> designcraft_doc::ItemId {
-    use designcraft_doc::geom::{Affine, shapes};
-    use designcraft_doc::{Content, Graphic, Item, ItemId, Shape};
+fn place(d: &mut Document, asset: AssetId, crop: f64) -> patronusdesign_doc::ItemId {
+    use patronusdesign_doc::geom::{Affine, shapes};
+    use patronusdesign_doc::{Content, Graphic, Item, ItemId, Shape};
     let id = ItemId(d.alloc());
     let mut it = Item::new(id, d.default_layer(), Shape::Rectangle, shapes::rectangle(Rect::new(0.0, 0.0, 50.0, 50.0)));
     it.content = Content::Graphic(Graphic {
@@ -95,7 +95,7 @@ fn explicit_all_on_pdf_layers_require_a_capable_reader_only_when_needed() {
 
 #[test]
 fn one_version_4_reader_keeps_both_explicit_all_on_and_graphic_layer_options() {
-    use designcraft_doc::{Content, GraphicLayerOptions};
+    use patronusdesign_doc::{Content, GraphicLayerOptions};
     let mut d = Document::new(&NewDocument::default());
     let pdf = AssetId(d.alloc());
     d.assets.insert(
@@ -193,7 +193,7 @@ fn eps_source_requires_new_reader_but_preview_documents_keep_the_older_one() {
 
 #[test]
 fn one_place_picks_the_oldest_reader_that_keeps_the_document() {
-    use designcraft_doc::{Content, GraphicLayerOptions};
+    use patronusdesign_doc::{Content, GraphicLayerOptions};
     let mut d = Document::new(&NewDocument::default());
     assert_eq!(required_version(&d), 2, "plain documents keep the version 2 reader");
     let aid = AssetId(d.alloc());
@@ -241,12 +241,12 @@ fn save_v1(doc: &Document) -> Vec<u8> {
     z.finish().unwrap().into_inner()
 }
 
-fn para_style(name: &str, based_on: Option<&str>, keep_all_lines: Option<bool>) -> designcraft_doc::ParagraphStyle {
-    designcraft_doc::ParagraphStyle {
+fn para_style(name: &str, based_on: Option<&str>, keep_all_lines: Option<bool>) -> patronusdesign_doc::ParagraphStyle {
+    patronusdesign_doc::ParagraphStyle {
         name: name.into(),
         based_on: based_on.map(str::to_string),
         next_style: None,
-        para: designcraft_doc::ParaAttrs { keep_lines_together: Some(true), keep_all_lines, ..Default::default() },
+        para: patronusdesign_doc::ParaAttrs { keep_lines_together: Some(true), keep_all_lines, ..Default::default() },
         chars: Default::default(),
         shortcut: String::new(),
     }
@@ -265,7 +265,7 @@ fn format_1_keep_lines_without_mode_stays_all_lines() {
     st.paragraph.push(para_style("Loop A", Some("Loop B"), None));
     st.paragraph.push(para_style("Loop B", Some("Loop A"), None));
     let lid = d.default_layer();
-    let names = [designcraft_doc::story::BASIC_PARAGRAPH, "Root", "Child", "Explicit", "Under explicit", "Loop A", "Loop B", "Missing"];
+    let names = [patronusdesign_doc::story::BASIC_PARAGRAPH, "Root", "Child", "Explicit", "Under explicit", "Loop A", "Loop B", "Missing"];
     let text = names.join("\n");
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(10.0, 10.0, 200.0, 200.0), lid, &text, ParaFormat::default()).unwrap();
     {
@@ -294,7 +294,7 @@ fn format_1_keep_lines_without_mode_stays_all_lines() {
     let now = load(&save(&d).unwrap()).unwrap();
     let p = &now.story(sid).unwrap().paras[0];
     assert!(!now.styles.resolve_para(p).0.keep_all_lines);
-    assert!(!designcraft_doc::ParaProps::default().keep_all_lines);
+    assert!(!patronusdesign_doc::ParaProps::default().keep_all_lines);
 }
 
 /// A format-1 file with many styles upgrades in time linear in them (each style's chain was
@@ -321,18 +321,18 @@ fn format_1_upgrade_of_many_styles_is_linear() {
 fn format_1_rules_frames_and_lists_load_as_saved() {
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
-    let old_rule = designcraft_doc::Rule { on: true, color: designcraft_doc::color::swatch::BLACK.into(), ..Default::default() };
+    let old_rule = patronusdesign_doc::Rule { on: true, color: patronusdesign_doc::color::swatch::BLACK.into(), ..Default::default() };
     let (fid, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(10.0, 10.0, 200.0, 200.0), lid, "Ruled", ParaFormat::default()).unwrap();
     d.story_mut(sid).unwrap().paras[0].para.rule_above = Some(old_rule.clone());
     d.item_mut(fid).unwrap().text_frame_mut().unwrap().options.auto_size_ref = 1;
-    d.settings.lists.push(designcraft_doc::NumberedList { name: "Steps".into(), continue_across_stories: true });
+    d.settings.lists.push(patronusdesign_doc::NumberedList { name: "Steps".into(), continue_across_stories: true });
     let back = load(&save_v1(&d)).unwrap();
     assert_eq!(back.story(sid).unwrap().paras[0].para.rule_above, Some(old_rule));
     assert_eq!(back.item(fid).unwrap().text_frame().unwrap().options.auto_size_ref, 1);
     assert!(back.settings.lists[0].continue_across_stories);
-    assert_eq!(designcraft_doc::Rule::default().color, designcraft_doc::TEXT_COLOR);
-    assert_eq!(designcraft_doc::TextFrameOptions::default().auto_size_ref, 4);
-    assert!(!designcraft_doc::NumberedList::default().continue_across_stories);
+    assert_eq!(patronusdesign_doc::Rule::default().color, patronusdesign_doc::TEXT_COLOR);
+    assert_eq!(patronusdesign_doc::TextFrameOptions::default().auto_size_ref, 4);
+    assert!(!patronusdesign_doc::NumberedList::default().continue_across_stories);
 }
 
 /// Format 1 set drop caps without Align Left Edge: those documents still do where nothing set
@@ -342,8 +342,8 @@ fn format_1_drop_caps_stay_unaligned() {
     let mut d = Document::new(&NewDocument::default());
     let st = d.styles_mut();
     st.paragraph.push(para_style("Opener", None, None));
-    st.paragraph.push(designcraft_doc::ParagraphStyle {
-        para: designcraft_doc::ParaAttrs { drop_cap_align_left: Some(true), ..Default::default() },
+    st.paragraph.push(patronusdesign_doc::ParagraphStyle {
+        para: patronusdesign_doc::ParaAttrs { drop_cap_align_left: Some(true), ..Default::default() },
         ..para_style("Aligned", None, None)
     });
     let lid = d.default_layer();
@@ -505,7 +505,7 @@ fn documents_saved_before_glyph_fallback_keep_their_fallback_fonts() {
 /// position (saved as `null`) dropped, positions clamped, leaders cut, the count capped.
 #[test]
 fn saved_tab_lists_load_sanitized() {
-    use designcraft_doc::{MAX_TAB_LEADER, MAX_TAB_POSITION, MAX_TAB_STOPS, TabAlign, TabStop};
+    use patronusdesign_doc::{MAX_TAB_LEADER, MAX_TAB_POSITION, MAX_TAB_STOPS, TabAlign, TabStop};
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(72.0, 72.0, 300.0, 300.0), lid, "a\tb", ParaFormat::default()).unwrap();
@@ -569,7 +569,7 @@ fn rejects_garbage_and_newer_versions() {
 }
 
 fn r7a_nullable_document(local_clear: bool, style_clear: bool) -> Document {
-    use designcraft_doc::{CharAttrs, ParaAttrs};
+    use patronusdesign_doc::{CharAttrs, ParaAttrs};
     let mut d = Document::new(&NewDocument { pages: 1, ..Default::default() });
     let base = d.styles.default_paragraph.clone();
     let chars = CharAttrs {
@@ -624,7 +624,7 @@ fn r7a_nullable_document(local_clear: bool, style_clear: bool) -> Document {
     let clear_para =
         ParaAttrs { start_at: Some(None), paragraph_kashida_width: Some(None), kinsoku: Some(None), list_tab: Some(None), ..Default::default() };
     let selected = if style_clear {
-        std::sync::Arc::make_mut(&mut d.styles).paragraph.push(designcraft_doc::styles::ParagraphStyle {
+        std::sync::Arc::make_mut(&mut d.styles).paragraph.push(patronusdesign_doc::styles::ParagraphStyle {
             name: "Defaults".into(),
             based_on: Some(base.clone()),
             next_style: None,
@@ -652,7 +652,7 @@ fn r7a_nullable_document(local_clear: bool, style_clear: bool) -> Document {
     d
 }
 
-fn r7a_nullable_resolution(d: &Document) -> (designcraft_doc::ParaProps, designcraft_doc::CharProps) {
+fn r7a_nullable_resolution(d: &Document) -> (patronusdesign_doc::ParaProps, patronusdesign_doc::CharProps) {
     let s = d.stories.values().find(|s| s.text == "clear").unwrap();
     d.styles.resolve_para(s.paras.first().unwrap())
 }
@@ -705,9 +705,9 @@ fn r7a_native_nullable_missing_and_explicit_value_controls() {
             assert_eq!(back, d);
         }
     }
-    let attrs: designcraft_doc::CharAttrs = serde_json::from_value(json!({"size":null})).unwrap();
+    let attrs: patronusdesign_doc::CharAttrs = serde_json::from_value(json!({"size":null})).unwrap();
     assert!(attrs.size.is_none(), "nonnullable fields retain their existing null contract");
-    let props: designcraft_doc::CharProps = serde_json::from_value(json!({"leadingAki":null})).unwrap();
+    let props: patronusdesign_doc::CharProps = serde_json::from_value(json!({"leadingAki":null})).unwrap();
     assert_eq!(props.leading_aki, None);
 }
 
@@ -798,7 +798,7 @@ fn all_item_ids(d: &Document) -> Vec<u64> {
     ids
 }
 
-fn set_item_id(d: &mut Document, index: usize, id: designcraft_doc::ItemId) {
+fn set_item_id(d: &mut Document, index: usize, id: patronusdesign_doc::ItemId) {
     let sp = Arc::make_mut(&mut d.spreads[0]);
     Arc::make_mut(&mut sp.items[index]).id = id;
 }
@@ -852,9 +852,9 @@ fn duplicate_text_frame_ids_keep_each_story_in_its_own_frame() {
 
 #[test]
 fn duplicate_anchored_item_ids_are_renumbered() {
-    use designcraft_doc::anchored::{AnchorPosition, AnchoredObject};
-    use designcraft_doc::geom::shapes;
-    use designcraft_doc::{Item, Shape};
+    use patronusdesign_doc::anchored::{AnchorPosition, AnchoredObject};
+    use patronusdesign_doc::geom::shapes;
+    use patronusdesign_doc::{Item, Shape};
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(10.0, 10.0, 200.0, 200.0), lid, "ab", ParaFormat::default()).unwrap();
@@ -881,8 +881,8 @@ fn duplicate_ids_at_the_top_of_the_range_do_not_overflow() {
     let two = png_asset(&mut d, &[2]);
     place(&mut d, one, 0.0);
     place(&mut d, two, 0.0);
-    set_item_id(&mut d, 0, designcraft_doc::ItemId(u64::MAX));
-    set_item_id(&mut d, 1, designcraft_doc::ItemId(u64::MAX));
+    set_item_id(&mut d, 0, patronusdesign_doc::ItemId(u64::MAX));
+    set_item_id(&mut d, 1, patronusdesign_doc::ItemId(u64::MAX));
     d.renumber_duplicate_items();
     assert_eq!(all_item_ids(&d), vec![u64::MAX, u64::MAX]);
     assert!(d.check().is_err());
@@ -904,13 +904,13 @@ fn linked_asset_roundtrips_as_record_and_proxy_without_original() {
         name: "big.tif".into(),
         mime: "image/tiff".into(),
         link: Some("/pics/big.tif".into()),
-        link_fingerprint: Some(designcraft_doc::Fingerprint { size: 1 << 30, mtime: 0 }),
+        link_fingerprint: Some(patronusdesign_doc::Fingerprint { size: 1 << 30, mtime: 0 }),
         storage: Storage::Linked,
-        proxy: Some(designcraft_doc::Proxy { mime: "image/png".into(), pixels: (2, 2), data: AssetData::embedded(vec![9, 8, 7]) }),
+        proxy: Some(patronusdesign_doc::Proxy { mime: "image/png".into(), pixels: (2, 2), data: AssetData::embedded(vec![9, 8, 7]) }),
         pixels: Some((4000, 3000)),
         ..Default::default()
     };
-    asset.data = AssetData::linked(designcraft_doc::LinkedSource::of(&asset, None).unwrap());
+    asset.data = AssetData::linked(patronusdesign_doc::LinkedSource::of(&asset, None).unwrap());
     d.assets.insert(aid, Arc::new(asset));
     place(&mut d, aid, 0.0);
     let bytes = save(&d).unwrap();

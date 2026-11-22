@@ -1,4 +1,4 @@
-//! Thin DesignCraft model adapter for the shared native document format.
+//! Thin Patronus Design model adapter for the shared native document format.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::hash::BuildHasher;
 use std::sync::Arc;
 
-use designcraft_doc::{AssetData, AssetId, Document, LinkedSource, Storage};
+use patronusdesign_doc::{AssetData, AssetId, Document, LinkedSource, Storage};
 #[cfg(test)]
 use serde_json::Value;
 #[cfg(test)]
@@ -19,7 +19,7 @@ pub use craft_designcraft_format::{
 #[cfg(test)]
 mod tests;
 
-/// Serialize a DesignCraft document to `.designcraft` bytes.
+/// Serialize a Patronus Design document to `.designcraft` bytes.
 pub fn save(doc: &Document) -> Result<Vec<u8>, FormatError> {
     save_with_preview(doc, None)
 }
@@ -56,7 +56,7 @@ pub fn write<W: std::io::Write + std::io::Seek>(out: &mut W, doc: &Document, pre
     }
     let assets = owned_assets.iter().map(|(id, mime, data)| craft_designcraft_format::Asset { id, mime, data }).collect::<Vec<_>>();
     let proxies = owned_proxies.iter().map(|(id, mime, data)| craft_designcraft_format::Asset { id, mime, data }).collect::<Vec<_>>();
-    craft_designcraft_format::write_to(out, &compact, concat!("DesignCraft ", env!("CARGO_PKG_VERSION")), preview, &assets, &proxies)
+    craft_designcraft_format::write_to(out, &compact, concat!("Patronus Design ", env!("CARGO_PKG_VERSION")), preview, &assets, &proxies)
 }
 
 /// Required native format version for a document. Kept for app-side compatibility; inference is

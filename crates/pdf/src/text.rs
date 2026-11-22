@@ -17,16 +17,16 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use craft_pdf::write::backend as krilla;
-use designcraft_compose::{ComposedStory, FrameText, PlacedGlyph};
-use designcraft_fonts::{FontDb, FontFace};
-use designcraft_geom::kurbo::Shape as _;
-use designcraft_geom::{Affine, BezPath, Rect};
 use krilla::geom::Point;
 use krilla::num::NormalizedF32;
 use krilla::paint::{Fill, FillRule, Paint, Stroke};
 use krilla::surface::Surface;
 use krilla::tagging::{Artifact, ArtifactType, ContentTag, SpanTag};
 use krilla::text::{Font, GlyphId, KrillaGlyph};
+use patronusdesign_compose::{ComposedStory, FrameText, PlacedGlyph};
+use patronusdesign_fonts::{FontDb, FontFace};
+use patronusdesign_geom::kurbo::Shape as _;
+use patronusdesign_geom::{Affine, BezPath, Rect};
 
 use crate::export::{Exporter, solid_fill, tf, to_path};
 
@@ -35,8 +35,8 @@ impl Exporter<'_> {
     /// for glyphs drawn under `origin` (text space ← run space). `overprint`: the run's
     /// overprint attribute for this paint.
     fn text_paint(&mut self, swatch: &str, tint: f32, overprint: bool, origin: Affine, area: Rect) -> Option<Paint> {
-        if designcraft_color::swatch::resolve_gradient(&self.doc.swatches, swatch).is_some() && origin.determinant().abs() > 1e-12 {
-            let fill = designcraft_doc::Fill { swatch: swatch.into(), tint, overprint, ..designcraft_doc::Fill::none() };
+        if patronusdesign_color::swatch::resolve_gradient(&self.doc.swatches, swatch).is_some() && origin.determinant().abs() > 1e-12 {
+            let fill = patronusdesign_doc::Fill { swatch: swatch.into(), tint, overprint, ..patronusdesign_doc::Fill::none() };
             return self.fill_paint_in(&fill, self.text_area.unwrap_or(area), origin.inverse());
         }
         self.swatch_color(swatch, tint).map(Into::into)
@@ -64,7 +64,7 @@ fn paint_fill(paint: Paint) -> Fill {
     Fill { paint, opacity: NormalizedF32::ONE, rule: FillRule::NonZero }
 }
 
-/// Private-use characters DesignCraft stores for markers (page numbers, section markers, breaks).
+/// Private-use characters Patronus Design stores for markers (page numbers, section markers, breaks).
 fn is_marker(c: char) -> bool {
     ('\u{E000}'..='\u{E1FF}').contains(&c)
 }
@@ -158,8 +158,8 @@ fn cluster_chars(members: &[PlacedGlyph], cluster: &str) -> Option<Vec<(usize, c
 }
 
 /// Merge bars of one paint layer; underlines and strikes must never be merged together.
-fn text_rules(cs: &ComposedStory, ft: &FrameText, underline: bool) -> Vec<(designcraft_compose::Rule, Rect)> {
-    let mut bars: Vec<(designcraft_compose::Rule, Rect)> = Vec::new();
+fn text_rules(cs: &ComposedStory, ft: &FrameText, underline: bool) -> Vec<(patronusdesign_compose::Rule, Rect)> {
+    let mut bars: Vec<(patronusdesign_compose::Rule, Rect)> = Vec::new();
     for line in &ft.lines {
         for g in line.glyphs.iter().filter(|g| g.spans_rules()) {
             let style = &cs.styles[g.style as usize];
@@ -167,7 +167,7 @@ fn text_rules(cs: &ComposedStory, ft: &FrameText, underline: bool) -> Vec<(desig
             if !on {
                 continue;
             }
-            let rect = rule.rect(g.x, g.x + g.adv, designcraft_compose::rule_baseline(style, line, g));
+            let rect = rule.rect(g.x, g.x + g.adv, patronusdesign_compose::rule_baseline(style, line, g));
             match bars.last_mut() {
                 Some((last_rule, last)) if last_rule == rule && (last.y0 - rect.y0).abs() < 1e-6 && (rect.x0 - last.x1).abs() < 0.5 => {
                     last.x1 = rect.x1;
@@ -235,7 +235,7 @@ impl Exporter<'_> {
     }
 
     /// One line's glyphs as tagged runs; a glyph that is turned or slanted gets a transform of its own.
-    fn line_glyphs(&mut self, s: &mut Surface, cs: &ComposedStory, ft: &FrameText, l: &designcraft_compose::Line, story: &str) {
+    fn line_glyphs(&mut self, s: &mut Surface, cs: &ComposedStory, ft: &FrameText, l: &patronusdesign_compose::Line, story: &str) {
         let gs = &l.glyphs;
         let mut i = 0;
         while i < gs.len() {
@@ -335,7 +335,7 @@ impl Exporter<'_> {
     }
 
     /// One table cell's graphic, or its text composed in the cell's own area.
-    fn table_cell(&mut self, s: &mut Surface, c: &designcraft_compose::PlacedCell) {
+    fn table_cell(&mut self, s: &mut Surface, c: &patronusdesign_compose::PlacedCell) {
         if let Some(g) = &c.graphic {
             if let Some(clip) = to_path(&c.clip.to_path(0.1)) {
                 s.push_clip_path(&clip, &krilla::paint::FillRule::NonZero);
@@ -358,7 +358,7 @@ impl Exporter<'_> {
         for t in &ft.tables {
             for c in &t.cells {
                 if let Some((sw, tint)) = &c.fill {
-                    let fill = designcraft_doc::Fill { swatch: sw.clone(), tint: *tint, ..designcraft_doc::Fill::none() };
+                    let fill = patronusdesign_doc::Fill { swatch: sw.clone(), tint: *tint, ..patronusdesign_doc::Fill::none() };
                     if let Some(paint) = self.fill_paint(&fill, t.rect)
                         && let Some(path) = to_path(&c.rect.to_path(0.1))
                     {
@@ -385,7 +385,7 @@ impl Exporter<'_> {
     }
 
     /// A cell's diagonal lines, clipped to the cell so their caps stay inside it.
-    fn cell_diagonals(&mut self, s: &mut Surface, c: &designcraft_compose::PlacedCell) {
+    fn cell_diagonals(&mut self, s: &mut Surface, c: &patronusdesign_compose::PlacedCell) {
         if c.diagonals.is_empty() {
             return;
         }
@@ -399,7 +399,12 @@ impl Exporter<'_> {
 
     /// One cell edge or diagonal: the gap color, then the stroke type. `capped` holds the ends the
     /// butt-ended fills (stripes, wavy, hash, the gap color) run between.
-    fn cell_stroke(&mut self, s: &mut Surface, seg: &designcraft_compose::StrokeSeg, capped: (designcraft_geom::Point, designcraft_geom::Point)) {
+    fn cell_stroke(
+        &mut self,
+        s: &mut Surface,
+        seg: &patronusdesign_compose::StrokeSeg,
+        capped: (patronusdesign_geom::Point, patronusdesign_geom::Point),
+    ) {
         let st = &seg.stroke;
         let Some(col) = self.swatch_color(&st.color, st.tint) else { return };
         let kind = self.doc.stroke_kind(&st.kind);
@@ -414,8 +419,8 @@ impl Exporter<'_> {
         capped.line_to(cb);
         let Some(cp) = to_path(&capped) else { return };
         // Gap colour under dashes, dots and stripes: the whole edge, solid.
-        if !matches!(kind, designcraft_doc::StrokeType::Solid)
-            && st.gap_color != designcraft_color::swatch::NONE
+        if !matches!(kind, patronusdesign_doc::StrokeType::Solid)
+            && st.gap_color != patronusdesign_color::swatch::NONE
             && let Some(gap) = self.swatch_color(&st.gap_color, st.gap_tint)
         {
             s.set_fill(None);
@@ -434,14 +439,18 @@ impl Exporter<'_> {
             return;
         }
         let (cap, dash) = match &kind {
-            designcraft_doc::StrokeType::Dashed { pattern } if designcraft_doc::StrokeType::expandable_dashes(pattern, seg.a.distance(seg.b)) => {
+            patronusdesign_doc::StrokeType::Dashed { pattern }
+                if patronusdesign_doc::StrokeType::expandable_dashes(pattern, seg.a.distance(seg.b)) =>
+            {
                 let mut pat: Vec<f32> = pattern.iter().map(|v| v.max(0.0) as f32).collect();
                 if pat.len() % 2 == 1 {
                     pat.extend(pat.clone());
                 }
                 (krilla::paint::LineCap::Butt, Some(krilla::paint::StrokeDash { array: pat, offset: 0.0 }))
             }
-            designcraft_doc::StrokeType::Dotted if designcraft_doc::StrokeType::expandable_dashes(&[0.0, st.weight * 2.0], seg.a.distance(seg.b)) => {
+            patronusdesign_doc::StrokeType::Dotted
+                if patronusdesign_doc::StrokeType::expandable_dashes(&[0.0, st.weight * 2.0], seg.a.distance(seg.b)) =>
+            {
                 (krilla::paint::LineCap::Round, Some(krilla::paint::StrokeDash { array: vec![0.0, (st.weight * 2.0) as f32], offset: 0.0 }))
             }
             _ => (krilla::paint::LineCap::Square, None),
@@ -456,7 +465,7 @@ impl Exporter<'_> {
         self.fill_path(s, &r.to_path(0.1), c);
     }
 
-    fn fill_path(&self, s: &mut Surface, bp: &designcraft_geom::BezPath, c: krilla::color::Color) {
+    fn fill_path(&self, s: &mut Surface, bp: &patronusdesign_geom::BezPath, c: krilla::color::Color) {
         if let Some(p) = to_path(bp) {
             s.set_stroke(None);
             s.set_fill(Some(solid_fill(c, 1.0)));
@@ -533,7 +542,7 @@ impl Exporter<'_> {
         let end = glyphs.last().map_or(g0.x, |g| g.x + g.adv);
         let run_area = Rect::new(g0.x, baseline - size, end.max(g0.x + 1.0), baseline + size * 0.25);
         let fill = self.text_paint(&st.fill, st.fill_tint, st.overprint_fill, origin, run_area);
-        let stroke = if st.stroke != designcraft_color::swatch::NONE && st.stroke_weight > 0.0 {
+        let stroke = if st.stroke != patronusdesign_color::swatch::NONE && st.stroke_weight > 0.0 {
             self.text_paint(&st.stroke, st.stroke_tint, st.overprint_stroke, origin, run_area)
         } else {
             None
@@ -655,9 +664,9 @@ impl Exporter<'_> {
 
     /// One line of plain text in the bundled UI face (page information mark).
     pub(crate) fn plain_text(&mut self, s: &mut Surface, text: &str, at: (f64, f64), size: f64, color: krilla::color::Color) {
-        let face = FontDb::global().face(designcraft_fonts::FALLBACK_FAMILY, "Regular");
+        let face = FontDb::global().face(patronusdesign_fonts::FALLBACK_FAMILY, "Regular");
         let Some(font) = self.font(&face) else { return };
-        let shaped = designcraft_fonts::shape(&face, text, &[], |c| c);
+        let shaped = patronusdesign_fonts::shape(&face, text, &[], |c| c);
         let upem = face.upem as f32;
         let glyphs: Vec<KrillaGlyph> = shaped
             .iter()
@@ -703,9 +712,9 @@ fn glyph_outlines(glyphs: &[PlacedGlyph], size: f64, tan: f64) -> BezPath {
 #[cfg(test)]
 mod rule_tests {
     use super::*;
-    use designcraft_compose::Cache;
-    use designcraft_doc::{Document, ParaFormat, SpreadRef};
-    use designcraft_geom::Rect;
+    use patronusdesign_compose::Cache;
+    use patronusdesign_doc::{Document, ParaFormat, SpreadRef};
+    use patronusdesign_geom::Rect;
 
     /// A tab draws nothing but advances to its stop, and the underline runs across it, as it does
     /// on screen: a form's fill-in lines are underlined tabs (#1466).

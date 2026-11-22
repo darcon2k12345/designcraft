@@ -5,8 +5,8 @@
 
 use std::collections::HashSet;
 
-use designcraft_fonts::{FaceKind, FamilyInfo, FontClass, FontFormat};
 use egui::{Align2, Color32, FontId, Rect, Sense, Stroke, Ui, pos2, vec2};
+use patronusdesign_fonts::{FaceKind, FamilyInfo, FontClass, FontFormat};
 use serde_json::json;
 
 use crate::DesignApp;
@@ -63,7 +63,7 @@ fn regular(styles: &[String]) -> String {
     styles.iter().find(|s| *s == "Regular").or(styles.first()).cloned().unwrap_or_else(|| "Regular".into())
 }
 
-fn meta(ui: &Ui, fonts: &designcraft_fonts::ScopedFonts<'_>, scope: u32, family: &str) -> FamilyMeta {
+fn meta(ui: &Ui, fonts: &patronusdesign_fonts::ScopedFonts<'_>, scope: u32, family: &str) -> FamilyMeta {
     let key = egui::Id::unique(("font_meta", family, scope));
     if let Some(m) = ui.data(|d| d.get_temp::<FamilyMeta>(key)) {
         return m;
@@ -95,14 +95,14 @@ fn lock(kinds: &SharedKinds) -> std::sync::MutexGuard<'_, Kinds> {
 
 /// A family's kind, and whether its file was added within [`ADDED_WITHIN`]. Read without keeping
 /// the family loaded: the filters look at every installed family.
-fn family_kind(fonts: &designcraft_fonts::ScopedFonts<'static>, family: &str) -> (FaceKind, bool) {
+fn family_kind(fonts: &patronusdesign_fonts::ScopedFonts<'static>, family: &str) -> (FaceKind, bool) {
     fonts
         .family_kind(family)
         .map_or((FaceKind::default(), false), |(kind, added)| (kind, added.and_then(|t| t.elapsed().ok()).is_some_and(|age| age < ADDED_WITHIN)))
 }
 
 /// The families' kinds, starting to read them the first time they're needed for `scope`.
-fn kinds(ctx: &egui::Context, fonts: &designcraft_fonts::ScopedFonts<'static>, scope: u32) -> SharedKinds {
+fn kinds(ctx: &egui::Context, fonts: &patronusdesign_fonts::ScopedFonts<'static>, scope: u32) -> SharedKinds {
     let shared: SharedKinds = ctx.data_mut(|d| d.get_temp_mut_or_default::<SharedKinds>(egui::Id::unique("font_kinds")).clone());
     let start = {
         let mut k = lock(&shared);
@@ -127,7 +127,7 @@ fn kinds(ctx: &egui::Context, fonts: &designcraft_fonts::ScopedFonts<'static>, s
     shared
 }
 
-fn read_kinds(ctx: &egui::Context, shared: &SharedKinds, fonts: &designcraft_fonts::ScopedFonts<'static>, scope: u32) {
+fn read_kinds(ctx: &egui::Context, shared: &SharedKinds, fonts: &patronusdesign_fonts::ScopedFonts<'static>, scope: u32) {
     for chunk in fonts.families().chunks(64) {
         let read: Vec<(String, (FaceKind, bool))> = chunk.iter().map(|f| (f.clone(), family_kind(fonts, f))).collect();
         let mut k = lock(shared);
@@ -217,7 +217,7 @@ fn format_name(format: FontFormat) -> &'static str {
 /// `text` in `family`'s `style`, rendered once per text, size and colour.
 fn preview(
     ui: &Ui,
-    fonts: &designcraft_fonts::ScopedFonts<'static>,
+    fonts: &patronusdesign_fonts::ScopedFonts<'static>,
     scope: u32,
     (family, style): (&str, &str),
     text: &str,
@@ -231,7 +231,7 @@ fn preview(
     if let Some(t) = ui.data_mut(|d| d.get_temp_mut_or_default::<Previews>(cache_id).get(key)) {
         return t;
     }
-    let img = designcraft_render::glyphs::text_line(fonts, family, style, text, px, color.to_array());
+    let img = patronusdesign_render::glyphs::text_line(fonts, family, style, text, px, color.to_array());
     let ci = egui::ColorImage::from_rgba_premultiplied([img.width as usize, img.height as usize], &img.pixels);
     let t = crate::widgets::load_texture(ui.ctx(), format!("font_preview_{family}_{style}"), ci, egui::TextureOptions::LINEAR);
     ui.data_mut(|d| d.get_temp_mut_or_default::<Previews>(cache_id).insert(key, t.clone()));
@@ -474,7 +474,7 @@ pub fn font_menu_header<'a>(app: &'a mut DesignApp, ui: &mut Ui, menu: &'a [Fami
                         return Some((0, *f));
                     }
                     let (k, _) = kind(&f.family)?;
-                    (k.class == base.class).then(|| (designcraft_fonts::panose_distance(&base.panose, &k.panose).unwrap_or(u32::MAX / 2) + 1, *f))
+                    (k.class == base.class).then(|| (patronusdesign_fonts::panose_distance(&base.panose, &k.panose).unwrap_or(u32::MAX / 2) + 1, *f))
                 })
                 .collect();
             near.sort_by_key(|(d, _)| *d);
@@ -738,9 +738,9 @@ mod variable_catalog_regression {
     #[test]
     #[ignore = "requires the pinned Bricolage fixture; see docs/testing-variable-fonts.md"]
     fn cold_family_menu_contains_named_instances() {
-        let path = std::env::var_os("DESIGNCRAFT_TEST_VARIABLE_FONT").expect("set DESIGNCRAFT_TEST_VARIABLE_FONT");
+        let path = std::env::var_os("PATRONUSDESIGN_TEST_VARIABLE_FONT").expect("set PATRONUSDESIGN_TEST_VARIABLE_FONT");
         let path = std::path::PathBuf::from(path);
-        let db = Box::leak(Box::new(designcraft_fonts::FontDb::with_font_dirs(vec![path.parent().unwrap().to_owned()])));
+        let db = Box::leak(Box::new(patronusdesign_fonts::FontDb::with_font_dirs(vec![path.parent().unwrap().to_owned()])));
         let fonts = db.scoped(0);
         assert!(!fonts.styles("Bricolage Grotesque").contains(&"SemiBold".into()), "the fixture must be catalogued but not loaded");
         let ctx = egui::Context::default();
@@ -761,10 +761,10 @@ mod variable_catalog_regression {
 
         // Exercise the family menu's actual style-row selection too.
         use egui_kittest::{Harness, kittest::Queryable};
-        designcraft_fonts::FontDb::global().add_font(std::fs::read(&path).unwrap());
-        let app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        patronusdesign_fonts::FontDb::global().add_font(std::fs::read(&path).unwrap());
+        let app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         let menu: Vec<_> =
-            designcraft_fonts::FontDb::global().scoped(0).family_infos().into_iter().filter(|f| f.family == "Bricolage Grotesque").collect();
+            patronusdesign_fonts::FontDb::global().scoped(0).family_infos().into_iter().filter(|f| f.family == "Bricolage Grotesque").collect();
         let mut h = Harness::builder()
             .with_context_setup(|ctx| {
                 crate::theme::install_fonts(ctx, "");
@@ -798,9 +798,9 @@ mod synthetic_variable_catalog_regression {
     fn family_menu_selects_a_synthetic_named_instance() {
         use egui_kittest::{Harness, kittest::Queryable};
         let family = "Synthetic Menu Wiring";
-        let db = designcraft_fonts::FontDb::global();
-        db.add_font(designcraft_fonts::testing::variable_font(family).unwrap());
-        let app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let db = patronusdesign_fonts::FontDb::global();
+        db.add_font(patronusdesign_fonts::testing::variable_font(family).unwrap());
+        let app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         let menu: Vec<_> = db.scoped(0).family_infos().into_iter().filter(|f| f.family == family).collect();
         let mut h = Harness::builder()
             .with_context_setup(|ctx| {
@@ -831,8 +831,8 @@ mod synthetic_variable_catalog_regression {
     fn cold_family_menu_discovers_and_caches_named_instances() {
         let dir = tempfile::tempdir().unwrap();
         let family = "Synthetic Cold Menu";
-        std::fs::write(dir.path().join("variable.ttf"), designcraft_fonts::testing::variable_font(family).unwrap()).unwrap();
-        let db = designcraft_fonts::FontDb::with_font_dirs(vec![dir.path().to_owned()]);
+        std::fs::write(dir.path().join("variable.ttf"), patronusdesign_fonts::testing::variable_font(family).unwrap()).unwrap();
+        let db = patronusdesign_fonts::FontDb::with_font_dirs(vec![dir.path().to_owned()]);
         let fonts = db.scoped(0);
         assert_eq!(fonts.styles(family), ["Regular"]);
         let ctx = egui::Context::default();

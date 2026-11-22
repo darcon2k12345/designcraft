@@ -1,6 +1,6 @@
 //! Hyperlinks and bookmarks (Window → Interactive), exported to PDF as link annotations and the outline.
 
-use designcraft_doc::{Bookmark, Hyperlink, HyperlinkDest, HyperlinkSource};
+use patronusdesign_doc::{Bookmark, Hyperlink, HyperlinkDest, HyperlinkSource};
 use serde_json::{Value, json};
 
 use super::{CommandSpec, bad, cmd, has_doc, str_param};
@@ -46,10 +46,10 @@ pub fn specs() -> Vec<CommandSpec> {
             let st = s.doc_mut()?;
             let h = st.doc.hyperlinks.iter().find(|h| h.id == id).cloned().ok_or_else(|| bad("hyperlink.goToSource", format!("no hyperlink {id}")))?;
             st.selection = match h.source {
-                HyperlinkSource::Item { id } => designcraft_doc::Selection::items(vec![id]),
+                HyperlinkSource::Item { id } => patronusdesign_doc::Selection::items(vec![id]),
                 HyperlinkSource::Text { story, start, end } => {
                     let frame = st.doc.story(story).and_then(|x| x.frames.first().copied());
-                    designcraft_doc::Selection::text(designcraft_doc::TextSel { story, anchor: start, focus: end, frame, cell: None })
+                    patronusdesign_doc::Selection::text(patronusdesign_doc::TextSel { story, anchor: start, focus: end, frame, cell: None })
                 }
             };
             st.bump_revision();
@@ -99,9 +99,9 @@ pub fn specs() -> Vec<CommandSpec> {
 /// link went to an anchor nobody has and the export quietly left it out -- and on
 /// `hyperlink.edit` the `None` read as "no destination given", so the command reported success
 /// and kept the old destination (noted in review).
-fn dest_param(id: &str, d: &designcraft_doc::Document, p: &Value) -> Result<Option<HyperlinkDest>> {
+fn dest_param(id: &str, d: &patronusdesign_doc::Document, p: &Value) -> Result<Option<HyperlinkDest>> {
     if let Some(u) = str_param(p, "url") {
-        if !designcraft_doc::is_safe_link_url(u) {
+        if !patronusdesign_doc::is_safe_link_url(u) {
             return Err(bad(id, "`url` must start with http://, https:// or mailto:"));
         }
         return Ok(Some(HyperlinkDest::Url(u.to_string())));
@@ -138,7 +138,7 @@ fn dest_param(id: &str, d: &designcraft_doc::Document, p: &Value) -> Result<Opti
 }
 
 /// The anchor's own name, for a link to one that was not given a name.
-fn dest_label(d: &designcraft_doc::Document, dest: &HyperlinkDest) -> String {
+fn dest_label(d: &patronusdesign_doc::Document, dest: &HyperlinkDest) -> String {
     if let HyperlinkDest::Anchor(a) = dest
         && let Some(x) = d.stories.values().flat_map(|st| st.anchors.iter()).find(|x| x.id == *a)
     {

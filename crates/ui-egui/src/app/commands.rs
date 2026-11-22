@@ -20,7 +20,9 @@ impl DesignApp {
         // system clipboard: with no insertion point it pastes as editable paths where text would go.
         let typing = self.session.active().is_some_and(|d| d.selection.text.is_some());
         let id = match params.as_object_mut() {
-            Some(o) if id == "edit.paste" && !typing && o.get("text").and_then(Value::as_str).is_some_and(designcraft_engine::cmd::is_svg_markup) => {
+            Some(o)
+                if id == "edit.paste" && !typing && o.get("text").and_then(Value::as_str).is_some_and(patronusdesign_engine::cmd::is_svg_markup) =>
+            {
                 if let Some(svg) = o.remove("text") {
                     o.insert("svg".into(), svg);
                 }
@@ -48,7 +50,7 @@ impl DesignApp {
                         Some(t.to_string())
                     }
                     None if !self.native_menu => {
-                        self.object_clip_text = Some(designcraft_engine::cmd::copied_objects_text(&self.session));
+                        self.object_clip_text = Some(patronusdesign_engine::cmd::copied_objects_text(&self.session));
                         self.object_clip_change = None;
                         self.object_clip_text.clone()
                     }

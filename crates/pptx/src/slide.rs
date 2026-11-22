@@ -2,19 +2,19 @@
 
 use std::collections::HashMap;
 
-use designcraft_color::swatch::resolve_gradient;
-use designcraft_color::{BlendMode, GradientKind};
-use designcraft_compose::Cache;
-use designcraft_doc::{Arrowhead, AssetId, Cap, Content, Document, Graphic, Item, Join, Shape, Stroke, StrokeAlign, StrokeType};
-use designcraft_geom::kurbo::{PathEl, Shape as _};
-use designcraft_geom::{Affine, BezPath, Rect, Vec2, corners};
+use patronusdesign_color::swatch::resolve_gradient;
+use patronusdesign_color::{BlendMode, GradientKind};
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::{Arrowhead, AssetId, Cap, Content, Document, Graphic, Item, Join, Shape, Stroke, StrokeAlign, StrokeType};
+use patronusdesign_geom::kurbo::{PathEl, Shape as _};
+use patronusdesign_geom::{Affine, BezPath, Rect, Vec2, corners};
 
 use crate::fonts::Fonts;
 use crate::model::{Media, Slide};
 use crate::{PptxError, PptxOptions, Result};
 
-/// Preserve fractional DesignCraft opacity in DrawingML instead of rounding it through 8-bit alpha.
-pub(crate) fn color_with_opacity(color: designcraft_color::Color, opacity: f32) -> craft_pptx::ColorRef {
+/// Preserve fractional Patronus Design opacity in DrawingML instead of rounding it through 8-bit alpha.
+pub(crate) fn color_with_opacity(color: patronusdesign_color::Color, opacity: f32) -> craft_pptx::ColorRef {
     let [r, g, b, _] = color.to_rgba8(1.0);
     let color = craft_pptx::ColorRef::rgb(craft_pptx::Rgba::rgb(r, g, b));
     let alpha = (f64::from(opacity.clamp(0.0, 1.0)) * 100_000.0).round() as i32;
@@ -208,7 +208,8 @@ impl<'a> Exporter<'a> {
         self.clip = Rect::new(bounds.x0 - b[2].max(b[3]), bounds.y0 - b[0], bounds.x1 + b[2].max(b[3]), bounds.y1 + b[1]);
         let page_name = doc.page_name(abs);
         // What the canvas hides: this page's overrides and those of the parent pages behind it.
-        let overridden = doc.page_loc(abs).map(|(si, pi)| doc.overridden_parent_items(designcraft_doc::SpreadRef::Doc(si), pi)).unwrap_or_default();
+        let overridden =
+            doc.page_loc(abs).map(|(si, pi)| doc.overridden_parent_items(patronusdesign_doc::SpreadRef::Doc(si), pi)).unwrap_or_default();
         for layer in doc.layers.iter().rev() {
             if !layer.visible || !layer.printable {
                 continue;
@@ -329,7 +330,7 @@ impl<'a> Exporter<'a> {
     fn shape_inner(&mut self, it: &Item, xf: Affine, opacity: f32, model_text: Option<craft_pptx::TextBody>) {
         let m = self.to_slide * xf;
         let g = geometry(it, m);
-        if model_text.is_none() && it.fill.is_none() && it.stroke.is_none() && it.effects == designcraft_doc::Effects::default() {
+        if model_text.is_none() && it.fill.is_none() && it.stroke.is_none() && it.effects == patronusdesign_doc::Effects::default() {
             return;
         }
         let id = self.id();
@@ -366,7 +367,7 @@ impl<'a> Exporter<'a> {
         })
     }
 
-    /// An sRGB color in the shared PresentationML model, with DesignCraft tint and opacity applied.
+    /// An sRGB color in the shared PresentationML model, with Patronus Design tint and opacity applied.
     pub(crate) fn model_color(&self, swatch: &str, tint: f32, alpha: f32) -> Option<craft_pptx::ColorRef> {
         if let Some(gradient) = resolve_gradient(&self.doc.swatches, swatch) {
             let (_, color, gradient_alpha) = gradient.expanded_stops().into_iter().next()?;
@@ -375,7 +376,7 @@ impl<'a> Exporter<'a> {
         Some(color_with_opacity(self.doc.resolve_color(swatch, tint)?, alpha))
     }
 
-    fn model_fill(&mut self, fill: &designcraft_doc::Fill, closed: bool, opacity: f32) -> craft_pptx::Fill {
+    fn model_fill(&mut self, fill: &patronusdesign_doc::Fill, closed: bool, opacity: f32) -> craft_pptx::Fill {
         if fill.is_none() || !closed {
             return craft_pptx::Fill::None;
         }
@@ -574,7 +575,7 @@ impl<'a> Exporter<'a> {
             return None;
         }
         let n = self.media.len() + 1;
-        let mime = designcraft_images::mime(data);
+        let mime = patronusdesign_images::mime(data);
         let ext = match mime {
             "image/png" => Some("png"),
             "image/jpeg" => Some("jpeg"),
@@ -587,7 +588,7 @@ impl<'a> Exporter<'a> {
             return Some((name, None));
         }
         if mime == "image/svg+xml" {
-            let png = designcraft_images::render_svg(data, 2048).and_then(|(px, w, h)| encode_png(unpremultiply(px), w, h));
+            let png = patronusdesign_images::render_svg(data, 2048).and_then(|(px, w, h)| encode_png(unpremultiply(px), w, h));
             let Some(png) = png else {
                 self.warn(format!("`{}` could not be read; left out", a.name));
                 return None;
@@ -605,7 +606,7 @@ impl<'a> Exporter<'a> {
             ));
             return None;
         }
-        let Some(img) = designcraft_images::decode_rgba(data) else {
+        let Some(img) = patronusdesign_images::decode_rgba(data) else {
             self.warn(format!("`{}` could not be read; left out", a.name));
             return None;
         };

@@ -74,9 +74,9 @@ impl<'a> Ex<'a> {
             overprint_black: Some(s.overprint_black),
             intent: Some(
                 match s.intent {
-                    designcraft_doc::Intent::Print => "PrintIntent",
-                    designcraft_doc::Intent::Web => "WebIntent",
-                    designcraft_doc::Intent::Mobile => "MobileIntent",
+                    patronusdesign_doc::Intent::Print => "PrintIntent",
+                    patronusdesign_doc::Intent::Web => "WebIntent",
+                    patronusdesign_doc::Intent::Mobile => "MobileIntent",
                 }
                 .into(),
             ),
@@ -97,9 +97,9 @@ impl<'a> Ex<'a> {
                 horizontal_units: names::unit_out(s.horizontal_units).into(),
                 vertical_units: names::unit_out(s.vertical_units).into(),
                 ruler_origin: match s.ruler_origin {
-                    designcraft_doc::RulerOrigin::Spread => "SpreadOrigin",
-                    designcraft_doc::RulerOrigin::Page => "PageOrigin",
-                    designcraft_doc::RulerOrigin::Spine => "SpineOrigin",
+                    patronusdesign_doc::RulerOrigin::Spread => "SpreadOrigin",
+                    patronusdesign_doc::RulerOrigin::Page => "PageOrigin",
+                    patronusdesign_doc::RulerOrigin::Spine => "SpineOrigin",
                 }
                 .into(),
                 cursor_key_increment: s.keyboard_increment,
@@ -118,8 +118,8 @@ impl<'a> Ex<'a> {
             baseline_view_threshold: Some(bg.view_threshold * 100.0),
             baseline_relative_option: Some(
                 match bg.relative_to {
-                    designcraft_doc::GridRelative::TopOfPage => "TopOfPageOfBaselineGridRelativeOption",
-                    designcraft_doc::GridRelative::TopMargin => "TopOfMarginOfBaselineGridRelativeOption",
+                    patronusdesign_doc::GridRelative::TopOfPage => "TopOfPageOfBaselineGridRelativeOption",
+                    patronusdesign_doc::GridRelative::TopMargin => "TopOfMarginOfBaselineGridRelativeOption",
                 }
                 .into(),
             ),
@@ -132,16 +132,16 @@ impl<'a> Ex<'a> {
         root.push(crate::xml::from_craft(craft_idml::model::pasteboard_preference_el(s.pasteboard.0, s.pasteboard.1)));
         root.push(self.footnote_option_el());
         root.push(crate::xml::from_craft(craft_idml::model::transparency_preference_el(match s.blend_space {
-            designcraft_doc::BlendSpace::Cmyk => "CMYK",
-            designcraft_doc::BlendSpace::Rgb => "RGB",
+            patronusdesign_doc::BlendSpace::Cmyk => "CMYK",
+            patronusdesign_doc::BlendSpace::Rgb => "RGB",
         })));
         // Split Document: the style is a reference, a built-in one by its `$ID/` name; an empty
         // one splits on the styles' export tags.
         let (break_doc, split_style) = match &s.epub_split {
-            designcraft_doc::EpubSplit::Off => (false, names::style_name_out(PARA_BUILTINS, st::BASIC_PARAGRAPH)),
-            designcraft_doc::EpubSplit::ExportTags => (true, String::new()),
-            designcraft_doc::EpubSplit::Style(n) if PARA_BUILTINS.iter().any(|(o, _)| o == n) => (true, names::style_name_out(PARA_BUILTINS, n)),
-            designcraft_doc::EpubSplit::Style(n) => (true, names::style_self("ParagraphStyle", PARA_BUILTINS, n)),
+            patronusdesign_doc::EpubSplit::Off => (false, names::style_name_out(PARA_BUILTINS, st::BASIC_PARAGRAPH)),
+            patronusdesign_doc::EpubSplit::ExportTags => (true, String::new()),
+            patronusdesign_doc::EpubSplit::Style(n) if PARA_BUILTINS.iter().any(|(o, _)| o == n) => (true, names::style_name_out(PARA_BUILTINS, n)),
+            patronusdesign_doc::EpubSplit::Style(n) => (true, names::style_self("ParagraphStyle", PARA_BUILTINS, n)),
         };
         root.push(crate::xml::from_craft(
             craft_idml::model::EpubSplitValues { break_document: break_doc, paragraph_style: Some(split_style) }.to_el(),

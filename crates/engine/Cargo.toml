@@ -1,36 +1,36 @@
 [package]
-name = "designcraft-engine"
+name = "patronusdesign-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "DesignCraft engine: session, documents, history, selection, command registry, tool hosting"
+description = "Patronus Design engine: session, documents, history, selection, command registry, tool hosting"
 
 [lints]
 workspace = true
 
 [features]
-# Recovery-writer handshakes for other crates' tests (`designcraft_engine::recovery::testing`).
+# Recovery-writer handshakes for other crates' tests (`patronusdesign_engine::recovery::testing`).
 testing = []
 
 [dependencies]
 craft-mime = { workspace = true }
 craft-print = { workspace = true }
 craft-docpath = { workspace = true }
-designcraft-images = { workspace = true }
-designcraft-geom = { workspace = true }
-designcraft-color = { workspace = true }
-designcraft-doc = { workspace = true }
-designcraft-fonts = { workspace = true }
-designcraft-compose = { workspace = true }
-designcraft-render = { workspace = true }
-designcraft-format = { workspace = true }
-designcraft-epub = { workspace = true }
-designcraft-pptx = { workspace = true }
-designcraft-textimport = { workspace = true }
-designcraft-pdf = { workspace = true }
+patronusdesign-images = { workspace = true }
+patronusdesign-geom = { workspace = true }
+patronusdesign-color = { workspace = true }
+patronusdesign-doc = { workspace = true }
+patronusdesign-fonts = { workspace = true }
+patronusdesign-compose = { workspace = true }
+patronusdesign-render = { workspace = true }
+patronusdesign-format = { workspace = true }
+patronusdesign-epub = { workspace = true }
+patronusdesign-pptx = { workspace = true }
+patronusdesign-textimport = { workspace = true }
+patronusdesign-pdf = { workspace = true }
 craft-prepress = { workspace = true }
-designcraft-tools = { workspace = true }
-designcraft-idml = { workspace = true }
+patronusdesign-tools = { workspace = true }
+patronusdesign-idml = { workspace = true }
 craft-file-formats = { workspace = true }
 craft-csv = { workspace = true }
 craft-indd = { workspace = true }
@@ -53,7 +53,7 @@ tempfile = { workspace = true }
 same-file = { workspace = true }
 
 [dev-dependencies]
-designcraft-fonts = { workspace = true, features = ["testing"] }
+patronusdesign-fonts = { workspace = true, features = ["testing"] }
 zip = { workspace = true }
 hayro-syntax = "0.7.2"
 hayro-interpret = { version = "0.7.0", default-features = false, features = ["embed-fonts"] }

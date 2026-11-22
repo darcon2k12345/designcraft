@@ -1,7 +1,7 @@
 use super::{EngineError, Result};
 
 /// Does this object (or anything in it) need the transparency flattener?
-pub(super) fn transparent(it: &designcraft_doc::Item) -> bool {
+pub(super) fn transparent(it: &patronusdesign_doc::Item) -> bool {
     it.involves_transparency()
 }
 
@@ -9,50 +9,52 @@ pub(super) fn transparent(it: &designcraft_doc::Item) -> bool {
 /// area as it looks over what's beneath it (so the rest stays vector); spreads whose parent items
 /// involve transparency are rasterised whole. Works on a copy of the document made for export.
 /// Returns the copy and the number of rasterised regions.
-pub(super) fn flatten(d: &designcraft_doc::Document, cache: &designcraft_compose::Cache, ppi: f64) -> (designcraft_doc::Document, usize) {
-    use designcraft_doc::{Asset, AssetId, Content, Graphic, Item, ItemId, Shape, SpreadRef};
+pub(super) fn flatten(d: &patronusdesign_doc::Document, cache: &patronusdesign_compose::Cache, ppi: f64) -> (patronusdesign_doc::Document, usize) {
+    use patronusdesign_doc::{Asset, AssetId, Content, Graphic, Item, ItemId, Shape, SpreadRef};
     let mut out = d.clone();
     let mut n = 0;
-    let mut rr = designcraft_render::Renderer::new();
-    rr.threads = designcraft_render::default_threads();
+    let mut rr = patronusdesign_render::Renderer::new();
+    rr.threads = patronusdesign_render::default_threads();
     let k = ppi / 72.0;
-    let parent_transparent = |pid: Option<designcraft_doc::SpreadId>| {
+    let parent_transparent = |pid: Option<patronusdesign_doc::SpreadId>| {
         pid.and_then(|id| d.parent_index(id))
             .is_some_and(|pi| d.parent_chain(pi).iter().filter_map(|&i| d.parents.get(i)).any(|p| p.items.iter().any(|it| transparent(it))))
     };
     // An opaque image item showing `img` over `r`.
-    let image_item =
-        |out: &mut designcraft_doc::Document, r: designcraft_geom::Rect, img: designcraft_render::Rendered, layer: designcraft_doc::LayerId| {
-            let (w, h) = (img.width, img.height);
-            let aid = AssetId(out.alloc());
-            out.assets.insert(
-                aid,
-                std::sync::Arc::new(Asset {
-                    id: aid,
-                    name: format!("flattened-{}.png", aid.0),
-                    mime: "image/png".into(),
-                    data: designcraft_doc::AssetData::embedded(img.to_png()),
-                    pixels: Some((w, h)),
-                    ..Default::default()
-                }),
-            );
-            let mut it = Item::new(ItemId(out.alloc()), layer, Shape::Rectangle, designcraft_geom::shapes::rectangle(r));
-            it.content = Content::Graphic(Graphic {
-                layer_options: None,
-                asset: aid,
-                size: (w as f64, h as f64),
-                xf: designcraft_geom::Affine::translate((r.x0, r.y0))
-                    * designcraft_geom::Affine::scale_non_uniform(r.width() / w as f64, r.height() / h as f64),
-                clip: None,
-                auto_fit: Default::default(),
-                fit_align: 4,
-                crop: [0.0; 4],
-                wrap: Default::default(),
-                fill: Default::default(),
-            });
-            it.stroke.weight = 0.0;
-            it
-        };
+    let image_item = |out: &mut patronusdesign_doc::Document,
+                      r: patronusdesign_geom::Rect,
+                      img: patronusdesign_render::Rendered,
+                      layer: patronusdesign_doc::LayerId| {
+        let (w, h) = (img.width, img.height);
+        let aid = AssetId(out.alloc());
+        out.assets.insert(
+            aid,
+            std::sync::Arc::new(Asset {
+                id: aid,
+                name: format!("flattened-{}.png", aid.0),
+                mime: "image/png".into(),
+                data: patronusdesign_doc::AssetData::embedded(img.to_png()),
+                pixels: Some((w, h)),
+                ..Default::default()
+            }),
+        );
+        let mut it = Item::new(ItemId(out.alloc()), layer, Shape::Rectangle, patronusdesign_geom::shapes::rectangle(r));
+        it.content = Content::Graphic(Graphic {
+            layer_options: None,
+            asset: aid,
+            size: (w as f64, h as f64),
+            xf: patronusdesign_geom::Affine::translate((r.x0, r.y0))
+                * patronusdesign_geom::Affine::scale_non_uniform(r.width() / w as f64, r.height() / h as f64),
+            clip: None,
+            auto_fit: Default::default(),
+            fit_align: 4,
+            crop: [0.0; 4],
+            wrap: Default::default(),
+            fill: Default::default(),
+        });
+        it.stroke.weight = 0.0;
+        it
+    };
     for (si, sp) in d.spreads.iter().enumerate() {
         let whole = sp.pages.iter().any(|pg| pg.show_parent_items && parent_transparent(pg.parent));
         if whole {
@@ -83,8 +85,8 @@ pub(super) fn flatten(d: &designcraft_doc::Document, cache: &designcraft_compose
                 continue;
             }
             let reach = it.bounds().inflate(
-                designcraft_render::effect_outset(it) + it.stroke.extent() + 1.0,
-                designcraft_render::effect_outset(it) + it.stroke.extent() + 1.0,
+                patronusdesign_render::effect_outset(it) + it.stroke.extent() + 1.0,
+                patronusdesign_render::effect_outset(it) + it.stroke.extent() + 1.0,
             );
             // Only the part on the spread's pages and pasteboard that prints.
             let (w, h) = ((reach.width() * k).ceil().max(1.0) as u32, (reach.height() * k).ceil().max(1.0) as u32);
@@ -94,12 +96,15 @@ pub(super) fn flatten(d: &designcraft_doc::Document, cache: &designcraft_compose
             // The stack up to and including this object.
             let mut below = d.clone();
             std::sync::Arc::make_mut(&mut below.spreads[si]).items.truncate(idx + 1);
-            let view = designcraft_geom::Affine::scale(k) * designcraft_geom::Affine::translate((-reach.x0, -reach.y0));
-            let opts = designcraft_render::RenderOptions { printing_only: true, ..Default::default() };
+            let view = patronusdesign_geom::Affine::scale(k) * patronusdesign_geom::Affine::translate((-reach.x0, -reach.y0));
+            let opts = patronusdesign_render::RenderOptions { printing_only: true, ..Default::default() };
             let img = rr.render(
                 &below,
                 cache,
-                &[designcraft_render::Placed { spread: SpreadRef::Doc(si), xf: designcraft_geom::Affine::translate(designcraft_geom::Vec2::ZERO) }],
+                &[patronusdesign_render::Placed {
+                    spread: SpreadRef::Doc(si),
+                    xf: patronusdesign_geom::Affine::translate(patronusdesign_geom::Vec2::ZERO),
+                }],
                 (w, h),
                 view,
                 &opts,
@@ -122,12 +127,12 @@ pub(super) fn flatten(d: &designcraft_doc::Document, cache: &designcraft_compose
 }
 
 /// A text frame in a story that runs through other frames (replacing it would reflow the story).
-pub(super) fn threaded(d: &designcraft_doc::Document, it: &designcraft_doc::Item) -> bool {
+pub(super) fn threaded(d: &patronusdesign_doc::Document, it: &patronusdesign_doc::Item) -> bool {
     it.text_frame().and_then(|t| d.story(t.story)).is_some_and(|st| st.frames.len() > 1)
 }
 
 /// Soft effects other than the gradient feather (which PDF export draws itself).
-fn raster_effects(it: &designcraft_doc::Item) -> bool {
+fn raster_effects(it: &patronusdesign_doc::Item) -> bool {
     let e = &it.effects;
     e.drop_shadow.on
         || e.feather > 0.0
@@ -143,16 +148,16 @@ fn raster_effects(it: &designcraft_doc::Item) -> bool {
 /// appearance (transparent around them, so they composite over what's behind). Objects in `skip`
 /// stay as they are.
 pub(super) fn rasterize_effects(
-    d: &designcraft_doc::Document,
-    cache: &designcraft_compose::Cache,
-    skip: &std::collections::HashMap<designcraft_doc::ItemId, designcraft_pdf::ShadowMask>,
-) -> (Option<designcraft_doc::Document>, usize) {
+    d: &patronusdesign_doc::Document,
+    cache: &patronusdesign_compose::Cache,
+    skip: &std::collections::HashMap<patronusdesign_doc::ItemId, patronusdesign_pdf::ShadowMask>,
+) -> (Option<patronusdesign_doc::Document>, usize) {
     rasterize_where_with_links(d, cache, 300.0, true, true, |it| raster_effects(it) && !threaded(d, it) && !skip.contains_key(&it.id))
 }
 
 /// A drop shadow is the object's only soft effect, and the PDF writer draws its shadow itself
 /// (a leaf object, not a group or a frame with items pasted into it).
-fn shadow_only(it: &designcraft_doc::Item) -> bool {
+fn shadow_only(it: &patronusdesign_doc::Item) -> bool {
     let e = &it.effects;
     e.drop_shadow.on
         && !(e.feather > 0.0
@@ -175,13 +180,13 @@ fn shadow_only(it: &designcraft_doc::Item) -> bool {
 /// shadow and without it ([`shadow_coverage`]): the shadow's own alpha, its opacity included. The
 /// object's own opacity and blend mode stay on the object's group in the PDF.
 pub(super) fn shadow_masks(
-    d: &designcraft_doc::Document,
-    cache: &designcraft_compose::Cache,
+    d: &patronusdesign_doc::Document,
+    cache: &patronusdesign_compose::Cache,
     ppi: f64,
-) -> std::collections::HashMap<designcraft_doc::ItemId, designcraft_pdf::ShadowMask> {
-    use designcraft_doc::SpreadRef;
+) -> std::collections::HashMap<patronusdesign_doc::ItemId, patronusdesign_pdf::ShadowMask> {
+    use patronusdesign_doc::SpreadRef;
     let mut out = std::collections::HashMap::new();
-    let todo: Vec<(usize, designcraft_doc::ItemId)> = d
+    let todo: Vec<(usize, patronusdesign_doc::ItemId)> = d
         .spreads
         .iter()
         .enumerate()
@@ -190,12 +195,12 @@ pub(super) fn shadow_masks(
     if todo.is_empty() {
         return out;
     }
-    let mut rr = designcraft_render::Renderer::new();
-    rr.threads = designcraft_render::default_threads();
+    let mut rr = patronusdesign_render::Renderer::new();
+    rr.threads = patronusdesign_render::default_threads();
     let k = ppi.clamp(36.0, 1200.0) / 72.0;
     for (si, id) in todo {
         let Some(it) = d.item(id) else { continue };
-        let grow = designcraft_render::effect_outset(it) + it.stroke.extent() + 2.0;
+        let grow = patronusdesign_render::effect_outset(it) + it.stroke.extent() + 2.0;
         let reach = it.bounds().inflate(grow, grow);
         let (w, h) = ((reach.width() * k).ceil().max(1.0), (reach.height() * k).ceil().max(1.0));
         if !(w.is_finite() && h.is_finite()) || w * h > 60_000_000.0 {
@@ -216,9 +221,9 @@ pub(super) fn shadow_masks(
                 x.blend = Default::default();
                 x.effects.drop_shadow.on = shadow;
             }
-            let view = designcraft_geom::Affine::scale(k) * designcraft_geom::Affine::translate((-reach.x0, -reach.y0));
-            let opts = designcraft_render::RenderOptions { paper: false, background: None, printing_only: true, ..Default::default() };
-            let placed = [designcraft_render::Placed { spread: SpreadRef::Doc(si), xf: designcraft_geom::Affine::IDENTITY }];
+            let view = patronusdesign_geom::Affine::scale(k) * patronusdesign_geom::Affine::translate((-reach.x0, -reach.y0));
+            let opts = patronusdesign_render::RenderOptions { paper: false, background: None, printing_only: true, ..Default::default() };
+            let placed = [patronusdesign_render::Placed { spread: SpreadRef::Doc(si), xf: patronusdesign_geom::Affine::IDENTITY }];
             rr.render(&solo, cache, &placed, (w, h), view, &opts).pixels.as_chunks::<4>().0.iter().map(|px| px[3]).collect::<Vec<u8>>()
         };
         let (with, without) = (alpha(true), alpha(false));
@@ -227,7 +232,7 @@ pub(super) fn shadow_masks(
             continue;
         }
         let coverage: Vec<u8> = with.iter().zip(&without).map(|(a, b)| shadow_coverage(*a, *b)).collect();
-        out.insert(id, designcraft_pdf::ShadowMask { rect: reach, width: w, height: h, coverage: std::sync::Arc::new(coverage) });
+        out.insert(id, patronusdesign_pdf::ShadowMask { rect: reach, width: w, height: h, coverage: std::sync::Arc::new(coverage) });
     }
     out
 }
@@ -248,39 +253,39 @@ pub(super) fn shadow_coverage(with: u8, without: u8) -> u8 {
 /// `ppi` (transparent around them). With `keep_wrap`, each object also stays behind as a
 /// nonprinting [`wrap_stand_in`], so text wraps around it as before.
 pub(super) fn rasterize_where(
-    d: &designcraft_doc::Document,
-    cache: &designcraft_compose::Cache,
+    d: &patronusdesign_doc::Document,
+    cache: &patronusdesign_compose::Cache,
     ppi: f64,
     keep_wrap: bool,
-    pred: impl Fn(&designcraft_doc::Item) -> bool,
-) -> (Option<designcraft_doc::Document>, usize) {
+    pred: impl Fn(&patronusdesign_doc::Item) -> bool,
+) -> (Option<patronusdesign_doc::Document>, usize) {
     rasterize_where_with_links(d, cache, ppi, keep_wrap, false, pred)
 }
 
 fn rasterize_where_with_links(
-    d: &designcraft_doc::Document,
-    cache: &designcraft_compose::Cache,
+    d: &patronusdesign_doc::Document,
+    cache: &patronusdesign_compose::Cache,
     ppi: f64,
     keep_wrap: bool,
     keep_links: bool,
-    pred: impl Fn(&designcraft_doc::Item) -> bool,
-) -> (Option<designcraft_doc::Document>, usize) {
-    use designcraft_doc::{Asset, AssetId, Content, Graphic, Item, ItemId, Shape, SpreadRef};
+    pred: impl Fn(&patronusdesign_doc::Item) -> bool,
+) -> (Option<patronusdesign_doc::Document>, usize) {
+    use patronusdesign_doc::{Asset, AssetId, Content, Graphic, Item, ItemId, Shape, SpreadRef};
     let todo: Vec<(usize, ItemId)> =
         d.spreads.iter().enumerate().flat_map(|(si, sp)| sp.items.iter().filter(|it| !it.hidden && pred(it)).map(move |it| (si, it.id))).collect();
     if todo.is_empty() {
         return (None, 0);
     }
     let mut out = d.clone();
-    let mut rr = designcraft_render::Renderer::new();
-    rr.threads = designcraft_render::default_threads();
+    let mut rr = patronusdesign_render::Renderer::new();
+    rr.threads = patronusdesign_render::default_threads();
     let k = ppi / 72.0;
     let mut n = 0;
     for (si, id) in todo {
         let Some(it) = d.item(id) else { continue };
         let reach = it.bounds().inflate(
-            designcraft_render::effect_outset(it) + it.stroke.extent() + 2.0,
-            designcraft_render::effect_outset(it) + it.stroke.extent() + 2.0,
+            patronusdesign_render::effect_outset(it) + it.stroke.extent() + 2.0,
+            patronusdesign_render::effect_outset(it) + it.stroke.extent() + 2.0,
         );
         // Just this object on its spread, no paper.
         let mut solo = d.clone();
@@ -293,12 +298,15 @@ fn rasterize_where_with_links(
         if w as u64 * h as u64 > 60_000_000 {
             continue;
         }
-        let view = designcraft_geom::Affine::scale(k) * designcraft_geom::Affine::translate((-reach.x0, -reach.y0));
-        let opts = designcraft_render::RenderOptions { paper: false, background: None, printing_only: true, ..Default::default() };
+        let view = patronusdesign_geom::Affine::scale(k) * patronusdesign_geom::Affine::translate((-reach.x0, -reach.y0));
+        let opts = patronusdesign_render::RenderOptions { paper: false, background: None, printing_only: true, ..Default::default() };
         let img = rr.render(
             &solo,
             cache,
-            &[designcraft_render::Placed { spread: SpreadRef::Doc(si), xf: designcraft_geom::Affine::translate(designcraft_geom::Vec2::ZERO) }],
+            &[patronusdesign_render::Placed {
+                spread: SpreadRef::Doc(si),
+                xf: patronusdesign_geom::Affine::translate(patronusdesign_geom::Vec2::ZERO),
+            }],
             (w, h),
             view,
             &opts,
@@ -310,17 +318,17 @@ fn rasterize_where_with_links(
                 id: aid,
                 name: format!("effects-{}.png", id.0),
                 mime: "image/png".into(),
-                data: designcraft_doc::AssetData::embedded(img.to_png()),
+                data: patronusdesign_doc::AssetData::embedded(img.to_png()),
                 pixels: Some((w, h)),
                 ..Default::default()
             }),
         );
-        let mut img_item = Item::new(ItemId(out.alloc()), it.layer, Shape::Rectangle, designcraft_geom::shapes::rectangle(reach));
+        let mut img_item = Item::new(ItemId(out.alloc()), it.layer, Shape::Rectangle, patronusdesign_geom::shapes::rectangle(reach));
         img_item.content = Content::Graphic(Graphic {
             layer_options: None,
             asset: aid,
             size: (w as f64, h as f64),
-            xf: designcraft_geom::Affine::translate((reach.x0, reach.y0)) * designcraft_geom::Affine::scale(1.0 / k),
+            xf: patronusdesign_geom::Affine::translate((reach.x0, reach.y0)) * patronusdesign_geom::Affine::scale(1.0 / k),
             clip: None,
             auto_fit: Default::default(),
             fit_align: 4,
@@ -333,8 +341,8 @@ fn rasterize_where_with_links(
         img_item.export_options = it.export_options.clone();
         let linked = keep_links
             && d.hyperlinks.iter().any(|link| match &link.source {
-                designcraft_doc::HyperlinkSource::Item { id: source } => d.top_level_of(*source) == Some(id),
-                designcraft_doc::HyperlinkSource::Text { story, .. } => {
+                patronusdesign_doc::HyperlinkSource::Item { id: source } => d.top_level_of(*source) == Some(id),
+                patronusdesign_doc::HyperlinkSource::Text { story, .. } => {
                     d.story(*story).is_some_and(|st| st.frames.iter().any(|frame| d.top_level_of(*frame) == Some(id)))
                 }
             });
@@ -358,8 +366,8 @@ fn rasterize_where_with_links(
 }
 
 /// Whether `it`, its placed graphic or an item in it wraps text.
-fn has_wrap(it: &designcraft_doc::Item, depth: usize) -> bool {
-    use designcraft_doc::{Content, WrapMode};
+fn has_wrap(it: &patronusdesign_doc::Item, depth: usize) -> bool {
+    use patronusdesign_doc::{Content, WrapMode};
     if depth > MAX_STAND_IN_DEPTH {
         return false;
     }
@@ -375,8 +383,8 @@ fn has_wrap(it: &designcraft_doc::Item, depth: usize) -> bool {
 const MAX_STAND_IN_DEPTH: usize = 64;
 
 /// Nonprinting link geometry, retaining text stories and wrap but no interactive annotations.
-fn link_stand_in(it: &designcraft_doc::Item, depth: usize) -> designcraft_doc::Item {
-    use designcraft_doc::Content;
+fn link_stand_in(it: &patronusdesign_doc::Item, depth: usize) -> patronusdesign_doc::Item {
+    use patronusdesign_doc::Content;
     let mut c = it.clone();
     c.nonprinting = true;
     c.form_field = None;
@@ -397,8 +405,8 @@ fn link_stand_in(it: &designcraft_doc::Item, depth: usize) -> designcraft_doc::I
 /// A nonprinting copy of `it` that keeps its text wrap (and its graphic's and its items') and
 /// nothing else that reaches the PDF: no text, form field, button or media. The image of the
 /// object stands in for all of that, as it does without the copy.
-fn wrap_stand_in(it: &designcraft_doc::Item, depth: usize) -> designcraft_doc::Item {
-    use designcraft_doc::Content;
+fn wrap_stand_in(it: &patronusdesign_doc::Item, depth: usize) -> patronusdesign_doc::Item {
+    use patronusdesign_doc::Content;
     let mut c = it.clone();
     c.nonprinting = true;
     c.form_field = None;
@@ -419,14 +427,14 @@ fn wrap_stand_in(it: &designcraft_doc::Item, depth: usize) -> designcraft_doc::I
 ///
 /// Parent-page and anchored placements count too, including anchors inside table-cell,
 /// footnote and endnote text. Only the export copy is rewritten.
-pub(super) fn rasterize_layered(d: &designcraft_doc::Document) -> Result<(Option<designcraft_doc::Document>, usize)> {
+pub(super) fn rasterize_layered(d: &patronusdesign_doc::Document) -> Result<(Option<patronusdesign_doc::Document>, usize)> {
     let choices: Vec<_> = d
         .placed_items()
         .into_iter()
         .filter(|it| it.has_pdf_layer_override())
         .filter_map(|it| {
             let g = it.graphic()?;
-            let a = d.assets.get(&g.asset).filter(|a| a.output_bytes().is_ok_and(|o| designcraft_render::is_pdf(&o.bytes)))?;
+            let a = d.assets.get(&g.asset).filter(|a| a.output_bytes().is_ok_and(|o| patronusdesign_render::is_pdf(&o.bytes)))?;
             Some((it.id, g.clone(), a.clone(), it.pdf_hidden_layers.clone()))
         })
         .collect();
@@ -438,22 +446,22 @@ pub(super) fn rasterize_layered(d: &designcraft_doc::Document) -> Result<(Option
     let mut n = 0;
     for (id, g, a, hidden) in choices {
         // The whole page at 300 ppi (the graphic may show only a box of it).
-        let shown = designcraft_render::shown_box(&a);
+        let shown = patronusdesign_render::shown_box(&a);
         let [l, t, r, b] = shown.unwrap_or([0.0, 0.0, 1.0, 1.0]);
         let page_side = (g.size.0 / (r - l)).max(g.size.1 / (b - t));
         let side = (page_side * 300.0 / 72.0).clamp(64.0, 8000.0) as u32;
         let bytes = a.output_bytes().map_err(|e| EngineError::Other(format!("{}: {e}", a.name)))?.bytes;
-        let png = designcraft_render::pdf_page_png_options_checked(&bytes, a.page as usize, side, Some(&hidden), shown)
+        let png = patronusdesign_render::pdf_page_png_options_checked(&bytes, a.page as usize, side, Some(&hidden), shown)
             .map_err(|e| EngineError::Other(format!("{}: {e}", a.name)))?;
-        let px = designcraft_render::image_size(&png);
-        let aid = designcraft_doc::AssetId(out.alloc());
+        let px = patronusdesign_render::image_size(&png);
+        let aid = patronusdesign_doc::AssetId(out.alloc());
         out.assets.insert(
             aid,
-            std::sync::Arc::new(designcraft_doc::Asset {
+            std::sync::Arc::new(patronusdesign_doc::Asset {
                 id: aid,
                 name: format!("{}.png", a.name),
                 mime: "image/png".into(),
-                data: designcraft_doc::AssetData::embedded(png),
+                data: patronusdesign_doc::AssetData::embedded(png),
                 pixels: px,
                 ..Default::default()
             }),
@@ -464,7 +472,7 @@ pub(super) fn rasterize_layered(d: &designcraft_doc::Document) -> Result<(Option
     out.update_placed_items(
         |it| images.contains_key(&it.id),
         |it| {
-            if let designcraft_doc::Content::Graphic(gg) = &mut it.content
+            if let patronusdesign_doc::Content::Graphic(gg) = &mut it.content
                 && let Some(aid) = images.get(&it.id)
             {
                 gg.asset = *aid;
@@ -478,8 +486,8 @@ pub(super) fn rasterize_layered(d: &designcraft_doc::Document) -> Result<(Option
 mod placed_layer_tests {
     use std::sync::Arc;
 
-    use designcraft_doc::{AnchoredObject, Document, Item, ItemId, SpreadRef, StoryId, Table};
-    use designcraft_geom::Rect;
+    use patronusdesign_doc::{AnchoredObject, Document, Item, ItemId, SpreadRef, StoryId, Table};
+    use patronusdesign_geom::Rect;
     use serde_json::json;
 
     use crate::Session;
@@ -541,7 +549,8 @@ mod placed_layer_tests {
         let aid = d.item(id).unwrap().graphic().unwrap().asset;
         let asset = Arc::make_mut(d.assets.get_mut(&aid).unwrap());
         asset.mime = "image/png".into();
-        asset.data = designcraft_doc::AssetData::embedded(designcraft_render::Rendered { width: 1, height: 1, pixels: vec![0, 0, 0, 0] }.to_png());
+        asset.data =
+            patronusdesign_doc::AssetData::embedded(patronusdesign_render::Rendered { width: 1, height: 1, pixels: vec![0, 0, 0, 0] }.to_png());
         let (copy, count) = super::rasterize_layered(d).unwrap();
         assert_eq!(count, 0);
         assert!(copy.is_none());
@@ -615,7 +624,7 @@ mod placed_layer_tests {
         let item = placement(&copy, location, id, sid);
         let asset = &copy.assets[&item.graphic().unwrap().asset];
         assert_eq!(asset.mime, "image/png", "{location}");
-        let image = designcraft_render::images::decoded(&asset.data, 0);
+        let image = patronusdesign_render::images::decoded(&asset.data, 0);
         let image = image.unwrap();
         let pixel = image.data()[usize::from(image.height()) / 2 * usize::from(image.width()) + usize::from(image.width()) / 4];
         assert_eq!(pixel.a, if all_on { 255 } else { 0 }, "Blue visibility at {location}, all_on={all_on}");

@@ -1,9 +1,9 @@
 //! Bottom-baseline fitting must preserve the visible descenders below the text frame.
-use designcraft_compose::Cache;
-use designcraft_doc::build::NewDocument;
-use designcraft_doc::{Document, FirstBaseline, ParaFormat, SpreadRef};
-use designcraft_geom::{Affine, Rect};
-use designcraft_render::{Placed, RenderOptions, Rendered, Renderer};
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::build::NewDocument;
+use patronusdesign_doc::{Document, FirstBaseline, ParaFormat, SpreadRef};
+use patronusdesign_geom::{Affine, Rect};
+use patronusdesign_render::{Placed, RenderOptions, Rendered, Renderer};
 
 fn text_image(height: f64) -> Rendered {
     let mut d = Document::new(&NewDocument { width: 160.0, height: 100.0, facing_pages: false, ..Default::default() });

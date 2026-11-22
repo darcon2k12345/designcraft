@@ -21,13 +21,13 @@ pub(crate) fn decoded_bytes(bytes: &[u8], page: u32) -> usize {
 
 /// [`decoded_bytes`] of `bytes`, and about how many bytes [`decode_pixmap_page`] of it holds at
 /// once while it runs: a raster as decoded and its RGBA copy, or that copy and the premultiplied
-/// pixels, whichever is more ([`designcraft_images::decode_bytes_per_pixel`]: 8 bytes a pixel
+/// pixels, whichever is more ([`patronusdesign_images::decode_bytes_per_pixel`]: 8 bytes a pixel
 /// for 8-bit RGB, 16 for 16-bit RGBA, 14 for 8-bit CMYK, an EPS as its TIFF preview). PDF pages, SVGs and EPS
 /// files without a preview count 8 bytes a pixel. Both are 0 when the size can't be read.
 pub(crate) fn decode_sizes(bytes: &[u8], page: u32) -> (usize, usize) {
     let Some((w, h)) = drawn_size(bytes, page) else { return (0, 0) };
-    let raster = !is_pdf(bytes) && !designcraft_images::is_svg(bytes);
-    let per_pixel = if raster { designcraft_images::decode_bytes_per_pixel(bytes) } else { 8 } as f64;
+    let raster = !is_pdf(bytes) && !patronusdesign_images::is_svg(bytes);
+    let per_pixel = if raster { patronusdesign_images::decode_bytes_per_pixel(bytes) } else { 8 } as f64;
     ((w * h * 16.0 / 3.0) as usize, (w * h * per_pixel) as usize)
 }
 
@@ -42,8 +42,8 @@ fn drawn_size(bytes: &[u8], page: u32) -> Option<(f64, f64)> {
         let k = (side / w.max(h).max(1e-3)).min(most);
         ((w * k).round().max(1.0), (h * k).round().max(1.0))
     };
-    if designcraft_images::is_eps(bytes) {
-        image_size(bytes).zip(designcraft_images::eps_size(bytes)).map(|((pw, ph), (w, h))| {
+    if patronusdesign_images::is_eps(bytes) {
+        image_size(bytes).zip(patronusdesign_images::eps_size(bytes)).map(|((pw, ph), (w, h))| {
             // Without a preview, the pixel size is the 2 pixels per point placeholder's. The
             // PostScript may be drawn instead, at another size: count the larger of the two.
             let placeholder = ((w * 2.0).round().clamp(2.0, 4000.0), (h * 2.0).round().clamp(2.0, 4000.0));
@@ -54,8 +54,8 @@ fn drawn_size(bytes: &[u8], page: u32) -> Option<(f64, f64)> {
     } else if is_pdf(bytes) {
         // As render_pdf_page scales: at most 8 times the page size.
         pdf_page_size(bytes, page as usize).map(|s| drawn(s, VECTOR_SIDE as f64, 8.0))
-    } else if designcraft_images::is_svg(bytes) {
-        designcraft_images::natural_size(bytes).map(|s| drawn(s, VECTOR_SIDE as f64, f64::INFINITY))
+    } else if patronusdesign_images::is_svg(bytes) {
+        patronusdesign_images::natural_size(bytes).map(|s| drawn(s, VECTOR_SIDE as f64, f64::INFINITY))
     } else {
         image_size(bytes).map(|(w, h)| (w as f64, h as f64))
     }
@@ -64,24 +64,24 @@ fn drawn_size(bytes: &[u8], page: u32) -> Option<(f64, f64)> {
 /// [`decode_pixmap`] for page `page` of a PDF (other formats have one page).
 pub fn decode_pixmap_page(bytes: &[u8], page: u32) -> Option<Pixmap> {
     // Documents retain the EPS source; only display its TIFF preview or placeholder.
-    let proxy = if designcraft_images::is_eps(bytes) { Some(designcraft_images::eps_proxy(bytes)?.0) } else { None };
+    let proxy = if patronusdesign_images::is_eps(bytes) { Some(patronusdesign_images::eps_proxy(bytes)?.0) } else { None };
     let bytes = proxy.as_deref().unwrap_or(bytes);
     if is_pdf(bytes) {
         return render_pdf_page(bytes, page as usize, VECTOR_SIDE);
     }
-    if designcraft_images::is_svg(bytes) {
-        let (px, w, h) = designcraft_images::render_svg(bytes, VECTOR_SIDE)?;
+    if patronusdesign_images::is_svg(bytes) {
+        let (px, w, h) = patronusdesign_images::render_svg(bytes, VECTOR_SIDE)?;
         return Some(Pixmap::from_parts(premul_pixels(px), w.min(u16::MAX as u32) as u16, h.min(u16::MAX as u32) as u16));
     }
-    let img = designcraft_images::decode_rgba(bytes)?;
+    let img = patronusdesign_images::decode_rgba(bytes)?;
     premultiplied(img.width(), img.height(), img.into_raw())
 }
 
 /// [`decode_pixmap`] of a JPEG at 1/2^`shrink` of its size, `shrink` 1 to
-/// [`designcraft_images::MAX_REDUCED_SHRINK`], without a full-size decode. `None` where only a
+/// [`patronusdesign_images::MAX_REDUCED_SHRINK`], without a full-size decode. `None` where only a
 /// full decode applies (other formats, CMYK JPEGs).
 pub(crate) fn decode_pixmap_reduced(bytes: &[u8], shrink: u8) -> Option<Pixmap> {
-    let img = designcraft_images::decode_rgba_reduced(bytes, shrink)?;
+    let img = patronusdesign_images::decode_rgba_reduced(bytes, shrink)?;
     premultiplied(img.width(), img.height(), img.into_raw())
 }
 
@@ -154,18 +154,18 @@ pub(crate) fn now() -> u64 {
 
 /// Pixel size of an encoded image without decoding it fully.
 pub fn image_size(bytes: &[u8]) -> Option<(u32, u32)> {
-    if designcraft_images::is_eps(bytes) {
-        return designcraft_images::eps_pixel_size(bytes);
+    if patronusdesign_images::is_eps(bytes) {
+        return patronusdesign_images::eps_pixel_size(bytes);
     }
     if is_pdf(bytes) {
         // Placed PDFs are sized by their page (crop box) in points.
         return pdf_page_size(bytes, 0).map(|(w, h)| (w.round().max(1.0) as u32, h.round().max(1.0) as u32));
     }
-    if designcraft_images::is_svg(bytes) {
+    if patronusdesign_images::is_svg(bytes) {
         // SVGs by their width and height (CSS pixels → points).
-        return designcraft_images::natural_size(bytes).map(|(w, h)| (w.round().max(1.0) as u32, h.round().max(1.0) as u32));
+        return patronusdesign_images::natural_size(bytes).map(|(w, h)| (w.round().max(1.0) as u32, h.round().max(1.0) as u32));
     }
-    designcraft_images::pixel_size(bytes)
+    patronusdesign_images::pixel_size(bytes)
 }
 
 /// Natural size of a placed graphic, unrounded: a PDF page (crop box) and an SVG in points, a raster
@@ -175,9 +175,9 @@ pub fn natural_size(bytes: &[u8], page: usize) -> Option<(f64, f64)> {
     if is_pdf(bytes) {
         return pdf_page_size(bytes, page).map(|(w, h)| (w.max(1e-3), h.max(1e-3)));
     }
-    designcraft_images::natural_size(bytes)
+    patronusdesign_images::natural_size(bytes)
 }
 
 pub fn image_mime(bytes: &[u8]) -> &'static str {
-    designcraft_images::mime(bytes)
+    patronusdesign_images::mime(bytes)
 }

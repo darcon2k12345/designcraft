@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use designcraft_fonts::FontFace;
+use patronusdesign_fonts::FontFace;
 use skrifa::MetadataProvider;
 use skrifa::string::StringId;
 
@@ -24,7 +24,7 @@ pub struct Fonts {
     /// Glyph → the lowest character mapping to it.
     reverse: HashMap<u32, HashMap<u32, char>>,
     /// Faces the slides use, by (family, bold, italic), in first-use order.
-    pub used: Vec<(RunFont, designcraft_fonts::FaceRef)>,
+    pub used: Vec<(RunFont, patronusdesign_fonts::FaceRef)>,
 }
 
 fn english(face: &FontFace, id: StringId) -> Option<String> {
@@ -45,7 +45,7 @@ fn english(face: &FontFace, id: StringId) -> Option<String> {
 
 impl Fonts {
     /// The run font for a face a slide uses (recorded for embedding).
-    pub fn use_face(&mut self, face: designcraft_fonts::FaceRef) -> RunFont {
+    pub fn use_face(&mut self, face: patronusdesign_fonts::FaceRef) -> RunFont {
         let rf = self.run_font(face.get());
         if !self.used.iter().any(|(u, _)| *u == rf) {
             self.used.push((rf.clone(), face));
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn only_a_few_reverse_maps_are_kept_and_answers_do_not_change() {
-        let db = designcraft_fonts::FontDb::global();
+        let db = patronusdesign_fonts::FontDb::global();
         let mut fonts = Fonts::default();
         let mut last = None;
         for style in ["Regular", "Bold", "Italic", "Bold Italic", "Semibold", "Light", "Black", "ExtraLight", "Medium", "SemiBold Italic"] {

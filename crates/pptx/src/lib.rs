@@ -4,7 +4,7 @@
 //! rectangles and ellipses, custom geometry otherwise) with their fills, strokes and effects,
 //! placed images become pictures cropped like their frames, and text frames become text boxes.
 //!
-//! Text keeps DesignCraft's composition by default ([`LineBreaks::Keep`]): each composed line ends
+//! Text keeps Patronus Design's composition by default ([`LineBreaks::Keep`]): each composed line ends
 //! in a line break, justified word spacing and tracking become character spacing, and leading
 //! becomes percentage line spacing (PowerPoint rounds exact point spacing to whole points; its
 //! 100% line is 1.2 em for every font, so a percentage is exact). A threaded story is split at its
@@ -28,15 +28,15 @@ mod text;
 #[cfg(test)]
 mod tests;
 
-use designcraft_compose::Cache;
-use designcraft_doc::Document;
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::Document;
 
 pub use slide::needs_raster;
 
 /// How text frames become text boxes.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum LineBreaks {
-    /// Keep DesignCraft's line breaks, word spacing and leading (looks the same; edits don't
+    /// Keep Patronus Design's line breaks, word spacing and leading (looks the same; edits don't
     /// re-break lines).
     #[default]
     Keep,
@@ -161,7 +161,7 @@ pub fn export_pptx(doc: &Document, cache: &Cache, opts: &PptxOptions) -> Result<
     presentation.next_id = max_id;
     let mut media_ids = std::collections::HashMap::new();
     for media in &ex.media {
-        let content_type = designcraft_images::mime(&media.bytes);
+        let content_type = patronusdesign_images::mime(&media.bytes);
         let id = presentation
             .add_media(&media.name, content_type, media.bytes.clone())
             .ok_or_else(|| PptxError::Write("the presentation has no more media ids".into()))?;

@@ -7,11 +7,11 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use designcraft_doc::{
+use patronusdesign_doc::{
     AnchorPosition, AnchoredObject, Asset, AssetId, Content, DataField, DataFieldKind, Fill, Fitting, Graphic, Hyperlink, HyperlinkDest,
     HyperlinkSource, Item, ItemId, MergeOptions, OBJECT_MARK, PlaceholderAnchor, PlaceholderRole, Shape, SpreadRef, Story, StoryId,
 };
-use designcraft_geom::{Affine, Rect, Vec2, shapes};
+use patronusdesign_geom::{Affine, Rect, Vec2, shapes};
 
 use super::parse::image_candidates;
 use crate::EngineError;
@@ -36,7 +36,7 @@ pub struct FillReport {
 }
 
 /// Document-spread items and their stories, each mapped to itself.
-pub fn identity_map(doc: &designcraft_doc::Document) -> Maps {
+pub fn identity_map(doc: &patronusdesign_doc::Document) -> Maps {
     let mut maps = Maps::default();
     for sp in &doc.spreads {
         for it in &sp.items {
@@ -53,8 +53,8 @@ pub fn identity_map(doc: &designcraft_doc::Document) -> Maps {
 
 /// Deep-copy one top-level item. Children stay in their own space; only this item is translated.
 pub fn copy_item(
-    dst: &mut designcraft_doc::Document,
-    src: &designcraft_doc::Document,
+    dst: &mut patronusdesign_doc::Document,
+    src: &patronusdesign_doc::Document,
     it: &Item,
     to: SpreadRef,
     off: Vec2,
@@ -70,12 +70,12 @@ pub fn copy_item(
     Ok(())
 }
 
-fn renumber(dst: &mut designcraft_doc::Document, src: &designcraft_doc::Document, it: &mut Item, maps: &mut Maps) {
+fn renumber(dst: &mut patronusdesign_doc::Document, src: &patronusdesign_doc::Document, it: &mut Item, maps: &mut Maps) {
     renumber_in(dst, src, it, maps, true);
 }
 
 /// `adopt` is false inside a story copy, whose asset references the copy has already adopted.
-fn renumber_in(dst: &mut designcraft_doc::Document, src: &designcraft_doc::Document, it: &mut Item, maps: &mut Maps, adopt: bool) {
+fn renumber_in(dst: &mut patronusdesign_doc::Document, src: &patronusdesign_doc::Document, it: &mut Item, maps: &mut Maps, adopt: bool) {
     let old = it.id;
     let new_id = ItemId(dst.alloc());
     maps.items.insert(old, new_id);
@@ -95,14 +95,14 @@ fn renumber_in(dst: &mut designcraft_doc::Document, src: &designcraft_doc::Docum
                 let mut st = src.story(tf.story).cloned().unwrap_or_else(|| Story::new(n));
                 st.id = n;
                 let mut assets = HashMap::new();
-                for a in designcraft_doc::story_asset_refs(&st) {
+                for a in patronusdesign_doc::story_asset_refs(&st) {
                     if let Some(na) = dst.adopt_asset(src, a)
                         && na != a
                     {
                         assets.insert(a, na);
                     }
                 }
-                designcraft_doc::remap_story_assets(&mut st, &assets);
+                patronusdesign_doc::remap_story_assets(&mut st, &assets);
                 st.frames.clear();
                 // Mapped first: the map is the seen-set that stops story recursion.
                 maps.stories.insert(tf.story, n);
@@ -130,7 +130,7 @@ fn renumber_in(dst: &mut designcraft_doc::Document, src: &designcraft_doc::Docum
 }
 
 /// Fresh ids for the objects anchored in story copy `st`, its table cells, footnotes and endnotes (#1522).
-fn renumber_anchored(dst: &mut designcraft_doc::Document, src: &designcraft_doc::Document, st: &mut Story, maps: &mut Maps) {
+fn renumber_anchored(dst: &mut patronusdesign_doc::Document, src: &patronusdesign_doc::Document, st: &mut Story, maps: &mut Maps) {
     let mut fresh = |t: &mut Story| {
         for o in &mut t.objects {
             renumber_in(dst, src, &mut Arc::make_mut(o).item, maps, false);
@@ -181,7 +181,7 @@ pub struct ImageCache {
 
 #[derive(Default)]
 struct ImageCacheInner {
-    files: std::collections::HashMap<PathBuf, designcraft_doc::AssetData>,
+    files: std::collections::HashMap<PathBuf, patronusdesign_doc::AssetData>,
     bytes: usize,
 }
 
@@ -191,13 +191,13 @@ const MAX_CACHED_IMAGE_BYTES: usize = 256 << 20;
 
 impl ImageCache {
     /// The bytes of `path`, reading it once per merge. `read` is called only on a miss.
-    fn get_or_read(&self, path: &Path, read: impl FnOnce() -> Option<Vec<u8>>) -> Option<designcraft_doc::AssetData> {
+    fn get_or_read(&self, path: &Path, read: impl FnOnce() -> Option<Vec<u8>>) -> Option<patronusdesign_doc::AssetData> {
         if let Some(found) = self.inner.borrow().files.get(path) {
             return Some(found.clone());
         }
         let bytes = read()?;
         let len = bytes.len();
-        let bytes = designcraft_doc::AssetData::embedded(bytes);
+        let bytes = patronusdesign_doc::AssetData::embedded(bytes);
         let mut inner = self.inner.borrow_mut();
         if inner.bytes.saturating_add(len) <= MAX_CACHED_IMAGE_BYTES {
             inner.bytes = inner.bytes.saturating_add(len);
@@ -219,7 +219,7 @@ struct Pending {
 
 /// Fill `row` (0-based) into the items `maps` points at. `record` is the 1-based source row.
 pub fn fill_row(
-    doc: &mut designcraft_doc::Document,
+    doc: &mut patronusdesign_doc::Document,
     fields: &[DataField],
     row: &[String],
     record: u32,
@@ -267,9 +267,9 @@ pub fn fill_row(
 }
 
 fn plan_text(
-    doc: &designcraft_doc::Document,
+    doc: &patronusdesign_doc::Document,
     maps: &Maps,
-    ph: &designcraft_doc::Placeholder,
+    ph: &patronusdesign_doc::Placeholder,
     (story, start, end): (StoryId, usize, usize),
     cell: String,
     pending: &mut Pending,
@@ -293,9 +293,9 @@ fn plan_text(
 }
 
 fn plan_item(
-    doc: &mut designcraft_doc::Document,
+    doc: &mut patronusdesign_doc::Document,
     maps: &Maps,
-    ph: &designcraft_doc::Placeholder,
+    ph: &patronusdesign_doc::Placeholder,
     cell: &str,
     record: u32,
     sources: &Sources,
@@ -321,11 +321,11 @@ fn plan_item(
 }
 
 fn typed_reps(
-    doc: &designcraft_doc::Document,
+    doc: &patronusdesign_doc::Document,
     fields: &[DataField],
     row: &[String],
     maps: &Maps,
-    placeholders: &[designcraft_doc::Placeholder],
+    placeholders: &[patronusdesign_doc::Placeholder],
     reps: &mut Vec<Rep>,
     images: &mut Vec<InlineImage>,
 ) {
@@ -366,7 +366,7 @@ pub(super) const MAX_NESTED_DEPTH: usize = 32;
 /// Those texts are stories inside their story, which no placeholder can name and `typed_reps`
 /// doesn't read, so a field in a table was left as its marker (#2315). A story, table or note is
 /// copied only when something inside it holds a marker of a known field.
-fn fill_nested_markers(doc: &mut designcraft_doc::Document, fields: &[DataField], row: &[String], maps: &Maps) {
+fn fill_nested_markers(doc: &mut patronusdesign_doc::Document, fields: &[DataField], row: &[String], maps: &Maps) {
     let mut mapped: Vec<StoryId> = maps.stories.values().copied().collect();
     mapped.sort();
     mapped.dedup();
@@ -471,7 +471,7 @@ pub(super) fn find_markers(text: &str) -> Vec<(usize, usize, String)> {
     out
 }
 
-fn apply_reps(doc: &mut designcraft_doc::Document, reps: &[Rep]) {
+fn apply_reps(doc: &mut patronusdesign_doc::Document, reps: &[Rep]) {
     let mut stories: Vec<StoryId> = reps.iter().map(|r| r.story).collect();
     stories.sort();
     stories.dedup();
@@ -522,7 +522,7 @@ pub fn add_delta(pos: usize, delta: isize) -> usize {
     if delta >= 0 { pos.saturating_add(delta as usize) } else { pos.saturating_sub(delta.unsigned_abs()) }
 }
 
-fn create_link(doc: &mut designcraft_doc::Document, anchor: PlaceholderAnchor, dest: HyperlinkDest) -> bool {
+fn create_link(doc: &mut patronusdesign_doc::Document, anchor: PlaceholderAnchor, dest: HyperlinkDest) -> bool {
     let source = match anchor {
         PlaceholderAnchor::Item { id } => {
             if doc.item(id).is_none() {
@@ -547,7 +547,7 @@ fn create_link(doc: &mut designcraft_doc::Document, anchor: PlaceholderAnchor, d
 /// An image file named by a cell: where it was found, its bytes, its pixel size and its natural size.
 struct LoadedImage {
     path: PathBuf,
-    bytes: designcraft_doc::AssetData,
+    bytes: patronusdesign_doc::AssetData,
     pixels: (u32, u32),
     natural: (f64, f64),
 }
@@ -570,7 +570,7 @@ fn load_image(cell: &str, sources: &Sources) -> Option<LoadedImage> {
         // A file that does not decode leaves the search going, so a valid image at a later
         // candidate is still found.
         let raw = bytes.embedded_bytes()?;
-        let (pixels, natural) = designcraft_render::image_size(raw).zip(designcraft_render::natural_size(raw, 0))?;
+        let (pixels, natural) = patronusdesign_render::image_size(raw).zip(patronusdesign_render::natural_size(raw, 0))?;
         Some(LoadedImage { path: p.clone(), bytes, pixels, natural })
     })
 }
@@ -581,14 +581,14 @@ fn report_missing(report: &mut FillReport, record: u32, field: &str, cell: &str)
 }
 
 /// Add `image` to the document as a new asset, linked to its file when the options say so.
-fn add_image_asset(doc: &mut designcraft_doc::Document, image: LoadedImage, field: &str, options: &MergeOptions) -> AssetId {
+fn add_image_asset(doc: &mut patronusdesign_doc::Document, image: LoadedImage, field: &str, options: &MergeOptions) -> AssetId {
     let fresh = AssetId(doc.alloc());
     let name = image.path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| field.to_string());
     let link = options.link_images.then(|| image.path.to_string_lossy().into_owned());
     doc.add_asset(Asset {
         id: fresh,
         name,
-        mime: designcraft_render::image_mime(image.bytes.embedded_bytes().map_or(&[][..], |b| b.as_slice())).to_string(),
+        mime: patronusdesign_render::image_mime(image.bytes.embedded_bytes().map_or(&[][..], |b| b.as_slice())).to_string(),
         link,
         // The cached buffer is shared with every other record naming this file, rather than
         // copied per record (#1595).
@@ -601,7 +601,7 @@ fn add_image_asset(doc: &mut designcraft_doc::Document, image: LoadedImage, fiel
 /// The image `cell` names, as an inline object for the text of `story`. It comes in at its
 /// natural size, scaled down to fit the smallest text column of the story's frames (never scaled up).
 fn inline_image(
-    doc: &mut designcraft_doc::Document,
+    doc: &mut patronusdesign_doc::Document,
     story: StoryId,
     field: &str,
     cell: &str,
@@ -617,7 +617,7 @@ fn inline_image(
     let frame = doc.story(story).and_then(|st| st.frames.first().copied()).and_then(|id| doc.item(id));
     let layer = frame.map_or_else(|| doc.default_layer(), |it| it.layer);
     // The marker may flow into any of the story's frames: fit the smallest column among them.
-    let fit = designcraft_compose::frame_specs(doc, story)
+    let fit = patronusdesign_compose::frame_specs(doc, story)
         .iter()
         .flat_map(|f| f.columns())
         .map(|b| (b.width() / nw).min(b.height() / nh))
@@ -652,7 +652,15 @@ fn inline_image(
     Some(AnchoredObject::new(it, AnchorPosition::default()))
 }
 
-fn place_image(doc: &mut designcraft_doc::Document, item: ItemId, field: &str, cell: &str, record: u32, sources: &Sources, report: &mut FillReport) {
+fn place_image(
+    doc: &mut patronusdesign_doc::Document,
+    item: ItemId,
+    field: &str,
+    cell: &str,
+    record: u32,
+    sources: &Sources,
+    report: &mut FillReport,
+) {
     let options = sources.options;
     let Some(image) = load_image(cell, sources) else {
         if let Some(it) = doc.item_mut(item) {
@@ -704,7 +712,7 @@ fn place_image(doc: &mut designcraft_doc::Document, item: ItemId, field: &str, c
     }
 }
 
-fn place_qr(doc: &mut designcraft_doc::Document, item: ItemId, field: &str, cell: &str, record: u32, report: &mut FillReport) {
+fn place_qr(doc: &mut patronusdesign_doc::Document, item: ItemId, field: &str, cell: &str, record: u32, report: &mut FillReport) {
     if cell.is_empty() {
         report.warnings.push(format!("Record {record}, field {field}: the QR cell is empty."));
         return;
@@ -713,13 +721,13 @@ fn place_qr(doc: &mut designcraft_doc::Document, item: ItemId, field: &str, cell
         report.warnings.push(format!("Record {record}, field {field}: the QR content does not fit."));
         return;
     };
-    let Some(path) = designcraft_geom::qr::qr_path(cell, it.inner_bounds()) else {
+    let Some(path) = patronusdesign_geom::qr::qr_path(cell, it.inner_bounds()) else {
         report.warnings.push(format!("Record {record}, field {field}: the QR content does not fit."));
         return;
     };
     let id = ItemId(doc.alloc());
     let mut code = Item::new(id, it.layer, Shape::Path, path);
-    code.fill = Fill::swatch(designcraft_color::swatch::BLACK);
+    code.fill = Fill::swatch(patronusdesign_color::swatch::BLACK);
     code.alt_text = format!("QR code: {cell}");
     if let Some(frame) = doc.item_mut(item) {
         frame.content = Content::Group { items: vec![Arc::new(code)] };
@@ -758,7 +766,7 @@ fn classify_link(cell: &str) -> Option<HyperlinkDest> {
     Some(HyperlinkDest::Url(value.to_string()))
 }
 
-fn anchor_is_parent(doc: &designcraft_doc::Document, anchor: &PlaceholderAnchor) -> bool {
+fn anchor_is_parent(doc: &patronusdesign_doc::Document, anchor: &PlaceholderAnchor) -> bool {
     match anchor {
         PlaceholderAnchor::Item { id } => matches!(doc.find(*id).map(|l| l.spread), Some(SpreadRef::Parent(_))),
         PlaceholderAnchor::Text { story, .. } => {

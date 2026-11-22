@@ -3,11 +3,11 @@
 
 use craft_pdf::syntax::Pdf;
 use craft_pdf::syntax::object::{Array, Dict, Name, Object, Stream};
-use designcraft_color::cms::{self, Cms, ColorSettings};
-use designcraft_compose::Cache;
-use designcraft_doc::build::NewDocument;
-use designcraft_doc::{BlendSpace, Document, Fill, Item, ItemId, SpreadRef};
-use designcraft_geom::Rect;
+use patronusdesign_color::cms::{self, Cms, ColorSettings};
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::build::NewDocument;
+use patronusdesign_doc::{BlendSpace, Document, Fill, Item, ItemId, SpreadRef};
+use patronusdesign_geom::Rect;
 
 use crate::{PdfOptions, export_pdf};
 
@@ -15,7 +15,7 @@ use crate::{PdfOptions, export_pdf};
 fn add_box(d: &mut Document, r: Rect, swatch: &str, edit: impl FnOnce(&mut Item)) -> ItemId {
     let lid = d.default_layer();
     let id = ItemId(d.alloc());
-    let mut b = Item::new(id, lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(r));
+    let mut b = Item::new(id, lid, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(r));
     b.fill = Fill::swatch(swatch);
     edit(&mut b);
     d.insert_item(SpreadRef::Doc(0), b, None).unwrap();
@@ -189,7 +189,7 @@ fn overprint_attributes_are_written() {
     assert!(!overprint_states(&stroke).is_empty());
     let gap = exported(&one_box(CYAN, |b| {
         stroked(b);
-        b.stroke.kind = designcraft_doc::StrokeType::Dashed { pattern: vec![12.0, 6.0] };
+        b.stroke.kind = patronusdesign_doc::StrokeType::Dashed { pattern: vec![12.0, 6.0] };
         b.stroke.gap_swatch = "C=0 M=0 Y=100 K=0".into();
         b.stroke.gap_overprint = true;
     }));
@@ -206,7 +206,7 @@ fn overprint_attributes_are_written() {
 /// it and other colors don't.
 #[test]
 fn black_overprints_with_the_preference() {
-    let black = designcraft_color::swatch::BLACK;
+    let black = patronusdesign_color::swatch::BLACK;
     let mut on = one_box(black, |_| {});
     on.settings.overprint_black = true;
     assert_eq!(overprint_states(&exported(&on)), [(true, false, 1)]);
@@ -214,7 +214,7 @@ fn black_overprints_with_the_preference() {
     tint.settings.overprint_black = true;
     assert_eq!(overprint_states(&exported(&tint)), []);
     assert_eq!(overprint_states(&exported(&one_box(black, |_| {}))), [], "off in the preferences");
-    let mut stroke = one_box(designcraft_color::swatch::NONE, |b| {
+    let mut stroke = one_box(patronusdesign_color::swatch::NONE, |b| {
         b.stroke.swatch = black.into();
         b.stroke.weight = 2.0;
     });
@@ -237,7 +237,7 @@ fn black_overprints_with_the_preference() {
 /// Ruby with Overprint Fill on overprints.
 #[test]
 fn ruby_overprint_fill_is_written() {
-    use designcraft_doc::cjk_settings::AdornmentOverprint;
+    use patronusdesign_doc::cjk_settings::AdornmentOverprint;
     let mut d = Document::new(&NewDocument::default());
     d.settings.overprint_black = false;
     let lid = d.default_layer();
@@ -260,7 +260,7 @@ fn knockout_and_isolation_are_group_attributes() {
         let mut d = Document::new(&NewDocument::default());
         let lid = d.default_layer();
         let child = |d: &mut Document, r: Rect, swatch: &str| {
-            let mut b = Item::new(ItemId(d.alloc()), lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(r));
+            let mut b = Item::new(ItemId(d.alloc()), lid, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(r));
             b.fill = Fill::swatch(swatch);
             std::sync::Arc::new(b)
         };
@@ -271,10 +271,10 @@ fn knockout_and_isolation_are_group_attributes() {
         let mut g = Item::new(
             ItemId(d.alloc()),
             lid,
-            designcraft_doc::Shape::Group,
-            designcraft_geom::shapes::rectangle(Rect::new(36.0, 36.0, 186.0, 186.0)),
+            patronusdesign_doc::Shape::Group,
+            patronusdesign_geom::shapes::rectangle(Rect::new(36.0, 36.0, 186.0, 186.0)),
         );
-        g.content = designcraft_doc::Content::Group { items };
+        g.content = patronusdesign_doc::Content::Group { items };
         g.knockout = knockout;
         g.isolate = isolate;
         d.insert_item(SpreadRef::Doc(0), g, None).unwrap();
@@ -308,8 +308,8 @@ fn default_cmyk_profile(res: &craft_pdf::syntax::page::Resources<'_>) -> Option<
 /// PDF/A-2b leave `/DefaultCMYK` out.
 #[test]
 fn default_cmyk_profile_is_written_where_appropriate() {
-    use designcraft_color::swatch::{ColorType, SwatchValue};
-    use designcraft_color::{Color, Swatch};
+    use patronusdesign_color::swatch::{ColorType, SwatchValue};
+    use patronusdesign_color::{Color, Swatch};
 
     let mut d = transparent_doc();
     d.swatches.push(Swatch::color("Card Blue", Color::cmyk(0.425, 0.175, 0.16, 0.071)));
@@ -434,7 +434,7 @@ fn interpreted_fill_rgba(bytes: &[u8]) -> Vec<[u8; 4]> {
 /// of falling back to naive untagged `1 - c` (`[136, 195, 199]`).
 #[test]
 fn default_cmyk_resolves_cmyk_colors_through_icc_profile() {
-    use designcraft_color::{Color, Swatch};
+    use patronusdesign_color::{Color, Swatch};
 
     let mut d = Document::new(&NewDocument::default());
     d.swatches.push(Swatch::color("Slate", Color::cmyk(0.425, 0.175, 0.16, 0.071)));
@@ -459,7 +459,7 @@ fn default_cmyk_resolves_cmyk_colors_through_icc_profile() {
 /// RGB-blend documents skip `/DefaultCMYK` when they contain only RGB, and attach it when they draw CMYK.
 #[test]
 fn rgb_blend_document_attaches_default_cmyk_only_when_cmyk_is_present() {
-    use designcraft_color::{Color, Swatch};
+    use patronusdesign_color::{Color, Swatch};
 
     let mut d = Document::new(&NewDocument::default());
     d.settings.blend_space = BlendSpace::Rgb;
@@ -482,8 +482,8 @@ fn rgb_blend_document_attaches_default_cmyk_only_when_cmyk_is_present() {
 /// color space with a `/DeviceCMYK` alternate, so `/DefaultCMYK` must still be attached.
 #[test]
 fn rgb_blend_spot_only_document_with_cmyk_alternate_attaches_default_cmyk() {
-    use designcraft_color::swatch::{ColorType, SwatchValue};
-    use designcraft_color::{Color, Swatch};
+    use patronusdesign_color::swatch::{ColorType, SwatchValue};
+    use patronusdesign_color::{Color, Swatch};
 
     let mut d = Document::new(&NewDocument::default());
     d.settings.blend_space = BlendSpace::Rgb;

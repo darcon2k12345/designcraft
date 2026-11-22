@@ -13,9 +13,9 @@ use std::sync::{Arc, Mutex, PoisonError, Weak};
 use std::time::{Duration, Instant};
 use std::{hash::Hash, hash::Hasher};
 
-use designcraft_compose::Cache;
-use designcraft_doc::{AssetId, Document, Fingerprint};
-use designcraft_engine::cmd::LinkListChecks;
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::{AssetId, Document, Fingerprint};
+use patronusdesign_engine::cmd::LinkListChecks;
 use serde_json::Value;
 
 // A document edit is checked at once. External changes (a file restored or edited elsewhere) are
@@ -70,7 +70,7 @@ pub(crate) struct Rows {
     /// No check can run for now (the worker couldn't be started, or ended): statuses may be old.
     pub(crate) unavailable: bool,
     /// Linked images a check just read and found unchanged, for
-    /// [`designcraft_engine::cmd::remember_link_files`]: only when the check was of the document
+    /// [`patronusdesign_engine::cmd::remember_link_files`]: only when the check was of the document
     /// as it is now.
     pub(crate) verified: Vec<(AssetId, Fingerprint)>,
 }
@@ -135,7 +135,7 @@ impl Worker {
             live,
             pool,
             Box::new(|snapshot, checks, stop| {
-                designcraft_engine::cmd::list_document_links(&snapshot.doc, &snapshot.cache, snapshot.document.as_deref(), checks, stop)
+                patronusdesign_engine::cmd::list_document_links(&snapshot.doc, &snapshot.cache, snapshot.document.as_deref(), checks, stop)
             }),
         )
     }
@@ -146,7 +146,7 @@ impl Worker {
         live.fetch_add(1, Ordering::Relaxed);
         let alive = Alive { live, ctx: ctx.clone() };
         std::thread::Builder::new()
-            .name("designcraft-links".into())
+            .name("patronusdesign-links".into())
             .spawn(move || {
                 let _alive = alive;
                 while let Ok(Job { token, snapshot, stop }) = jobs.recv() {
@@ -366,7 +366,7 @@ impl State {
         if let Some(hooks) = &self.hooks {
             return (hooks.preview)(snapshot);
         }
-        designcraft_engine::cmd::preview_document_links(&snapshot.doc, &snapshot.cache, snapshot.document.as_deref())
+        patronusdesign_engine::cmd::preview_document_links(&snapshot.doc, &snapshot.cache, snapshot.document.as_deref())
     }
 
     /// The rows to draw: built again only when the document or its latest check changes.
@@ -847,14 +847,14 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("photo.png");
-        std::fs::write(&path, designcraft_render::Rendered { width: 2, height: 2, pixels: vec![200; 16] }.to_png()).unwrap();
+        std::fs::write(&path, patronusdesign_render::Rendered { width: 2, height: 2, pixels: vec![200; 16] }.to_png()).unwrap();
         let age = |secs: u64| {
             let file = std::fs::File::options().write(true).open(&path).unwrap();
             file.set_modified(std::time::SystemTime::now() - Duration::from_secs(secs)).unwrap();
         };
         // Placed, then given a new time (a restored folder): the check has to compare its bytes.
         age(300);
-        let mut session = designcraft_engine::Session::new();
+        let mut session = patronusdesign_engine::Session::new();
         session.execute("file.new", &json!({})).unwrap();
         session.execute("file.place", &json!({"path": path.to_string_lossy()})).unwrap();
         age(60);
@@ -871,7 +871,7 @@ mod tests {
                 pool,
                 Box::new(move |snapshot, checks, stop| {
                     let _ = handed.send(checks.len());
-                    designcraft_engine::cmd::list_document_links(&snapshot.doc, &snapshot.cache, None, checks, stop)
+                    patronusdesign_engine::cmd::list_document_links(&snapshot.doc, &snapshot.cache, None, checks, stop)
                 }),
             )
         });

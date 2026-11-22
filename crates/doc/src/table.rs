@@ -376,8 +376,8 @@ mod tests {
         let back: Cell = serde_json::from_str(&serde_json::to_string(&cell).unwrap()).unwrap();
         assert_eq!(back.diagonal, diagonal);
         assert_eq!(back.blank_like().diagonal, diagonal, "new cells take the cell's formatting");
-        let r = designcraft_geom::Rect::new(10.0, 20.0, 110.0, 70.0);
-        let p = designcraft_geom::Point::new;
+        let r = patronusdesign_geom::Rect::new(10.0, 20.0, 110.0, 70.0);
+        let p = patronusdesign_geom::Point::new;
         let down = (p(10.0, 20.0), p(110.0, 70.0));
         let up = (p(110.0, 20.0), p(10.0, 70.0));
         for (lines, want) in [

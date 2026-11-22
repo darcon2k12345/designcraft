@@ -7,7 +7,7 @@
 //! ([`crate::io::document_path`]). Only regular files that hold an image or a graphic format are
 //! read, and only up to [`MAX_LINKED_FILE_BYTES`].
 
-use designcraft_doc::Document;
+use patronusdesign_doc::Document;
 use serde_json::{Value, json};
 
 use super::file::{base64_decode, base64_encode};
@@ -27,9 +27,9 @@ pub fn specs() -> Vec<CommandSpec> {
 
 fn export_idml(s: &mut Session, p: &Value) -> Result<Value> {
     let st = s.doc()?;
-    let opts = designcraft_idml::ExportOptions { embed_images: p.get("embedImages").and_then(Value::as_bool).unwrap_or(true) };
+    let opts = patronusdesign_idml::ExportOptions { embed_images: p.get("embedImages").and_then(Value::as_bool).unwrap_or(true) };
     let layer_doc = with_pdf_layer_variants(&st.doc, opts.embed_images)?;
-    let (bytes, warnings) = designcraft_idml::export_idml_report(layer_doc.as_ref().unwrap_or(&st.doc), &opts);
+    let (bytes, warnings) = patronusdesign_idml::export_idml_report(layer_doc.as_ref().unwrap_or(&st.doc), &opts);
     let mut out = match str_param(p, "path") {
         Some(path) => {
             #[cfg(not(target_arch = "wasm32"))]
@@ -50,7 +50,7 @@ fn export_idml(s: &mut Session, p: &Value) -> Result<Value> {
 pub(crate) fn has_applicable_pdf_layer_overrides(doc: &Document) -> bool {
     doc.placed_items().into_iter().any(|it| {
         it.has_pdf_layer_override()
-            && it.graphic().and_then(|g| doc.assets.get(&g.asset)).is_some_and(|a| a.data.load().is_ok_and(|b| designcraft_render::is_pdf(&b)))
+            && it.graphic().and_then(|g| doc.assets.get(&g.asset)).is_some_and(|a| a.data.load().is_ok_and(|b| patronusdesign_render::is_pdf(&b)))
     })
 }
 
@@ -68,7 +68,7 @@ fn with_pdf_layer_variants(doc: &Document, embed: bool) -> Result<Option<Documen
         .filter(|it| it.has_pdf_layer_override())
         .filter_map(|it| {
             let asset =
-                it.graphic().and_then(|g| doc.assets.get(&g.asset)).filter(|a| a.data.load().is_ok_and(|b| designcraft_render::is_pdf(&b)))?;
+                it.graphic().and_then(|g| doc.assets.get(&g.asset)).filter(|a| a.data.load().is_ok_and(|b| patronusdesign_render::is_pdf(&b)))?;
             Some((it.id, asset, it.pdf_hidden_layers.clone(), it.pdf_layer_override))
         })
         .collect();
@@ -92,11 +92,11 @@ fn with_pdf_layer_variants(doc: &Document, embed: bool) -> Result<Option<Documen
         }
         expected.insert(id, signature);
         let source = asset.data.load().map_err(|e| EngineError::Other(format!("{}: {e}", asset.name)))?;
-        let bytes = designcraft_render::pdf_hide_layers(&source, &hidden)
+        let bytes = patronusdesign_render::pdf_hide_layers(&source, &hidden)
             .ok_or_else(|| EngineError::Other(format!("{}: PDF layer choices could not be applied", asset.name)))?;
         let mut variant = (**asset).clone();
-        variant.id = designcraft_doc::AssetId(out.alloc());
-        variant.data = designcraft_doc::AssetData::embedded(bytes);
+        variant.id = patronusdesign_doc::AssetId(out.alloc());
+        variant.data = patronusdesign_doc::AssetData::embedded(bytes);
         variant.set_link(None, None);
         let aid = variant.id;
         out.assets.insert(aid, std::sync::Arc::new(variant));
@@ -118,7 +118,7 @@ fn with_pdf_layer_variants(doc: &Document, embed: bool) -> Result<Option<Documen
                 conflicting_id = Some(it.id);
                 return;
             }
-            if let designcraft_doc::Content::Graphic(g) = &mut it.content
+            if let patronusdesign_doc::Content::Graphic(g) = &mut it.content
                 && let Some(aid) = variants.get(&it.id)
             {
                 g.asset = *aid;
@@ -140,10 +140,10 @@ fn with_pdf_layer_variants(doc: &Document, embed: bool) -> Result<Option<Documen
     Ok(Some(out))
 }
 
-/// [`designcraft_idml::import_idml`] with the linked images read through [`crate::io`] from
+/// [`patronusdesign_idml::import_idml`] with the linked images read through [`crate::io`] from
 /// beside `package` (the package's file, if it has one), so the automation read root applies to
 /// the paths the package names, and its PDF crops resolved.
-pub(crate) fn import_idml_confined(bytes: &[u8], package: Option<&std::path::Path>) -> designcraft_idml::Result<Document> {
+pub(crate) fn import_idml_confined(bytes: &[u8], package: Option<&std::path::Path>) -> patronusdesign_idml::Result<Document> {
     let read = |link: &str| -> Option<Vec<u8>> {
         #[cfg(not(target_arch = "wasm32"))]
         {
@@ -155,7 +155,7 @@ pub(crate) fn import_idml_confined(bytes: &[u8], package: Option<&std::path::Pat
             None
         }
     };
-    let mut d = designcraft_idml::import_idml_with(bytes, &read)?;
+    let mut d = patronusdesign_idml::import_idml_with(bytes, &read)?;
     resolve_pdf_crops(&mut d);
     Ok(d)
 }
@@ -175,7 +175,7 @@ fn import_report_with_previews(
     bytes: &[u8],
     package: Option<&std::path::Path>,
     previews: &std::collections::HashMap<String, std::sync::Arc<Vec<u8>>>,
-) -> Result<(Document, Vec<String>, std::collections::HashMap<String, designcraft_doc::StoryId>)> {
+) -> Result<(Document, Vec<String>, std::collections::HashMap<String, patronusdesign_doc::StoryId>)> {
     #[cfg(not(target_arch = "wasm32"))]
     let resolved = std::cell::RefCell::new(std::collections::HashMap::new());
     let read = |link: &str| -> Option<Vec<u8>> {
@@ -191,8 +191,8 @@ fn import_report_with_previews(
             None
         }
     };
-    let designcraft_idml::Imported { mut document, warnings, story_ids } =
-        designcraft_idml::import_idml_report_with_previews(bytes, &read, previews).map_err(|e| EngineError::Other(e.to_string()))?;
+    let patronusdesign_idml::Imported { mut document, warnings, story_ids } =
+        patronusdesign_idml::import_idml_report_with_previews(bytes, &read, previews).map_err(|e| EngineError::Other(e.to_string()))?;
     resolve_pdf_crops(&mut document);
     #[cfg(not(target_arch = "wasm32"))]
     let document = {
@@ -222,7 +222,7 @@ fn import_report_with_previews(
 /// document's preview of it when that shows the whole image ([`preview_proxy`],
 /// [`shows_whole`]), else one made from the file, else the preview.
 #[cfg(not(target_arch = "wasm32"))]
-fn link_read_file(asset: &mut designcraft_doc::Asset, package: Option<&std::path::Path>) {
+fn link_read_file(asset: &mut patronusdesign_doc::Asset, package: Option<&std::path::Path>) {
     let Some(bytes) = asset.data.embedded_bytes().cloned() else { return };
     let Some(path) = asset.link.clone() else { return };
     let preview = asset.proxy.take().and_then(|p| preview_proxy(&p));
@@ -233,39 +233,39 @@ fn link_read_file(asset: &mut designcraft_doc::Asset, package: Option<&std::path
     // The fingerprint kept by the read (none for a file just written: its hash tells its bytes).
     let file = super::links::FileLink::of(std::path::Path::new(&path), asset.link_fingerprint);
     super::links::link_to_file(asset, bytes, file, package, whole);
-    if asset.storage == designcraft_doc::Storage::Linked && asset.proxy.is_none() {
+    if asset.storage == patronusdesign_doc::Storage::Linked && asset.proxy.is_none() {
         asset.proxy = fallback;
     }
 }
 
 /// A document's stored preview of a linked graphic as a proxy: checked to decode, and made again
-/// within the proxy limits ([`designcraft_render::proxy`]) when it is bigger or in another
+/// within the proxy limits ([`patronusdesign_render::proxy`]) when it is bigger or in another
 /// format (a larger one wouldn't be kept by the saved document). `None` when it doesn't decode.
 #[cfg(not(target_arch = "wasm32"))]
-fn preview_proxy(preview: &designcraft_doc::Proxy) -> Option<designcraft_doc::Proxy> {
-    use designcraft_render::proxy::{MAX_BYTES, MAX_SIDE_PX, make_proxy};
+fn preview_proxy(preview: &patronusdesign_doc::Proxy) -> Option<patronusdesign_doc::Proxy> {
+    use patronusdesign_render::proxy::{MAX_BYTES, MAX_SIDE_PX, make_proxy};
     let bytes = preview.data.embedded_bytes()?;
-    let mime = designcraft_render::image_mime(bytes);
+    let mime = patronusdesign_render::image_mime(bytes);
     let fits = bytes.len() <= MAX_BYTES
         && matches!(mime, "image/jpeg" | "image/png")
-        && designcraft_render::image_size(bytes).is_some_and(|(w, h)| w.max(h) <= MAX_SIDE_PX);
-    if fits && let Some(pm) = designcraft_render::decode_pixmap(bytes) {
+        && patronusdesign_render::image_size(bytes).is_some_and(|(w, h)| w.max(h) <= MAX_SIDE_PX);
+    if fits && let Some(pm) = patronusdesign_render::decode_pixmap(bytes) {
         let pixels = (u32::from(pm.width()), u32::from(pm.height()));
-        return Some(designcraft_doc::Proxy { mime: mime.into(), pixels, data: preview.data.clone() });
+        return Some(patronusdesign_doc::Proxy { mime: mime.into(), pixels, data: preview.data.clone() });
     }
     let p = make_proxy(bytes, 0)?;
-    Some(designcraft_doc::Proxy { mime: p.mime.into(), pixels: p.pixels, data: designcraft_doc::AssetData::embedded(p.data) })
+    Some(patronusdesign_doc::Proxy { mime: p.mime.into(), pixels: p.pixels, data: patronusdesign_doc::AssetData::embedded(p.data) })
 }
 
 /// Whether `preview` shows the whole of `asset`'s image (`bytes`, its file's), as a proxy must:
 /// a raster whose preview has the image's proportions. A PDF's preview shows its crop, which may
 /// not be the page the proxy stands for, and other files' proportions aren't known here.
 #[cfg(not(target_arch = "wasm32"))]
-fn shows_whole(asset: &designcraft_doc::Asset, bytes: &[u8], preview: &designcraft_doc::Proxy) -> bool {
-    if designcraft_render::is_pdf(bytes) || asset.mime == "application/pdf" {
+fn shows_whole(asset: &patronusdesign_doc::Asset, bytes: &[u8], preview: &patronusdesign_doc::Proxy) -> bool {
+    if patronusdesign_render::is_pdf(bytes) || asset.mime == "application/pdf" {
         return false;
     }
-    let Some((w, h)) = designcraft_render::image_size(bytes) else { return false };
+    let Some((w, h)) = patronusdesign_render::image_size(bytes) else { return false };
     let (pw, ph) = preview.pixels;
     if w == 0 || h == 0 || pw == 0 || ph == 0 {
         return false;
@@ -278,13 +278,13 @@ fn shows_whole(asset: &designcraft_doc::Asset, bytes: &[u8], preview: &designcra
 /// Placed PDFs read from IDML name their crop (`PDFCrop`): find where each box sits on its page,
 /// which the IDML reader can't (it doesn't parse PDFs). The box spans the graphic's
 /// `GraphicBounds`; a graphic without bounds takes the box's size. Bounding Box crops interpret
-/// the page's drawing to find the box, so they wait for drawing or export ([`designcraft_render::shown_box`],
+/// the page's drawing to find the box, so they wait for drawing or export ([`patronusdesign_render::shown_box`],
 /// [`with_pdf_boxes`]) unless a graphic needs the box's size now.
 pub(crate) fn resolve_pdf_crops(d: &mut Document) {
     use std::collections::{HashMap, HashSet};
     use std::sync::Arc;
 
-    use designcraft_doc::{AssetId, Content, Item, PdfCrop};
+    use patronusdesign_doc::{AssetId, Content, Item, PdfCrop};
     let mut no_bounds: HashSet<AssetId> = HashSet::new();
     for sp in d.spreads.iter().chain(&d.parents) {
         for it in &sp.items {
@@ -345,7 +345,7 @@ pub(crate) fn with_pdf_boxes(d: &Document) -> std::borrow::Cow<'_, Document> {
     for a in out.assets.values_mut() {
         if a.content_box_pending() {
             // No usable box: the whole page.
-            std::sync::Arc::make_mut(a).pdf_box = designcraft_render::shown_box(a);
+            std::sync::Arc::make_mut(a).pdf_box = patronusdesign_render::shown_box(a);
         }
     }
     std::borrow::Cow::Owned(out)
@@ -411,7 +411,7 @@ fn packaged_link_candidates(link: &str, package: Option<&std::path::Path>) -> Ve
 /// Bytes an image or a graphic can be placed from (raster formats, PDF, SVG, PSD, EPS).
 #[cfg(not(target_arch = "wasm32"))]
 fn is_graphic(bytes: &[u8]) -> bool {
-    designcraft_images::mime(bytes) != "application/octet-stream" || designcraft_images::is_eps(bytes)
+    patronusdesign_images::mime(bytes) != "application/octet-stream" || patronusdesign_images::is_eps(bytes)
 }
 
 /// Embedded images do not call the IDML resource loader. Rebind their missing links
@@ -421,7 +421,7 @@ pub(crate) fn resolve_packaged_links(document: &mut Document, package: Option<&s
     let Some(package) = package else { return };
     for asset in document.assets.values_mut() {
         // Linked storage finds its files itself (`native_links::resolve`).
-        if asset.storage == designcraft_doc::Storage::Linked {
+        if asset.storage == patronusdesign_doc::Storage::Linked {
             continue;
         }
         let Some(link) = asset.link.as_deref() else { continue };
@@ -450,7 +450,7 @@ pub(crate) fn resolve_packaged_links(document: &mut Document, package: Option<&s
 /// than [`MAX_LINKED_FILE_BYTES`] holding an image or a graphic, with its path and the size and
 /// time to keep with its bytes ([`super::links::loaded_fingerprint`]).
 #[cfg(not(target_arch = "wasm32"))]
-fn read_packaged_link(link: &str, package: Option<&std::path::Path>) -> Option<(String, Vec<u8>, Option<designcraft_doc::Fingerprint>)> {
+fn read_packaged_link(link: &str, package: Option<&std::path::Path>) -> Option<(String, Vec<u8>, Option<patronusdesign_doc::Fingerprint>)> {
     for path in packaged_link_candidates(link, package) {
         if !crate::io::is_file(&path) {
             continue;
@@ -507,7 +507,7 @@ fn import_interchange(s: &mut Session, bytes: Vec<u8>, package: Option<&std::pat
         // What the converter can't read still comes over as IDML (#21).
         let conversion = craft_indd::convert(&bytes, &file).map_err(|e| {
             EngineError::Other(format!(
-                "can't convert the InDesign file: {e}. In InDesign, choose File ▸ Export… ▸ InDesign Markup (IDML) and open the .idml in DesignCraft."
+                "can't convert the InDesign file: {e}. In InDesign, choose File ▸ Export… ▸ InDesign Markup (IDML) and open the .idml in Patronus Design."
             ))
         })?;
         warnings.extend(conversion.warnings.iter().map(|w| w.message().to_string()));
@@ -545,16 +545,16 @@ fn import_interchange(s: &mut Session, bytes: Vec<u8>, package: Option<&std::pat
 /// IDML as `u78ac`) or by its IDML `Self` (`story u78ac`).
 fn warning_item(
     d: &Document,
-    story_ids: &std::collections::HashMap<String, designcraft_doc::StoryId>,
+    story_ids: &std::collections::HashMap<String, patronusdesign_doc::StoryId>,
     warning: &str,
-) -> Option<designcraft_doc::ItemId> {
+) -> Option<patronusdesign_doc::ItemId> {
     let name = warning.strip_prefix("story ")?.split([':', ' ']).next()?;
     let self_id = name.parse::<u32>().map_or_else(|_| name.to_string(), |uid| format!("u{uid:x}"));
     d.stories.get(story_ids.get(&self_id)?)?.frames.first().copied()
 }
 
 /// An InDesign document or template (.indd, .indt): known by its signature, or by its name when
-/// the bytes are neither a recognized DesignCraft document nor IDML. The converter explains
+/// the bytes are neither a recognized Patronus Design document nor IDML. The converter explains
 /// unrecognized data with an InDesign extension.
 pub(crate) fn is_indd(name: &str, bytes: &[u8]) -> bool {
     craft_file_formats::detect(name, bytes) == Some(craft_file_formats::Format::Indd) && !super::file::is_document(bytes)
@@ -579,7 +579,7 @@ mod tests {
     use super::*;
 
     fn linked_idml(link: &str, embed_images: bool) -> Result<(Vec<u8>, Vec<u8>)> {
-        let png = designcraft_render::Rendered { width: 2, height: 2, pixels: vec![255; 16] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 2, height: 2, pixels: vec![255; 16] }.to_png();
         let mut session = Session::new();
         session.execute("file.new", &json!({}))?;
         session.execute("file.place", &json!({"base64": base64_encode(&png), "name": "logo.png"}))?;
@@ -588,7 +588,7 @@ mod tests {
             Arc::make_mut(asset).link = Some(link.into());
             Ok(Value::Null)
         })?;
-        let bytes = designcraft_idml::export_idml_with(&session.doc()?.doc, &designcraft_idml::ExportOptions { embed_images });
+        let bytes = patronusdesign_idml::export_idml_with(&session.doc()?.doc, &patronusdesign_idml::ExportOptions { embed_images });
         Ok((bytes, png))
     }
 
@@ -597,7 +597,7 @@ mod tests {
         let mut session = Session::new();
         session.execute("file.new", &json!({})).unwrap();
         session.execute("frame.create", &json!({"rect": [36, 36, 300, 200], "content": "text"})).unwrap();
-        let idml = designcraft_idml::export_idml_with(&session.doc().unwrap().doc, &designcraft_idml::ExportOptions { embed_images: true });
+        let idml = patronusdesign_idml::export_idml_with(&session.doc().unwrap().doc, &patronusdesign_idml::ExportOptions { embed_images: true });
         let (d, _, story_ids) = import_report_with_previews(&idml, None, &std::collections::HashMap::new()).unwrap();
         let (self_id, sid) = story_ids.iter().find(|(_, sid)| d.stories.get(*sid).is_some_and(|s| !s.frames.is_empty())).unwrap();
         let frame = d.stories[sid].frames[0];
@@ -676,7 +676,7 @@ mod tests {
 
         let doc = import(&idml, Some(&dir.join("x.idml"))).unwrap();
         let asset = doc.assets.values().next().unwrap();
-        assert_eq!(asset.storage, designcraft_doc::Storage::Linked);
+        assert_eq!(asset.storage, patronusdesign_doc::Storage::Linked);
         assert!(asset.data.embedded_bytes().is_none(), "no embedded original");
         assert!(asset.data.is_linked() && asset.data.resident().is_some(), "the bytes read are resident for the first draw");
         assert_eq!(asset.link_hash.as_deref(), Some(crate::asset_io::content_hash(&png).as_str()));
@@ -691,28 +691,33 @@ mod tests {
     /// made from the file.
     #[test]
     fn a_stored_preview_is_the_proxy_only_when_it_decodes_and_shows_the_whole_image() {
-        use designcraft_render::proxy::{MAX_BYTES, MAX_SIDE_PX};
+        use patronusdesign_render::proxy::{MAX_BYTES, MAX_SIDE_PX};
         let dir = std::env::temp_dir().join(format!("dc-idml-previews-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("photo.png");
-        let png = |width: u32, height: u32| designcraft_render::Rendered { width, height, pixels: vec![255; (width * height * 4) as usize] }.to_png();
+        let png =
+            |width: u32, height: u32| patronusdesign_render::Rendered { width, height, pixels: vec![255; (width * height * 4) as usize] }.to_png();
         let original = png(400, 200);
         std::fs::write(&path, &original).unwrap();
         let linked_with = |preview: Vec<u8>| {
-            let mut a = designcraft_doc::Asset {
+            let mut a = patronusdesign_doc::Asset {
                 name: "photo.png".into(),
                 mime: "image/png".into(),
                 link: Some(path.to_str().unwrap().into()),
-                data: designcraft_doc::AssetData::embedded(original.clone()),
+                data: patronusdesign_doc::AssetData::embedded(original.clone()),
                 pixels: Some((400, 200)),
-                proxy: Some(designcraft_doc::Proxy { mime: "image/png".into(), pixels: (1, 1), data: designcraft_doc::AssetData::embedded(preview) }),
+                proxy: Some(patronusdesign_doc::Proxy {
+                    mime: "image/png".into(),
+                    pixels: (1, 1),
+                    data: patronusdesign_doc::AssetData::embedded(preview),
+                }),
                 ..Default::default()
             };
             link_read_file(&mut a, None);
-            assert_eq!(a.storage, designcraft_doc::Storage::Linked);
+            assert_eq!(a.storage, patronusdesign_doc::Storage::Linked);
             let proxy = a.proxy.expect("a proxy");
             let bytes = proxy.data.embedded_bytes().expect("embedded").clone();
-            let pm = designcraft_render::decode_pixmap(&bytes).expect("the proxy decodes");
+            let pm = patronusdesign_render::decode_pixmap(&bytes).expect("the proxy decodes");
             assert_eq!((u32::from(pm.width()), u32::from(pm.height())), proxy.pixels);
             assert!(bytes.len() <= MAX_BYTES && proxy.pixels.0.max(proxy.pixels.1) <= MAX_SIDE_PX);
             (proxy.pixels, bytes)
@@ -730,7 +735,7 @@ mod tests {
         let (idml, _) = linked_idml("/original-computer/project/logo.png", false).unwrap();
         let doc = import(&idml, None).unwrap();
         let asset = doc.assets.values().next().unwrap();
-        assert_eq!(asset.storage, designcraft_doc::Storage::Embedded);
+        assert_eq!(asset.storage, patronusdesign_doc::Storage::Embedded);
         assert_eq!(asset.link.as_deref(), Some("/original-computer/project/logo.png"));
         assert!(asset.data.embedded_bytes().is_some_and(|b| b.is_empty()) && asset.link_hash.is_none());
     }
@@ -744,7 +749,7 @@ mod tests {
         std::fs::write(&path, &png).unwrap();
         let doc = import(&idml, Some(&dir.join("x.idml"))).unwrap();
         let asset = doc.assets.values().next().unwrap();
-        assert_eq!(asset.storage, designcraft_doc::Storage::Embedded);
+        assert_eq!(asset.storage, patronusdesign_doc::Storage::Embedded);
         assert_eq!(asset.data.embedded_bytes().map(|b| (**b).clone()), Some(png));
         std::fs::remove_dir_all(dir).unwrap();
     }
@@ -803,7 +808,7 @@ mod tests {
         std::fs::create_dir_all(dir.join("Links")).unwrap();
         std::fs::create_dir_all(&outside).unwrap();
         let package = dir.join("x.idml");
-        let png = designcraft_render::Rendered { width: 2, height: 2, pixels: vec![255; 16] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 2, height: 2, pixels: vec![255; 16] }.to_png();
         std::fs::write(dir.join("Links").join("notes.png"), b"not an image").unwrap();
         std::fs::write(outside.join("notes.txt"), b"not an image").unwrap();
         #[cfg(unix)]
@@ -878,15 +883,15 @@ mod tests {
 mod nested_layer_tests {
     use std::{io::Read, sync::Arc};
 
-    use designcraft_doc::{AnchoredObject, ItemId, SpreadRef, Story, StoryId, Table};
-    use designcraft_geom::Rect;
+    use patronusdesign_doc::{AnchoredObject, ItemId, SpreadRef, Story, StoryId, Table};
+    use patronusdesign_geom::Rect;
 
     use super::*;
 
     // One default placement and two nested placements share bytes. The latter use a legacy
     // nonempty hidden list and explicit all-on, so each needs a different embedded variant.
     fn fixture(location: &str) -> (Session, ItemId, [ItemId; 2]) {
-        let pdf = designcraft_render::pdf_hide_layers(&super::super::pdflayers::tests::two_layer_pdf(), &["Red".into()]).unwrap();
+        let pdf = patronusdesign_render::pdf_hide_layers(&super::super::pdflayers::tests::two_layer_pdf(), &["Red".into()]).unwrap();
         let mut session = Session::new();
         session.execute("file.new", &json!({})).unwrap();
         let placed = session.execute("file.place", &json!({"base64": base64_encode(&pdf), "name": "layers.pdf"})).unwrap();
@@ -943,14 +948,14 @@ mod nested_layer_tests {
         for (id, expected) in ids.into_iter().zip([states(false, true), states(true, true)]) {
             let item = copy.placed_items().into_iter().find(|i| i.id == id).unwrap();
             let asset = &copy.assets[&item.graphic().unwrap().asset];
-            assert_eq!(designcraft_render::pdf_layers(&asset.data.load().unwrap()), expected, "{location}: placement {id}");
+            assert_eq!(patronusdesign_render::pdf_layers(&asset.data.load().unwrap()), expected, "{location}: placement {id}");
             assert_ne!(asset.id, original_asset);
             assert!(asset.link.is_none());
             assert!(!item.pdf_layer_override && item.pdf_hidden_layers.is_empty());
         }
         assert_eq!(copy.item(control).unwrap().graphic().unwrap().asset, original_asset);
         assert!(Arc::ptr_eq(&copy.assets[&original_asset], &source.assets[&original_asset]));
-        assert_eq!(designcraft_render::pdf_layers(&source.assets[&original_asset].data.load().unwrap()), states(true, false));
+        assert_eq!(patronusdesign_render::pdf_layers(&source.assets[&original_asset].data.load().unwrap()), states(true, false));
         assert!(source.placed_items().into_iter().filter(|i| ids.contains(&i.id)).all(|i| i.has_pdf_layer_override()));
     }
 
@@ -959,12 +964,12 @@ mod nested_layer_tests {
         let original = session.doc().unwrap().doc.clone();
         let result = session.execute("file.exportIdml", &json!({})).unwrap();
         let bytes = base64_decode(result["base64"].as_str().unwrap());
-        let imported = designcraft_idml::import_idml(&bytes).unwrap();
+        let imported = patronusdesign_idml::import_idml(&bytes).unwrap();
         let mut roundtrip: Vec<_> = imported
             .assets
             .values()
-            .filter(|a| designcraft_render::is_pdf(&a.data.load().unwrap()))
-            .map(|a| designcraft_render::pdf_layers(&a.data.load().unwrap()))
+            .filter(|a| patronusdesign_render::is_pdf(&a.data.load().unwrap()))
+            .map(|a| patronusdesign_render::pdf_layers(&a.data.load().unwrap()))
             .collect();
         let mut expected = vec![states(true, false), states(false, true), states(true, true)];
         roundtrip.sort();
@@ -981,8 +986,8 @@ mod nested_layer_tests {
             entry.read_to_string(&mut xml).unwrap();
             for cdata in xml.split("<![CDATA[").skip(1) {
                 let data = base64_decode(cdata.split("]]>").next().unwrap());
-                if designcraft_render::is_pdf(&data) {
-                    actual.push(designcraft_render::pdf_layers(&data));
+                if patronusdesign_render::is_pdf(&data) {
+                    actual.push(patronusdesign_render::pdf_layers(&data));
                 }
             }
         }
@@ -1025,7 +1030,7 @@ mod nested_layer_tests {
     // fresh id (#1522). Export must apply the choice to both.
     #[test]
     fn duplicated_frame_keeps_its_anchored_pdf_choice_in_idml() {
-        let pdf = designcraft_render::pdf_hide_layers(&super::super::pdflayers::tests::two_layer_pdf(), &["Red".into()]).unwrap();
+        let pdf = patronusdesign_render::pdf_hide_layers(&super::super::pdflayers::tests::two_layer_pdf(), &["Red".into()]).unwrap();
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let placed = s.execute("file.place", &json!({"base64": base64_encode(&pdf), "name": "layers.pdf"})).unwrap();
@@ -1048,12 +1053,12 @@ mod nested_layer_tests {
         assert!(with_choice.contains(&chosen) && with_choice[0] != with_choice[1], "{with_choice:?}");
         doc.check().unwrap();
         let result = s.execute("file.exportIdml", &json!({})).unwrap();
-        let imported = designcraft_idml::import_idml(&base64_decode(result["base64"].as_str().unwrap())).unwrap();
+        let imported = patronusdesign_idml::import_idml(&base64_decode(result["base64"].as_str().unwrap())).unwrap();
         let mut layers: Vec<_> = imported
             .assets
             .values()
-            .filter(|a| designcraft_render::is_pdf(&a.data.load().unwrap()))
-            .map(|a| designcraft_render::pdf_layers(&a.data.load().unwrap()))
+            .filter(|a| patronusdesign_render::is_pdf(&a.data.load().unwrap()))
+            .map(|a| patronusdesign_render::pdf_layers(&a.data.load().unwrap()))
             .collect();
         layers.sort();
         assert_eq!(layers, vec![states(false, true), states(true, false)]);
@@ -1065,7 +1070,7 @@ mod nested_layer_tests {
     fn shared_id_with_divergent_pdf_choices_is_rejected() {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
-        let pdf = designcraft_render::pdf_hide_layers(&super::super::pdflayers::tests::two_layer_pdf(), &["Red".into()]).unwrap();
+        let pdf = patronusdesign_render::pdf_hide_layers(&super::super::pdflayers::tests::two_layer_pdf(), &["Red".into()]).unwrap();
         let placed = s.execute("file.place", &json!({"base64": base64_encode(&pdf), "name": "layers.pdf"})).unwrap();
         let control = ItemId(placed["id"].as_u64().unwrap());
         let (frame, anchored) = {
@@ -1107,7 +1112,7 @@ mod nested_layer_tests {
     fn shared_id_with_different_pdf_assets_is_rejected() {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
-        let pdf = designcraft_render::pdf_hide_layers(&super::super::pdflayers::tests::two_layer_pdf(), &["Red".into()]).unwrap();
+        let pdf = patronusdesign_render::pdf_hide_layers(&super::super::pdflayers::tests::two_layer_pdf(), &["Red".into()]).unwrap();
         let a = s.execute("file.place", &json!({"base64": base64_encode(&pdf), "name": "a.pdf"})).unwrap()["id"].as_u64().unwrap();
         s.execute("object.layerOptions", &json!({"ids": [a], "hidden": ["Blue"]})).unwrap();
         let f = s.execute("frame.create", &json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Hello"})).unwrap()["id"].as_u64().unwrap();

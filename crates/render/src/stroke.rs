@@ -14,15 +14,15 @@ pub(crate) enum Source {
     /// The bytes to draw aren't known yet: a PDF layer variant is being made, or the crop of a
     /// placed PDF measured, in the background. What is cached under `cached` (an earlier copy of
     /// the variant) is drawn meanwhile, else a light box.
-    Waiting { cached: Option<designcraft_doc::SourceKey>, page: u32, width_pt: f64, on_screen: f64 },
+    Waiting { cached: Option<patronusdesign_doc::SourceKey>, page: u32, width_pt: f64, on_screen: f64 },
 }
 
 /// What drawing placed graphic `g` takes from the image cache, the page rectangle it covers in
 /// graphic space and that page's height (points). `None` for video and sound, Fast display and a
 /// PDF whose hidden layers can't be applied (none of these draw image pixels). A frame that
 /// doesn't wait for images reads no file and rewrites none here.
-pub(crate) fn image_want(f: &Frame, asset: &designcraft_doc::Asset, g: &designcraft_doc::Graphic, xf: Affine) -> Option<(Source, Rect, f64)> {
-    if designcraft_doc::media_kind(&asset.mime).is_some() || f.opts.quality == DisplayQuality::Fast {
+pub(crate) fn image_want(f: &Frame, asset: &patronusdesign_doc::Asset, g: &patronusdesign_doc::Graphic, xf: Affine) -> Option<(Source, Rect, f64)> {
+    if patronusdesign_doc::media_kind(&asset.mime).is_some() || f.opts.quality == DisplayQuality::Fast {
         return None;
     }
     let wait = !f.opts.defer_images;
@@ -64,7 +64,7 @@ pub(crate) fn image_want(f: &Frame, asset: &designcraft_doc::Asset, g: &designcr
 /// What a placed graphic draws.
 enum Drawn<'a> {
     /// Pixels decoded from these bytes (the graphic's, or its proxy's).
-    Pixels(std::sync::Arc<vello_cpu::Pixmap>, &'a designcraft_doc::AssetData),
+    Pixels(std::sync::Arc<vello_cpu::Pixmap>, &'a patronusdesign_doc::AssetData),
     /// Nothing decoded yet: a light box where it goes.
     Loading,
     Nothing,
@@ -72,7 +72,7 @@ enum Drawn<'a> {
 
 /// The pixels to draw for `want`: its own, else (still loading or decoding, or its linked file
 /// can't be had) those of `proxy`, the asset's preview, which spans the same page.
-fn pixels<'a>(f: &Frame, want: &'a images::Want, proxy: Option<&'a designcraft_doc::AssetData>) -> Drawn<'a> {
+fn pixels<'a>(f: &Frame, want: &'a images::Want, proxy: Option<&'a patronusdesign_doc::AssetData>) -> Drawn<'a> {
     let (width_pt, on_screen) = (want.width_pt, want.on_screen);
     if !f.opts.defer_images {
         if let Some(pm) = images::mip(&want.bytes, want.page, width_pt, on_screen) {
@@ -111,23 +111,24 @@ impl Renderer {
     fn draw_stroke_painted(&mut self, ctx: &mut RenderContext, f: &Frame, it: &Item, bp: &BezPath, xf: Affine) {
         let st = &it.stroke;
         let (paint, bounds) = (st.as_fill(), bp.bounding_box());
-        if f.doc.resolve_color(&st.swatch, st.tint).is_none() && designcraft_color::swatch::resolve_gradient(&f.doc.swatches, &st.swatch).is_none() {
+        if f.doc.resolve_color(&st.swatch, st.tint).is_none() && patronusdesign_color::swatch::resolve_gradient(&f.doc.swatches, &st.swatch).is_none()
+        {
             return;
         }
         let mut stroke = kurbo::Stroke::new(st.weight)
             .with_caps(match st.cap {
-                designcraft_doc::Cap::Butt => kurbo::Cap::Butt,
-                designcraft_doc::Cap::Round => kurbo::Cap::Round,
-                designcraft_doc::Cap::Projecting => kurbo::Cap::Square,
+                patronusdesign_doc::Cap::Butt => kurbo::Cap::Butt,
+                patronusdesign_doc::Cap::Round => kurbo::Cap::Round,
+                patronusdesign_doc::Cap::Projecting => kurbo::Cap::Square,
             })
             .with_join(match st.join {
-                designcraft_doc::Join::Miter => kurbo::Join::Miter,
-                designcraft_doc::Join::Round => kurbo::Join::Round,
-                designcraft_doc::Join::Bevel => kurbo::Join::Bevel,
+                patronusdesign_doc::Join::Miter => kurbo::Join::Miter,
+                patronusdesign_doc::Join::Round => kurbo::Join::Round,
+                patronusdesign_doc::Join::Bevel => kurbo::Join::Bevel,
             })
             .with_miter_limit(st.miter_limit);
         let kind = f.doc.stroke_kind(&st.kind);
-        let length = designcraft_doc::path_length_bound(bp);
+        let length = patronusdesign_doc::path_length_bound(bp);
         match &kind {
             StrokeType::Dashed { pattern } if StrokeType::expandable_dashes(pattern, length) => {
                 stroke = stroke.with_dashes(0.0, pattern.iter().copied())
@@ -141,7 +142,7 @@ impl Renderer {
         }
         let closed = it.path.is_closed();
         // Arrowheads: the path is shortened under them; they're drawn after it.
-        let arrows = designcraft_doc::arrow::apply(bp, st, closed);
+        let arrows = patronusdesign_doc::arrow::apply(bp, st, closed);
         let bp = arrows.as_ref().map_or(bp, |a| &a.0);
         // Gap colour under dashes and dots: the whole path, undashed.
         let gap = if matches!(kind, StrokeType::Solid) { None } else { f.doc.resolve_color(&st.gap_swatch, st.gap_tint) };
@@ -219,7 +220,7 @@ impl Renderer {
     }
 
     /// Draw a placed graphic, inside its clipping path when it has one.
-    pub(crate) fn draw_graphic(&mut self, ctx: &mut RenderContext, f: &Frame, g: &designcraft_doc::Graphic, xf: Affine) {
+    pub(crate) fn draw_graphic(&mut self, ctx: &mut RenderContext, f: &Frame, g: &patronusdesign_doc::Graphic, xf: Affine) {
         let Some((region, even_odd)) = g.clip_region() else {
             self.draw_graphic_unclipped(ctx, f, g, xf);
             return;
@@ -234,9 +235,9 @@ impl Renderer {
         ctx.pop_layer();
     }
 
-    fn draw_graphic_unclipped(&mut self, ctx: &mut RenderContext, f: &Frame, g: &designcraft_doc::Graphic, xf: Affine) {
+    fn draw_graphic_unclipped(&mut self, ctx: &mut RenderContext, f: &Frame, g: &patronusdesign_doc::Graphic, xf: Affine) {
         let Some(asset) = f.doc.assets.get(&g.asset) else { return };
-        if designcraft_doc::media_kind(&asset.mime).is_some() {
+        if patronusdesign_doc::media_kind(&asset.mime).is_some() {
             // Video / sound: a dark frame with a play mark (the poster, when set, is drawn by the item).
             ctx.set_transform(f.view * xf * g.xf);
             ctx.set_paint(screen_color([48, 48, 52], 255));
@@ -307,7 +308,7 @@ impl Renderer {
 fn paint_pixels(
     ctx: &mut RenderContext,
     f: &Frame,
-    g: &designcraft_doc::Graphic,
+    g: &patronusdesign_doc::Graphic,
     xf: Affine,
     page: Rect,
     page_w: f64,

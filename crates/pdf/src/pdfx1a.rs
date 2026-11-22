@@ -1,4 +1,4 @@
-//! DesignCraft's PDF/X-1a export adapter: convert shared warnings and errors to app PDF results.
+//! Patronus Design's PDF/X-1a export adapter: convert shared warnings and errors to app PDF results.
 
 #[cfg(test)]
 use craft_prepress::flatten::FlattenTotals;

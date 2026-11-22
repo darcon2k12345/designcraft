@@ -2,10 +2,10 @@
 
 use std::sync::Arc;
 
-use designcraft_doc::{
+use patronusdesign_doc::{
     AnchorPosition, AnchoredObject, Content, Document, Item, ItemId, OBJECT_MARK, SpreadRef, StoryId, TextSel, anchored::AnchorAlign,
 };
-use designcraft_geom::Affine;
+use patronusdesign_geom::Affine;
 use serde_json::{Value, json};
 
 use super::{CommandSpec, bad, cmd, has_doc, str_param};
@@ -79,7 +79,7 @@ fn position_param(p: &Value, base: &AnchorPosition) -> Result<AnchorPosition> {
             AnchorPosition::AboveLine { align, space_before: f("spaceBefore", sb0), space_after: f("spaceAfter", sa0) }
         }
         ("custom", b) => {
-            use designcraft_doc::anchored::AnchorRelative as R;
+            use patronusdesign_doc::anchored::AnchorRelative as R;
             let (xr0, yr0, xo0, yo0, op0, rp0, k0, sr0) = match b {
                 AnchorPosition::Custom {
                     x_relative,
@@ -126,7 +126,7 @@ pub(crate) fn check_item(it: &Item) -> Result<()> {
 /// Anchor copies of `items` (in spread coordinates) at `pos` of `sid`; returns the end position.
 pub(crate) fn anchor_items(d: &mut Document, sid: StoryId, pos: usize, items: Vec<Item>, position: &AnchorPosition) -> Result<usize> {
     let count = items.len();
-    let st = d.story_mut(sid).ok_or(designcraft_doc::DocError::NoStory(sid))?;
+    let st = d.story_mut(sid).ok_or(patronusdesign_doc::DocError::NoStory(sid))?;
     let mut at = pos.min(st.len());
     for it in items {
         st.insert_object(at, AnchoredObject::new(it, position.clone()));
@@ -166,7 +166,7 @@ fn insert(s: &mut Session, p: &Value) -> Result<Value> {
             d.remove_item(*id)?;
         }
         let end = anchor_items(d, sid, pos, items.clone(), &position)?;
-        *sel = designcraft_doc::Selection::text(TextSel { story: sid, anchor: end, focus: end, frame: None, cell: None });
+        *sel = patronusdesign_doc::Selection::text(TextSel { story: sid, anchor: end, focus: end, frame: None, cell: None });
         Ok(json!({"story": sid.0, "pos": end}))
     })
 }
@@ -197,7 +197,7 @@ fn options(s: &mut Session, p: &Value) -> Result<Value> {
     let cur = s.doc()?.doc.story(sid).and_then(|st| st.objects.get(k).cloned()).ok_or_else(|| bad("anchored.options", "no such anchored object"))?;
     let position = position_param(p, &cur.position)?;
     s.edit(|d, _| {
-        let st = d.story_mut(sid).ok_or(designcraft_doc::DocError::NoStory(sid))?;
+        let st = d.story_mut(sid).ok_or(patronusdesign_doc::DocError::NoStory(sid))?;
         let o = st.objects.get_mut(k).ok_or_else(|| bad("anchored.options", "no such anchored object"))?;
         Arc::make_mut(o).position = position.clone();
         st.rev = st.rev.wrapping_add(1);
@@ -237,11 +237,11 @@ fn release(s: &mut Session, p: &Value) -> Result<Value> {
             }
         }
         let id = d.insert_item(spread, it, None)?;
-        let st = d.story_mut(sid).ok_or(designcraft_doc::DocError::NoStory(sid))?;
+        let st = d.story_mut(sid).ok_or(patronusdesign_doc::DocError::NoStory(sid))?;
         let len = OBJECT_MARK.len_utf8();
         st.delete(pos..pos + len);
         d.adjust_text_ranges(sid, pos..pos + len, 0);
-        *sel = designcraft_doc::Selection::items(vec![id]);
+        *sel = patronusdesign_doc::Selection::items(vec![id]);
         Ok(json!({"id": id.0}))
     })
 }
@@ -311,7 +311,7 @@ mod custom_tests {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let r = s.execute("frame.create", &json!({"rect": [72, 72, 400, 300], "content": "text", "text": "Side note here"})).unwrap();
-        let sid = designcraft_doc::StoryId(r["story"].as_u64().unwrap());
+        let sid = patronusdesign_doc::StoryId(r["story"].as_u64().unwrap());
         let end_before = s.cache.get(&s.doc().unwrap().doc, sid, None).frames[0].lines[0].end_x;
         let box_id = s.execute("frame.create", &json!({"rect": [0, 0, 30, 20], "content": "unassigned"})).unwrap()["id"].clone();
         // To the left of the page margin, top of the box on the anchor's baseline.
@@ -329,10 +329,10 @@ mod custom_tests {
         let margin_x = d.spreads[0].pages[0].margin_rect().x0;
         assert!((o.origin.x + o.size.0 - (margin_x - 6.0)).abs() < 1e-6, "right edge 6 pt left of the margin: {:?}", o.origin);
         assert!((o.origin.y - ft.lines[0].baseline).abs() < 1e-6);
-        let back = designcraft_idml::import_idml(&designcraft_idml::export_idml(&d)).unwrap();
+        let back = patronusdesign_idml::import_idml(&patronusdesign_idml::export_idml(&d)).unwrap();
         let obj = back.stories.values().flat_map(|st| st.objects.iter()).next().unwrap();
         assert!(
-            matches!(obj.position, designcraft_doc::AnchorPosition::Custom { x_offset, object_point: 2, .. } if x_offset == -6.0),
+            matches!(obj.position, patronusdesign_doc::AnchorPosition::Custom { x_offset, object_point: 2, .. } if x_offset == -6.0),
             "IDML Anchored position"
         );
         // Relative to Spine keeps the other custom settings.
@@ -340,26 +340,28 @@ mod custom_tests {
         let st = s.doc().unwrap().doc.story(sid).unwrap().clone();
         assert!(matches!(
             st.objects[0].position,
-            designcraft_doc::AnchorPosition::Custom { spine_relative: true, x_offset, object_point: 2, .. } if x_offset == -6.0
+            patronusdesign_doc::AnchorPosition::Custom { spine_relative: true, x_offset, object_point: 2, .. } if x_offset == -6.0
         ));
     }
 }
 
 #[cfg(test)]
 mod text_frame_tests {
-    use designcraft_doc::{ParaFormat, StoryId};
-    use designcraft_geom::Rect;
+    use patronusdesign_doc::{ParaFormat, StoryId};
+    use patronusdesign_geom::Rect;
     use serde_json::json;
 
     use super::*;
 
     /// Anchor, at `pos` of `host`, a 200 × 40 pt text frame showing a new story with `text`.
-    fn anchor(d: &mut Document, host: StoryId, pos: usize, text: &str) -> designcraft_doc::Result<(StoryId, ItemId)> {
+    fn anchor(d: &mut Document, host: StoryId, pos: usize, text: &str) -> patronusdesign_doc::Result<(StoryId, ItemId)> {
         let layer = d.default_layer();
         let (fid, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(0.0, 0.0, 200.0, 40.0), layer, text, ParaFormat::default())?;
-        let item = d.item(fid).ok_or(designcraft_doc::DocError::NoItem(fid))?.clone();
-        d.spread_mut(SpreadRef::Doc(0)).ok_or(designcraft_doc::DocError::NoItem(fid))?.items.retain(|i| i.id != fid);
-        d.story_mut(host).ok_or(designcraft_doc::DocError::NoStory(host))?.insert_object(pos, AnchoredObject::new(item, AnchorPosition::default()));
+        let item = d.item(fid).ok_or(patronusdesign_doc::DocError::NoItem(fid))?.clone();
+        d.spread_mut(SpreadRef::Doc(0)).ok_or(patronusdesign_doc::DocError::NoItem(fid))?.items.retain(|i| i.id != fid);
+        d.story_mut(host)
+            .ok_or(patronusdesign_doc::DocError::NoStory(host))?
+            .insert_object(pos, AnchoredObject::new(item, AnchorPosition::default()));
         Ok((sid, fid))
     }
 
@@ -387,7 +389,7 @@ mod text_frame_tests {
     fn shown(s: &Session) -> Vec<String> {
         let d = &s.doc().unwrap().doc;
         d.check().unwrap();
-        designcraft_format::load(&designcraft_format::save(d).unwrap()).unwrap();
+        patronusdesign_format::load(&patronusdesign_format::save(d).unwrap()).unwrap();
         let stories: Vec<StoryId> = d.anchored_items().iter().filter_map(|(_, i)| i.text_frame()).map(|t| t.story).collect();
         let distinct: std::collections::HashSet<_> = stories.iter().collect();
         assert_eq!(distinct.len(), stories.len(), "a story of its own each");
@@ -431,7 +433,7 @@ mod text_frame_tests {
         // Text dragged with a copy.
         s.execute("text.select", &json!({"story": host.0, "anchor": 0, "focus": 9})).unwrap();
         s.edit(|d, _| {
-            let st = d.story_mut(host).ok_or(designcraft_doc::DocError::NoStory(host))?;
+            let st = d.story_mut(host).ok_or(patronusdesign_doc::DocError::NoStory(host))?;
             let piece = st.extract(0..9);
             st.insert_story(0, &piece);
             Ok(())
@@ -531,11 +533,11 @@ mod text_frame_tests {
     }
 
     /// Place a 4 × 4 pt graphic of grey `v`; returns its frame and its asset.
-    fn place(s: &mut Session, v: u8) -> (ItemId, designcraft_doc::AssetId) {
-        let png = designcraft_render::Rendered { width: 4, height: 4, pixels: vec![v; 64] }.to_png();
+    fn place(s: &mut Session, v: u8) -> (ItemId, patronusdesign_doc::AssetId) {
+        let png = patronusdesign_render::Rendered { width: 4, height: 4, pixels: vec![v; 64] }.to_png();
         let r =
             s.execute("file.place", &json!({"base64": crate::cmd::file::base64_encode(&png), "name": format!("{v}.png"), "x": 72, "y": 72})).unwrap();
-        (ItemId(r["id"].as_u64().unwrap()), designcraft_doc::AssetId(r["asset"].as_u64().unwrap()))
+        (ItemId(r["id"].as_u64().unwrap()), patronusdesign_doc::AssetId(r["asset"].as_u64().unwrap()))
     }
 
     /// The files the graphics anchored in the active document show (in its anchored text frames'

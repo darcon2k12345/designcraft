@@ -1,15 +1,15 @@
-//! The document canvas: pasteboard, spreads (rendered by `designcraft-render`), guides, frame edges,
+//! The document canvas: pasteboard, spreads (rendered by `patronusdesign-render`), guides, frame edges,
 //! selection, text ports and threads, the text caret, rulers, and pointer/keyboard input.
 
-use designcraft_compose as compose;
-use designcraft_doc::{Content, Document, GuideSel, Item, SpreadRef};
-use designcraft_engine::doc::Selection;
-use designcraft_engine::{ImeMutation, ImeTextContext};
-use designcraft_geom::{Affine, Point, Rect as DRect, Vec2 as DVec2};
-use designcraft_tools::{CanvasLayout, Cursor, Mods, Overlay, PointerEvent, PointerKind, SpreadSlot, ToolKey};
 use egui::ime_context::{CommittedText, ImeMutationStamp, ImeObservation, ImeTarget};
 use egui::output::IMESurroundingText;
 use egui::{Color32, Pos2, Rect, Sense, Stroke, StrokeKind, pos2, vec2};
+use patronusdesign_compose as compose;
+use patronusdesign_doc::{Content, Document, GuideSel, Item, SpreadRef};
+use patronusdesign_engine::doc::Selection;
+use patronusdesign_engine::{ImeMutation, ImeTextContext};
+use patronusdesign_geom::{Affine, Point, Rect as DRect, Vec2 as DVec2};
+use patronusdesign_tools::{CanvasLayout, Cursor, Mods, Overlay, PointerEvent, PointerKind, SpreadSlot, ToolKey};
 use serde_json::{Value, json};
 
 use crate::{DesignApp, ScreenMode, View, theme::Tokens};
@@ -149,8 +149,8 @@ fn draw_guide_drag(app: &DesignApp, painter: &egui::Painter, xf: &Xf, g: &GuideD
     let spot = guide_spot(app, xf, g);
     let line = spot.as_ref().map_or(p, |s| s.screen);
     let (a, b) = match g.orientation {
-        designcraft_doc::Orientation::Horizontal => (pos2(rect.min.x, line.y), pos2(rect.max.x, line.y)),
-        designcraft_doc::Orientation::Vertical => (pos2(line.x, rect.min.y), pos2(line.x, rect.max.y)),
+        patronusdesign_doc::Orientation::Horizontal => (pos2(rect.min.x, line.y), pos2(rect.max.x, line.y)),
+        patronusdesign_doc::Orientation::Vertical => (pos2(line.x, rect.min.y), pos2(line.x, rect.max.y)),
     };
     // What caught it, as for a moved object.
     for mark in spot.iter().flat_map(|s| &s.marks) {
@@ -274,7 +274,7 @@ pub fn show(app: &mut DesignApp, ui: &mut egui::Ui) {
     }
     // Paper under the rendered content: a page scrolled or jumped to shows its paper colour,
     // not the shadow's black, until its render arrives.
-    let [r, g, b, _] = doc.resolve_color(designcraft_color::swatch::PAPER, 1.0).unwrap_or(designcraft_color::Color::WHITE).to_rgba8(1.0);
+    let [r, g, b, _] = doc.resolve_color(patronusdesign_color::swatch::PAPER, 1.0).unwrap_or(patronusdesign_color::Color::WHITE).to_rgba8(1.0);
     let paper = Color32::from_rgb(r, g, b);
     for slot in &in_sight {
         for page in doc.spread(slot.spread).map(|sp| sp.pages.as_slice()).unwrap_or_default() {
@@ -394,8 +394,8 @@ fn pointer_cursor(app: &mut DesignApp, ui: &egui::Ui, xf: &Xf, p: Pos2) -> Curso
     // while the button is down: a drag state left behind by a skipped release doesn't stick.
     let dragging = ui.input(|i| i.pointer.primary_down());
     match ui.data(|d| d.get_temp::<GuideDrag>(egui::Id::unique(GUIDE_DRAG))).filter(|_| dragging).map(|g| g.orientation) {
-        Some(designcraft_doc::Orientation::Horizontal) => Cursor::ResizeV,
-        Some(designcraft_doc::Orientation::Vertical) => Cursor::ResizeH,
+        Some(patronusdesign_doc::Orientation::Horizontal) => Cursor::ResizeV,
+        Some(patronusdesign_doc::Orientation::Vertical) => Cursor::ResizeH,
         None => c,
     }
 }
@@ -432,7 +432,7 @@ fn draw_loaded_thumbnail(app: &DesignApp, painter: &egui::Painter, p: Pos2, t: &
 }
 
 /// The loaded graphic's thumbnail texture, cached per image data.
-fn loaded_thumb_texture(ctx: &egui::Context, doc: &Document, asset: designcraft_doc::AssetId, size: (f64, f64)) -> Option<egui::TextureHandle> {
+fn loaded_thumb_texture(ctx: &egui::Context, doc: &Document, asset: patronusdesign_doc::AssetId, size: (f64, f64)) -> Option<egui::TextureHandle> {
     let a = doc.assets.get(&asset)?;
     // Twice the thumbnail's size in pixels, for high-density screens.
     let scale = (2.0 * f64::from(LOADED_THUMB) / size.0.max(size.1)).min(1.0);
@@ -445,13 +445,13 @@ fn loaded_thumb_texture(ctx: &egui::Context, doc: &Document, asset: designcraft_
 pub(super) fn proxy_texture(
     ctx: &egui::Context,
     name: &str,
-    data: &designcraft_doc::AssetData,
+    data: &patronusdesign_doc::AssetData,
     page: u32,
     width_pt: f64,
     scale: f64,
     max_side: usize,
 ) -> Option<egui::TextureHandle> {
-    use designcraft_render::images::{Mip, generation, mip_now};
+    use patronusdesign_render::images::{Mip, generation, mip_now};
     let key = egui::Id::unique((name, data.key(), page));
     // `None`: the level asked for; else the generation a stand-in was drawn at.
     let cached = ctx.data(|d| d.get_temp::<(egui::TextureHandle, Option<u64>)>(key));

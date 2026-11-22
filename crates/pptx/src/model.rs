@@ -1,4 +1,4 @@
-//! Data returned by the DesignCraft-to-Presentation model adapter.
+//! Data returned by the Patronus Design-to-Presentation model adapter.
 
 #[derive(Clone, Debug, Default)]
 pub struct Slide {

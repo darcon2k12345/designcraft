@@ -1,10 +1,10 @@
 use std::io::{Cursor, Read};
 use std::sync::Arc;
 
-use designcraft_doc::build::NewDocument;
-use designcraft_doc::geom::{Affine, PathData, Rect, shapes};
-use designcraft_doc::{Article, Asset, AssetId, Content, Document, Graphic, Item, ItemId, ParaFormat, Shape, SpreadRef, StoryId};
-use designcraft_epub::{Block, EpubOptions, HtmlOptions, export_epub, export_html, reading_order};
+use patronusdesign_doc::build::NewDocument;
+use patronusdesign_doc::geom::{Affine, PathData, Rect, shapes};
+use patronusdesign_doc::{Article, Asset, AssetId, Content, Document, Graphic, Item, ItemId, ParaFormat, Shape, SpreadRef, StoryId};
+use patronusdesign_epub::{Block, EpubOptions, HtmlOptions, export_epub, export_html, reading_order};
 
 fn text(doc: &mut Document, spread: usize, x: f64, y: f64, value: &str) -> (ItemId, StoryId) {
     doc.add_text_frame(SpreadRef::Doc(spread), Rect::new(x, y, x + 100.0, y + 10.0), doc.default_layer(), value, ParaFormat::default()).unwrap()
@@ -95,7 +95,7 @@ fn nested_and_item_rotations_are_combined_before_measuring_graphics() {
             link_hash: None,
             storage: Default::default(),
             proxy: None,
-            data: designcraft_doc::AssetData::embedded(
+            data: patronusdesign_doc::AssetData::embedded(
                 br#"<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><rect width="1" height="1" fill="red"/></svg>"#.to_vec(),
             ),
             pixels: None,

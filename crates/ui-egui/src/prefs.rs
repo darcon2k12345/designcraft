@@ -46,7 +46,7 @@ impl UiState {
 }
 
 /// `UiState::shortcuts` in ui.json. `shortcuts` maps each changed command to its first
-/// shortcut (`""` for none): the map of one text per command that earlier DesignCraft versions
+/// shortcut (`""` for none): the map of one text per command that earlier Patronus Design versions
 /// read, and fail on with anything else, which drops the whole file. A command's further
 /// shortcuts go in `shortcutsMore` (command → texts), which those versions ignore. Loading
 /// appends them to the command's entry in `shortcuts`; extra shortcuts for a command missing

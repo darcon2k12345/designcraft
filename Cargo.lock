@@ -1543,7 +1543,6 @@ dependencies = [
 [[package]]
 name = "craft-update"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=3dff4793f1a5bd1f99a4fe3280d48f515158dff3#3dff4793f1a5bd1f99a4fe3280d48f515158dff3"
 dependencies = [
  "chrono",
  "dunce",
@@ -1792,389 +1791,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
-]
-
-[[package]]
-name = "designcraft"
-version = "0.21.0"
-dependencies = [
- "arboard",
- "craft-update",
- "craft-window",
- "designcraft-engine",
- "designcraft-ui-egui",
- "eframe",
- "egui",
- "fmv-macos-events",
- "log",
- "muda",
- "objc2 0.6.5",
- "objc2-app-kit 0.3.2",
- "objc2-foundation 0.3.2",
- "rfd",
- "serde",
- "serde_json",
- "winit",
- "winresource",
- "winsafe",
-]
-
-[[package]]
-name = "designcraft-cli"
-version = "0.21.0"
-dependencies = [
- "craft-file-formats",
- "craft-image-codecs",
- "designcraft-color",
- "designcraft-compose",
- "designcraft-doc",
- "designcraft-engine",
- "designcraft-format",
- "designcraft-geom",
- "designcraft-mcp",
- "designcraft-pdf",
- "designcraft-render",
- "image",
- "serde_json",
-]
-
-[[package]]
-name = "designcraft-color"
-version = "0.21.0"
-dependencies = [
- "craft-cms",
- "kurbo",
- "proptest",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "designcraft-compose"
-version = "0.21.0"
-dependencies = [
- "designcraft-color",
- "designcraft-doc",
- "designcraft-fonts",
- "designcraft-geom",
- "fancy-regex",
- "hypher",
- "log",
- "miniz_oxide 0.8.9",
- "proptest",
- "regex",
- "unicode-bidi",
- "unicode-bidi-mirroring",
- "unicode-script",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "designcraft-doc"
-version = "0.21.0"
-dependencies = [
- "chrono",
- "designcraft-color",
- "designcraft-geom",
- "proptest",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "designcraft-engine"
-version = "0.21.0"
-dependencies = [
- "caseless",
- "craft-atomic",
- "craft-csv",
- "craft-docpath",
- "craft-file-formats",
- "craft-indd",
- "craft-mime",
- "craft-prepress",
- "craft-print",
- "craft-svg",
- "craft-xml 0.1.0 (git+https://github.com/storytold/craft-libs?rev=b92907f69d6599b91ac76fb8377ac407c8ac956d)",
- "designcraft-color",
- "designcraft-compose",
- "designcraft-doc",
- "designcraft-epub",
- "designcraft-fonts",
- "designcraft-format",
- "designcraft-geom",
- "designcraft-idml",
- "designcraft-images",
- "designcraft-pdf",
- "designcraft-pptx",
- "designcraft-render",
- "designcraft-textimport",
- "designcraft-tools",
- "hayro-cmap",
- "hayro-interpret",
- "hayro-syntax",
- "kurbo",
- "log",
- "same-file",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tempfile",
- "thiserror 2.0.21",
- "unicode-segmentation",
- "wasm-bindgen-test",
- "zip 3.0.0",
-]
-
-[[package]]
-name = "designcraft-epub"
-version = "0.21.0"
-dependencies = [
- "craft-epub",
- "craft-mime",
- "designcraft-color",
- "designcraft-doc",
- "zip 3.0.0",
-]
-
-[[package]]
-name = "designcraft-fonts"
-version = "0.21.0"
-dependencies = [
- "core-text",
- "harfrust 0.13.3",
- "kurbo",
- "log",
- "skrifa 0.47.0",
- "unicode-bidi",
- "unicode-script",
-]
-
-[[package]]
-name = "designcraft-format"
-version = "0.21.0"
-dependencies = [
- "craft-designcraft-format",
- "designcraft-doc",
- "serde_json",
- "zip 3.0.0",
-]
-
-[[package]]
-name = "designcraft-geom"
-version = "0.21.0"
-dependencies = [
- "flo_curves",
- "kurbo",
- "proptest",
- "qrcodegen",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "designcraft-idml"
-version = "0.21.0"
-dependencies = [
- "craft-file-formats",
- "craft-idml 0.1.0 (git+https://github.com/storytold/craft-libs?rev=b92907f69d6599b91ac76fb8377ac407c8ac956d)",
- "craft-xml 0.1.0 (git+https://github.com/storytold/craft-libs?rev=b92907f69d6599b91ac76fb8377ac407c8ac956d)",
- "designcraft-color",
- "designcraft-compose",
- "designcraft-doc",
- "designcraft-geom",
- "designcraft-images",
- "log",
- "thiserror 2.0.21",
- "zip 3.0.0",
-]
-
-[[package]]
-name = "designcraft-images"
-version = "0.21.0"
-dependencies = [
- "craft-cms",
- "craft-eps",
- "craft-file-formats",
- "craft-image-codecs",
- "craft-jpeg",
- "craft-ps",
- "craft-psd",
- "craft-svg",
- "designcraft-color",
- "designcraft-fonts",
- "flate2",
- "image",
- "log",
- "quick-xml 0.41.0",
- "skrifa 0.47.0",
- "tiff",
-]
-
-[[package]]
-name = "designcraft-mcp"
-version = "0.21.0"
-dependencies = [
- "craft-file-formats",
- "craft-mcp-server",
- "designcraft-engine",
- "designcraft-geom",
- "designcraft-render",
- "designcraft-tools",
- "image",
- "log",
- "serde_json",
-]
-
-[[package]]
-name = "designcraft-pdf"
-version = "0.21.0"
-dependencies = [
- "chrono",
- "craft-cms",
- "craft-image-codecs",
- "craft-pdf",
- "craft-prepress",
- "designcraft-color",
- "designcraft-compose",
- "designcraft-doc",
- "designcraft-fonts",
- "designcraft-geom",
- "designcraft-images",
- "flate2",
- "hayro-cmap",
- "hayro-interpret",
- "image",
- "kurbo",
- "log",
- "skrifa 0.47.0",
- "thiserror 2.0.21",
- "tiff",
-]
-
-[[package]]
-name = "designcraft-pptx"
-version = "0.21.0"
-dependencies = [
- "chrono",
- "craft-image-codecs",
- "craft-opc",
- "craft-pptx",
- "designcraft-color",
- "designcraft-compose",
- "designcraft-doc",
- "designcraft-fonts",
- "designcraft-geom",
- "designcraft-images",
- "image",
- "quick-xml 0.41.0",
- "skrifa 0.47.0",
- "thiserror 2.0.21",
- "zip 3.0.0",
-]
-
-[[package]]
-name = "designcraft-render"
-version = "0.21.0"
-dependencies = [
- "bytemuck",
- "craft-image-codecs",
- "craft-pdf",
- "designcraft-color",
- "designcraft-compose",
- "designcraft-doc",
- "designcraft-fonts",
- "designcraft-geom",
- "designcraft-images",
- "image",
- "log",
- "serde",
- "thiserror 2.0.21",
- "vello_common 0.2.0",
- "vello_cpu 0.2.0",
-]
-
-[[package]]
-name = "designcraft-textimport"
-version = "0.21.0"
-dependencies = [
- "craft-docx",
- "craft-file-formats",
- "craft-idml 0.1.0 (git+https://github.com/storytold/craft-libs?rev=b92907f69d6599b91ac76fb8377ac407c8ac956d)",
- "craft-rtf",
- "craft-wordmodel",
- "craft-xlsx",
- "designcraft-doc",
- "zip 3.0.0",
-]
-
-[[package]]
-name = "designcraft-tools"
-version = "0.21.0"
-dependencies = [
- "designcraft-color",
- "designcraft-compose",
- "designcraft-doc",
- "designcraft-geom",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "designcraft-ui-egui"
-version = "0.21.0"
-dependencies = [
- "craft-dialogs",
- "craft-file-formats",
- "craft-keymap",
- "craft-prepress",
- "craft-ui",
- "craft-update",
- "craft-window",
- "designcraft-color",
- "designcraft-compose",
- "designcraft-doc",
- "designcraft-engine",
- "designcraft-fonts",
- "designcraft-geom",
- "designcraft-idml",
- "designcraft-render",
- "designcraft-textimport",
- "designcraft-tools",
- "egui",
- "egui_extras",
- "egui_kittest",
- "log",
- "raw-window-handle",
- "serde",
- "serde_json",
- "tempfile",
- "toml",
- "unicode-bidi",
- "web-time",
- "zip 3.0.0",
-]
-
-[[package]]
-name = "designcraft-web"
-version = "0.21.0"
-dependencies = [
- "designcraft-engine",
- "designcraft-format",
- "designcraft-ui-egui",
- "eframe",
- "egui",
- "form_urlencoded",
- "js-sys",
- "log",
- "rfd",
- "serde_json",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
 ]
 
 [[package]]
@@ -4835,6 +4451,406 @@ dependencies = [
  "redox_syscall 0.5.18",
  "smallvec",
  "windows-link",
+]
+
+[[package]]
+name = "patronus-launcher"
+version = "0.21.0"
+dependencies = [
+ "craft-update",
+ "eframe",
+ "patronus-release",
+]
+
+[[package]]
+name = "patronus-release"
+version = "0.21.0"
+dependencies = [
+ "craft-update",
+]
+
+[[package]]
+name = "patronusdesign"
+version = "0.21.0"
+dependencies = [
+ "arboard",
+ "craft-update",
+ "craft-window",
+ "eframe",
+ "egui",
+ "fmv-macos-events",
+ "log",
+ "muda",
+ "objc2 0.6.5",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
+ "patronusdesign-engine",
+ "patronusdesign-ui-egui",
+ "rfd",
+ "serde",
+ "serde_json",
+ "winit",
+ "winresource",
+ "winsafe",
+]
+
+[[package]]
+name = "patronusdesign-cli"
+version = "0.21.0"
+dependencies = [
+ "craft-file-formats",
+ "craft-image-codecs",
+ "image",
+ "patronusdesign-color",
+ "patronusdesign-compose",
+ "patronusdesign-doc",
+ "patronusdesign-engine",
+ "patronusdesign-format",
+ "patronusdesign-geom",
+ "patronusdesign-mcp",
+ "patronusdesign-pdf",
+ "patronusdesign-render",
+ "serde_json",
+]
+
+[[package]]
+name = "patronusdesign-color"
+version = "0.21.0"
+dependencies = [
+ "craft-cms",
+ "kurbo",
+ "proptest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "patronusdesign-compose"
+version = "0.21.0"
+dependencies = [
+ "fancy-regex",
+ "hypher",
+ "log",
+ "miniz_oxide 0.8.9",
+ "patronusdesign-color",
+ "patronusdesign-doc",
+ "patronusdesign-fonts",
+ "patronusdesign-geom",
+ "proptest",
+ "regex",
+ "unicode-bidi",
+ "unicode-bidi-mirroring",
+ "unicode-script",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "patronusdesign-doc"
+version = "0.21.0"
+dependencies = [
+ "chrono",
+ "patronusdesign-color",
+ "patronusdesign-geom",
+ "proptest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "patronusdesign-engine"
+version = "0.21.0"
+dependencies = [
+ "caseless",
+ "craft-atomic",
+ "craft-csv",
+ "craft-docpath",
+ "craft-file-formats",
+ "craft-indd",
+ "craft-mime",
+ "craft-prepress",
+ "craft-print",
+ "craft-svg",
+ "craft-xml 0.1.0 (git+https://github.com/storytold/craft-libs?rev=b92907f69d6599b91ac76fb8377ac407c8ac956d)",
+ "hayro-cmap",
+ "hayro-interpret",
+ "hayro-syntax",
+ "kurbo",
+ "log",
+ "patronusdesign-color",
+ "patronusdesign-compose",
+ "patronusdesign-doc",
+ "patronusdesign-epub",
+ "patronusdesign-fonts",
+ "patronusdesign-format",
+ "patronusdesign-geom",
+ "patronusdesign-idml",
+ "patronusdesign-images",
+ "patronusdesign-pdf",
+ "patronusdesign-pptx",
+ "patronusdesign-render",
+ "patronusdesign-textimport",
+ "patronusdesign-tools",
+ "same-file",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "thiserror 2.0.21",
+ "unicode-segmentation",
+ "wasm-bindgen-test",
+ "zip 3.0.0",
+]
+
+[[package]]
+name = "patronusdesign-epub"
+version = "0.21.0"
+dependencies = [
+ "craft-epub",
+ "craft-mime",
+ "patronusdesign-color",
+ "patronusdesign-doc",
+ "zip 3.0.0",
+]
+
+[[package]]
+name = "patronusdesign-fonts"
+version = "0.21.0"
+dependencies = [
+ "core-text",
+ "harfrust 0.13.3",
+ "kurbo",
+ "log",
+ "skrifa 0.47.0",
+ "unicode-bidi",
+ "unicode-script",
+]
+
+[[package]]
+name = "patronusdesign-format"
+version = "0.21.0"
+dependencies = [
+ "craft-designcraft-format",
+ "patronusdesign-doc",
+ "serde_json",
+ "zip 3.0.0",
+]
+
+[[package]]
+name = "patronusdesign-geom"
+version = "0.21.0"
+dependencies = [
+ "flo_curves",
+ "kurbo",
+ "proptest",
+ "qrcodegen",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "patronusdesign-idml"
+version = "0.21.0"
+dependencies = [
+ "craft-file-formats",
+ "craft-idml 0.1.0 (git+https://github.com/storytold/craft-libs?rev=b92907f69d6599b91ac76fb8377ac407c8ac956d)",
+ "craft-xml 0.1.0 (git+https://github.com/storytold/craft-libs?rev=b92907f69d6599b91ac76fb8377ac407c8ac956d)",
+ "log",
+ "patronusdesign-color",
+ "patronusdesign-compose",
+ "patronusdesign-doc",
+ "patronusdesign-geom",
+ "patronusdesign-images",
+ "thiserror 2.0.21",
+ "zip 3.0.0",
+]
+
+[[package]]
+name = "patronusdesign-images"
+version = "0.21.0"
+dependencies = [
+ "craft-cms",
+ "craft-eps",
+ "craft-file-formats",
+ "craft-image-codecs",
+ "craft-jpeg",
+ "craft-ps",
+ "craft-psd",
+ "craft-svg",
+ "flate2",
+ "image",
+ "log",
+ "patronusdesign-color",
+ "patronusdesign-fonts",
+ "quick-xml 0.41.0",
+ "skrifa 0.47.0",
+ "tiff",
+]
+
+[[package]]
+name = "patronusdesign-mcp"
+version = "0.21.0"
+dependencies = [
+ "craft-file-formats",
+ "craft-mcp-server",
+ "image",
+ "log",
+ "patronusdesign-engine",
+ "patronusdesign-geom",
+ "patronusdesign-render",
+ "patronusdesign-tools",
+ "serde_json",
+]
+
+[[package]]
+name = "patronusdesign-pdf"
+version = "0.21.0"
+dependencies = [
+ "chrono",
+ "craft-cms",
+ "craft-image-codecs",
+ "craft-pdf",
+ "craft-prepress",
+ "flate2",
+ "hayro-cmap",
+ "hayro-interpret",
+ "image",
+ "kurbo",
+ "log",
+ "patronusdesign-color",
+ "patronusdesign-compose",
+ "patronusdesign-doc",
+ "patronusdesign-fonts",
+ "patronusdesign-geom",
+ "patronusdesign-images",
+ "skrifa 0.47.0",
+ "thiserror 2.0.21",
+ "tiff",
+]
+
+[[package]]
+name = "patronusdesign-pptx"
+version = "0.21.0"
+dependencies = [
+ "chrono",
+ "craft-image-codecs",
+ "craft-opc",
+ "craft-pptx",
+ "image",
+ "patronusdesign-color",
+ "patronusdesign-compose",
+ "patronusdesign-doc",
+ "patronusdesign-fonts",
+ "patronusdesign-geom",
+ "patronusdesign-images",
+ "quick-xml 0.41.0",
+ "skrifa 0.47.0",
+ "thiserror 2.0.21",
+ "zip 3.0.0",
+]
+
+[[package]]
+name = "patronusdesign-render"
+version = "0.21.0"
+dependencies = [
+ "bytemuck",
+ "craft-image-codecs",
+ "craft-pdf",
+ "image",
+ "log",
+ "patronusdesign-color",
+ "patronusdesign-compose",
+ "patronusdesign-doc",
+ "patronusdesign-fonts",
+ "patronusdesign-geom",
+ "patronusdesign-images",
+ "serde",
+ "thiserror 2.0.21",
+ "vello_common 0.2.0",
+ "vello_cpu 0.2.0",
+]
+
+[[package]]
+name = "patronusdesign-textimport"
+version = "0.21.0"
+dependencies = [
+ "craft-docx",
+ "craft-file-formats",
+ "craft-idml 0.1.0 (git+https://github.com/storytold/craft-libs?rev=b92907f69d6599b91ac76fb8377ac407c8ac956d)",
+ "craft-rtf",
+ "craft-wordmodel",
+ "craft-xlsx",
+ "patronusdesign-doc",
+ "zip 3.0.0",
+]
+
+[[package]]
+name = "patronusdesign-tools"
+version = "0.21.0"
+dependencies = [
+ "patronusdesign-color",
+ "patronusdesign-compose",
+ "patronusdesign-doc",
+ "patronusdesign-geom",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "patronusdesign-ui-egui"
+version = "0.21.0"
+dependencies = [
+ "craft-dialogs",
+ "craft-file-formats",
+ "craft-keymap",
+ "craft-prepress",
+ "craft-ui",
+ "craft-update",
+ "craft-window",
+ "egui",
+ "egui_extras",
+ "egui_kittest",
+ "log",
+ "patronus-release",
+ "patronusdesign-color",
+ "patronusdesign-compose",
+ "patronusdesign-doc",
+ "patronusdesign-engine",
+ "patronusdesign-fonts",
+ "patronusdesign-geom",
+ "patronusdesign-idml",
+ "patronusdesign-render",
+ "patronusdesign-textimport",
+ "patronusdesign-tools",
+ "raw-window-handle",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "toml",
+ "unicode-bidi",
+ "web-time",
+ "zip 3.0.0",
+]
+
+[[package]]
+name = "patronusdesign-web"
+version = "0.21.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "form_urlencoded",
+ "js-sys",
+ "log",
+ "patronusdesign-engine",
+ "patronusdesign-format",
+ "patronusdesign-ui-egui",
+ "rfd",
+ "serde_json",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]

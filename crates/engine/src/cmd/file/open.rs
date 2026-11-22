@@ -15,7 +15,7 @@ pub struct RecentPreview {
 }
 
 /// The most pixels a recent file's preview may have to be shown (its PNG is bounded by
-/// `designcraft_format::MAX_PREVIEW_BYTES`, but a small PNG can claim a huge picture).
+/// `patronusdesign_format::MAX_PREVIEW_BYTES`, but a small PNG can claim a huge picture).
 const MAX_PREVIEW_PIXELS: u64 = 1 << 24;
 
 /// The picture a `.designcraft` file saved of its first page; None when the file is gone, isn't
@@ -24,14 +24,14 @@ pub fn recent_preview(path: &str) -> Option<RecentPreview> {
     #[cfg(not(target_arch = "wasm32"))]
     {
         // Only the zip directory and the preview entry are read, not the whole document.
-        let png = designcraft_format::read_preview(std::io::BufReader::new(crate::io::open(path).ok()?))?;
+        let png = patronusdesign_format::read_preview(std::io::BufReader::new(crate::io::open(path).ok()?))?;
         // A preview is a small picture: one whose header claims more pixels than that isn't
         // decoded (a decode is bounded, but not at thumbnail size).
-        let (w, h) = designcraft_images::pixel_size(&png)?;
+        let (w, h) = patronusdesign_images::pixel_size(&png)?;
         if u64::from(w).saturating_mul(u64::from(h)) > MAX_PREVIEW_PIXELS {
             return None;
         }
-        let img = designcraft_images::decode_rgba(&png)?;
+        let img = patronusdesign_images::decode_rgba(&png)?;
         let (width, height) = img.dimensions();
         Some(RecentPreview { width, height, rgba: img.into_raw() })
     }
@@ -97,7 +97,7 @@ pub struct ReadDocument {
 
 #[cfg(not(target_arch = "wasm32"))]
 enum ReadContent {
-    /// A DesignCraft document (or one with an InDesign extension), its repair warnings, and the
+    /// A Patronus Design document (or one with an InDesign extension), its repair warnings, and the
     /// links found for the background check.
     Native { doc: Box<Document>, warnings: Vec<String>, links: crate::cmd::native_links::Opened },
     /// An IDML or InDesign file's bytes, imported when installed.
@@ -133,7 +133,7 @@ pub fn read_document(path: &str, cancel: &std::sync::atomic::AtomicBool) -> Resu
         return Ok(ReadDocument { path: path.to_string(), content: ReadContent::Interchange(bytes) });
     }
     if !native && legacy.is_none() {
-        return Err(bad("file.open", format!("{path}: not a DesignCraft or IDML file")));
+        return Err(bad("file.open", format!("{path}: not a Patronus Design or IDML file")));
     }
     let (mut d, warnings) = match legacy {
         Some(loaded) => loaded,
@@ -180,12 +180,12 @@ fn install_document(s: &mut Session, read: ReadDocument) -> Result<Value> {
 pub(crate) fn load_document_fonts(d: &mut Document, path: &str) -> (Option<Arc<crate::FontScope>>, usize, Vec<String>) {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        use designcraft_fonts::DOCUMENT_FONTS_FOLDER;
+        use patronusdesign_fonts::DOCUMENT_FONTS_FOLDER;
         let Some(folder) = std::path::Path::new(path).parent().map(document_fonts_folder) else { return (None, 0, Vec::new()) };
         // A document's folder is the agent's to name (a recovery entry or a book lists paths too):
         // the fonts crate asks the automation roots about the folder and each font file, so fonts
         // outside the read root stay unloaded.
-        let r = designcraft_fonts::FontDb::global().load_document_fonts(&folder, &|p| crate::file_access::check_read(p));
+        let r = patronusdesign_fonts::FontDb::global().load_document_fonts(&folder, &|p| crate::file_access::check_read(p));
         d.font_scope = r.scope;
         let scope = (r.scope != 0).then(|| Arc::new(crate::FontScope(r.scope)));
         (scope, r.faces, r.skipped.into_iter().map(|s| format!("{DOCUMENT_FONTS_FOLDER}: {s}")).collect())
@@ -201,7 +201,7 @@ pub(crate) fn load_document_fonts(d: &mut Document, path: &str) -> (Option<Arc<c
 /// `Document fonts`, and file systems on Linux are case-sensitive. The exact name wins.
 #[cfg(not(target_arch = "wasm32"))]
 fn document_fonts_folder(dir: &std::path::Path) -> std::path::PathBuf {
-    use designcraft_fonts::DOCUMENT_FONTS_FOLDER;
+    use patronusdesign_fonts::DOCUMENT_FONTS_FOLDER;
     // A bare file name has an empty parent; directory traversal needs an explicit `.`.
     let dir = if dir.as_os_str().is_empty() { std::path::Path::new(".") } else { dir };
     let exact = dir.join(DOCUMENT_FONTS_FOLDER);
@@ -249,8 +249,8 @@ pub(super) fn file_open_bytes(s: &mut Session, p: &Value) -> Result<Value> {
 mod document_fonts_tests {
     use std::path::{Path, PathBuf};
 
-    use designcraft_fonts::testing::font_with;
-    use designcraft_fonts::{DOCUMENT_FONTS_FOLDER, FaceRef, FontDb, FontSource};
+    use patronusdesign_fonts::testing::font_with;
+    use patronusdesign_fonts::{DOCUMENT_FONTS_FOLDER, FaceRef, FontDb, FontSource};
     use serde_json::{Value, json};
 
     use crate::Session;
@@ -279,7 +279,7 @@ mod document_fonts_tests {
         let mut s = Session::new();
         new_document(&mut s, family, text);
         if path.extension().is_some_and(|e| e == "idml") {
-            std::fs::write(path, designcraft_idml::export_idml(&s.doc().unwrap().doc)).unwrap();
+            std::fs::write(path, patronusdesign_idml::export_idml(&s.doc().unwrap().doc)).unwrap();
         } else {
             s.execute("file.save", &json!({"path": path.to_string_lossy()})).unwrap();
         }
@@ -310,7 +310,7 @@ mod document_fonts_tests {
     #[test]
     fn opening_a_document_loads_its_document_fonts() {
         const FAMILY: &str = "DocFont Open Test";
-        let dir = temp_dir("designcraft");
+        let dir = temp_dir("patronusdesign");
         let fonts = dir.join(DOCUMENT_FONTS_FOLDER);
         std::fs::write(fonts.join("open.ttf"), font_with(FAMILY, &['H', 'e', 'l', 'o']).unwrap()).unwrap();
         std::fs::write(fonts.join("broken.otf"), b"not a font").unwrap();
@@ -347,7 +347,7 @@ mod document_fonts_tests {
         // The extension decides (any case), not the bytes: no InDesign-made file is needed.
         let dir = temp_dir("indd");
         let path = dir.join("Brochure.INDD");
-        std::fs::write(&path, b"not a DesignCraft document").unwrap();
+        std::fs::write(&path, b"not a Patronus Design document").unwrap();
         let mut s = Session::new();
         let e = s.execute("file.open", &json!({"path": path.to_string_lossy()})).unwrap_err().to_string();
         assert!(e.contains("InDesign Markup (IDML)") && !e.contains("expected value"), "{e}");
@@ -382,7 +382,7 @@ mod document_fonts_tests {
         let dir = tempfile::tempdir().unwrap();
         let output = std::process::Command::new(std::env::current_exe().unwrap())
             .args(["--exact", "cmd::file::open::document_fonts_tests::document_font_paths_child", "--ignored", "--nocapture"])
-            .env("DESIGNCRAFT_TEST_DOCUMENT_FONT_PATHS", "1")
+            .env("PATRONUSDESIGN_TEST_DOCUMENT_FONT_PATHS", "1")
             .current_dir(dir.path())
             .output()
             .unwrap();
@@ -396,7 +396,7 @@ mod document_fonts_tests {
     #[ignore = "subprocess helper, executed by document_fonts_are_found_for_bare_and_explicit_paths"]
     fn document_font_paths_child() {
         const FAMILY: &str = "DocFont Bare Path Test";
-        assert!(std::env::var_os("DESIGNCRAFT_TEST_DOCUMENT_FONT_PATHS").is_some(), "run through the parent test");
+        assert!(std::env::var_os("PATRONUSDESIGN_TEST_DOCUMENT_FONT_PATHS").is_some(), "run through the parent test");
         let cwd = std::env::current_dir().unwrap();
         std::fs::create_dir("nested").unwrap();
         std::fs::create_dir("other").unwrap();
@@ -450,7 +450,7 @@ mod document_fonts_tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("Plain.designcraft");
-        write_document(&path, designcraft_fonts::DEFAULT_FAMILY);
+        write_document(&path, patronusdesign_fonts::DEFAULT_FAMILY);
         let r = Session::new().execute("file.open", &json!({"path": path.to_string_lossy()})).unwrap();
         assert_eq!((r["documentFonts"].clone(), r["warnings"].clone()), (json!(0), json!([])), "{r}");
         let _ = std::fs::remove_dir_all(&dir);
@@ -581,7 +581,7 @@ mod open_bytes_tests {
     fn legacy_and_idml_bytes_named_as_indesign_files_open_without_conversion() {
         let mut maker = Session::new();
         maker.execute("file.new", &json!({})).unwrap();
-        let idml = designcraft_idml::export_idml(&maker.doc().unwrap().doc);
+        let idml = patronusdesign_idml::export_idml(&maker.doc().unwrap().doc);
         let base64 = super::super::bytes::base64_encode(&idml);
         let legacy_bytes = serde_json::to_vec(&maker.doc().unwrap().doc).unwrap();
         let legacy = super::super::bytes::base64_encode(&legacy_bytes);
@@ -632,7 +632,7 @@ mod open_bytes_tests {
             ("Präsentation.designcraft", "Präsentation"),
             ("日本.DESIGNCRAFT", "日本"),
             ("é", "é"),
-            ("édesigncraft", "édesigncraft"),
+            ("épatronusdesign", "épatronusdesign"),
         ] {
             let r = s.execute("file.openBytes", &json!({"name": name, "base64": native["base64"]})).unwrap();
             let st = &s.documents()[r["index"].as_u64().unwrap() as usize];
@@ -773,7 +773,7 @@ mod read_install_tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let image = dir.join("photo.png");
-        std::fs::write(&image, designcraft_render::Rendered { width: 40, height: 20, pixels: [200, 90, 30, 255].repeat(800) }.to_png()).unwrap();
+        std::fs::write(&image, patronusdesign_render::Rendered { width: 40, height: 20, pixels: [200, 90, 30, 255].repeat(800) }.to_png()).unwrap();
         let path = dir.join("Brochure.designcraft").to_string_lossy().to_string();
         let mut writer = Session::new();
         writer.execute("file.new", &json!({})).unwrap();
@@ -797,7 +797,7 @@ mod read_install_tests {
         // Asset data keys are process-wide counters, so compare the saved form and the data apart.
         let (a, b) = (&staged.doc().unwrap().doc, &by_command.doc().unwrap().doc);
         assert_eq!(serde_json::to_value(a).unwrap(), serde_json::to_value(b).unwrap());
-        let data = |d: &designcraft_doc::Document| d.assets.values().map(|x| (x.id, x.data.is_linked(), x.data.len())).collect::<Vec<_>>();
+        let data = |d: &patronusdesign_doc::Document| d.assets.values().map(|x| (x.id, x.data.is_linked(), x.data.len())).collect::<Vec<_>>();
         assert_eq!(data(a), data(b));
         assert_eq!(staged.doc().unwrap().path, by_command.doc().unwrap().path);
         assert_eq!(staged.prefs.recent_files, by_command.prefs.recent_files);

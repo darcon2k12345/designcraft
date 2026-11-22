@@ -9,8 +9,8 @@ impl<'a> Ex<'a> {
     /// A `Gradient` element; stop colours missing from the swatches become anonymous colours.
     fn gradient_el(
         &mut self,
-        s: &designcraft_color::Swatch,
-        gradient: &designcraft_color::Gradient,
+        s: &patronusdesign_color::Swatch,
+        gradient: &patronusdesign_color::Gradient,
         colors: &mut Vec<ColorDefinition>,
         by_value: &mut Vec<(Color, String)>,
     ) -> GradientDefinition {
@@ -129,16 +129,16 @@ impl<'a> Ex<'a> {
             let id = format!("CustomStrokeStyle/{}", st.name);
             let pcts = |v: &[f64]| v.iter().map(|x| num(x * 100.0)).collect::<Vec<_>>().join(" ");
             let el = match &st.kind {
-                designcraft_doc::StrokeType::Stripes { bands } => {
+                patronusdesign_doc::StrokeType::Stripes { bands } => {
                     let flat: Vec<f64> = bands.iter().flat_map(|(a, w)| [*a, a + w]).collect();
                     Some(StrokeDefinition::Striped { self_id: id.clone(), name: st.name.clone(), array: pcts(&flat) })
                 }
-                designcraft_doc::StrokeType::Dashed { pattern } => Some(StrokeDefinition::Dashed {
+                patronusdesign_doc::StrokeType::Dashed { pattern } => Some(StrokeDefinition::Dashed {
                     self_id: id.clone(),
                     name: st.name.clone(),
                     array: pattern.iter().map(|x| num(*x)).collect::<Vec<_>>().join(" "),
                 }),
-                designcraft_doc::StrokeType::Dotted => {
+                patronusdesign_doc::StrokeType::Dotted => {
                     Some(StrokeDefinition::Dotted { self_id: id.clone(), name: st.name.clone(), array: "0 200".to_string() })
                 }
                 _ => None,

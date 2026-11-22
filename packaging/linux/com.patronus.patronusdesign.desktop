@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Patronus Design
+GenericName=Page Layout
+Comment=Lay out magazines, books and print documents
+Exec=patronusdesign %F
+TryExec=patronusdesign
+Icon=com.patronus.patronusdesign
+Terminal=false
+StartupNotify=true
+StartupWMClass=com.patronus.patronusdesign
+Categories=Graphics;Publishing;
+MimeType=application/x-designcraft;application/vnd.adobe.indesign-idml-package;
+Keywords=layout;page;desktop publishing;dtp;magazine;book;indesign;idml;typesetting;

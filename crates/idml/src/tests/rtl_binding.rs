@@ -1,4 +1,4 @@
-use designcraft_doc::PageSide::{self, Left, Right};
+use patronusdesign_doc::PageSide::{self, Left, Right};
 
 use super::*;
 

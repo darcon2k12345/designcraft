@@ -21,7 +21,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, PoisonError};
 
-use designcraft_doc::{Asset, AssetData, AssetId, Document, Fingerprint, LinkedSource, SourceKey, Storage};
+use patronusdesign_doc::{Asset, AssetData, AssetId, Document, Fingerprint, LinkedSource, SourceKey, Storage};
 use serde_json::{Value, json};
 
 use super::{CommandSpec, always, bad, cmd};
@@ -144,12 +144,12 @@ enum Outcome {
         path: PathBuf,
         fingerprint: Fingerprint,
         hash: String,
-        proxy: Option<designcraft_render::proxy::ProxyImage>,
+        proxy: Option<patronusdesign_render::proxy::ProxyImage>,
     },
     /// The file isn't (or can't be shown to be) the embedded bytes: they stay embedded.
     Unconfirmed,
     /// The content hash and proxy of placed graphics' bytes ([`Work::Prepare`]).
-    Prepared { key: SourceKey, hash: String, proxy: Option<designcraft_render::proxy::ProxyImage> },
+    Prepared { key: SourceKey, hash: String, proxy: Option<patronusdesign_render::proxy::ProxyImage> },
 }
 
 /// A graphic placed from a file whose content hash and proxy are still to be made
@@ -344,7 +344,7 @@ fn spawn(work: Vec<Work>, results: Vec<Outcome>) -> Arc<JobHandle> {
     let roots = crate::file_access::current();
     let worker = Arc::clone(&job);
     let worker_roots = roots.clone();
-    let spawned = std::thread::Builder::new().name("designcraft-links".into()).spawn(move || run_all(&worker, worker_roots.as_ref()));
+    let spawned = std::thread::Builder::new().name("patronusdesign-links".into()).spawn(move || run_all(&worker, worker_roots.as_ref()));
     if let Err(e) = spawned {
         // No thread: check here rather than leave the links unchecked.
         log::warn!("checking linked files without a thread: {e}");
@@ -463,7 +463,7 @@ fn check(work: Work, cancel: &AtomicBool) -> Option<Outcome> {
                 return Some(Outcome::Unconfirmed);
             }
             let hash = crate::asset_io::content_hash(&bytes);
-            let proxy = designcraft_render::proxy::make_proxy(&bytes, page);
+            let proxy = patronusdesign_render::proxy::make_proxy(&bytes, page);
             // A time that can't vouch for the bytes (changed in the last seconds, or none) is
             // kept as one no file has: saves then go by the hash, not by size and time.
             let fingerprint = if super::links::settled(&before) { before } else { Fingerprint { size: len, mtime: super::links::UNVERIFIED_MTIME } };
@@ -474,7 +474,7 @@ fn check(work: Work, cancel: &AtomicBool) -> Option<Outcome> {
             if cancel.load(Ordering::Relaxed) {
                 return None;
             }
-            let proxy = if proxy { designcraft_render::proxy::make_proxy(&bytes, page) } else { None };
+            let proxy = if proxy { patronusdesign_render::proxy::make_proxy(&bytes, page) } else { None };
             Some(Outcome::Prepared { key, hash, proxy })
         }
     }
@@ -559,7 +559,7 @@ impl Session {
             changed |= apply(st);
         }
         if changed {
-            designcraft_doc::asset_data::links_changed();
+            patronusdesign_doc::asset_data::links_changed();
         }
         changed
     }
@@ -647,8 +647,8 @@ fn found(st: &mut DocState, id: AssetId, key: SourceKey, status: LinkStatus) {
 }
 
 /// A proxy the background job made, as a document keeps it.
-fn doc_proxy(p: designcraft_render::proxy::ProxyImage) -> designcraft_doc::Proxy {
-    designcraft_doc::Proxy { mime: p.mime.into(), pixels: p.pixels, data: AssetData::embedded(p.data) }
+fn doc_proxy(p: patronusdesign_render::proxy::ProxyImage) -> patronusdesign_doc::Proxy {
+    patronusdesign_doc::Proxy { mime: p.mime.into(), pixels: p.pixels, data: AssetData::embedded(p.data) }
 }
 
 /// The file at `path` holds asset `id`'s bytes (still `key`'s): its link, with `fingerprint`
@@ -678,7 +678,7 @@ fn held(st: &mut DocState, id: AssetId, key: SourceKey, path: &Path, fingerprint
 /// and lack them ([`super::links::add_prepared`]), in the live document, the undo history and the
 /// last saved state alike: a redo of an undone placement, or an undo to before an open-time
 /// check, then has them too. → whether the live document changed.
-fn add_everywhere(st: &mut DocState, key: SourceKey, hash: &str, proxy: Option<&designcraft_doc::Proxy>) -> bool {
+fn add_everywhere(st: &mut DocState, key: SourceKey, hash: &str, proxy: Option<&patronusdesign_doc::Proxy>) -> bool {
     // Each document changed once, its holders sharing the result: a history entry that was the
     // saved state still is.
     let mut done: Vec<(Arc<Document>, Arc<Document>)> = Vec::new();
@@ -703,7 +703,7 @@ fn add_everywhere(st: &mut DocState, key: SourceKey, hash: &str, proxy: Option<&
 }
 
 /// [`add_everywhere`] for one version of the document → whether `doc` changed.
-fn add_to(doc: &mut Arc<Document>, key: SourceKey, hash: &str, proxy: Option<&designcraft_doc::Proxy>) -> bool {
+fn add_to(doc: &mut Arc<Document>, key: SourceKey, hash: &str, proxy: Option<&patronusdesign_doc::Proxy>) -> bool {
     let wants = |a: &Asset| a.data.key() == key && (a.link_hash.is_none() || (proxy.is_some() && a.storage == Storage::Linked && a.proxy.is_none()));
     let ids: Vec<AssetId> = doc.assets.values().filter(|a| wants(a)).map(|a| a.id).collect();
     if ids.is_empty() {

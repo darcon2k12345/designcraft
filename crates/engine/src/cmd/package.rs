@@ -10,9 +10,9 @@ use std::io::Write;
 
 use super::{CommandSpec, bad, cmd, has_doc, str_param};
 use crate::{EngineError, Result, Session};
-use designcraft_compose::ComposedStory;
-use designcraft_doc::{AssetId, Document, Fingerprint, LinkedSource, Storage};
-use designcraft_fonts::{FaceRef, FontFace, FontSource};
+use patronusdesign_compose::ComposedStory;
+use patronusdesign_doc::{AssetId, Document, Fingerprint, LinkedSource, Storage};
+use patronusdesign_fonts::{FaceRef, FontFace, FontSource};
 use serde_json::{Value, json};
 
 const MAX_OUTPUT_COMPONENT_BYTES: usize = 200;
@@ -396,7 +396,7 @@ fn write_links(
 /// report adds after the font's name (nothing when copied).
 fn copy_font(root: &OutputRoot, face: &FontFace, dir: &Path, copied: &mut Vec<PathBuf>, taken: &mut Taken, files: &mut Vec<PathBuf>) -> String {
     let from = match &face.source {
-        FontSource::Bundled => return " — included with DesignCraft".into(),
+        FontSource::Bundled => return " — included with Patronus Design".into(),
         FontSource::Memory => return " — not copied: no font file".into(),
         FontSource::Installed(p) | FontSource::Document(p) => p,
     };
@@ -492,8 +492,8 @@ fn package(s: &mut Session, p: &Value) -> Result<Value> {
     root.write(&doc_path, &super::to_bytes(&packed)?)?;
     files.insert(0, doc_path);
     // The font files, and what the report says about each font.
-    let db = designcraft_fonts::FontDb::global().scoped(d.font_scope);
-    let fonts_dir = root.child(designcraft_fonts::DOCUMENT_FONTS_FOLDER)?;
+    let db = patronusdesign_fonts::FontDb::global().scoped(d.font_scope);
+    let fonts_dir = root.child(patronusdesign_fonts::DOCUMENT_FONTS_FOLDER)?;
     let (mut copied, mut taken) = (Vec::new(), Taken::default());
     let (mut font_lines, mut named) = (Vec::new(), Vec::new());
     for f in fonts.as_array().into_iter().flatten() {
@@ -523,11 +523,11 @@ fn package(s: &mut Session, p: &Value) -> Result<Value> {
     if p.get("idml").and_then(Value::as_bool).unwrap_or(true) {
         let path = package_output_path(&dir, &title, "idml")?;
         // The images are in Links/ beside it: link them there, without embedded copies.
-        let opts = designcraft_idml::ExportOptions { embed_images: false };
-        root.write(&path, &designcraft_idml::export_idml_with(&packed, &opts))?;
+        let opts = patronusdesign_idml::ExportOptions { embed_images: false };
+        root.write(&path, &patronusdesign_idml::export_idml_with(&packed, &opts))?;
         files.push(path);
         if super::interchange::has_applicable_pdf_layer_overrides(&packed) {
-            idml_layer_note = "\nPlaced PDF layers\nThe IDML copy links the placed PDFs, so it shows their file defaults. The DesignCraft document keeps each placement's Object Layer Options choice.\n";
+            idml_layer_note = "\nPlaced PDF layers\nThe IDML copy links the placed PDFs, so it shows their file defaults. The Patronus Design document keeps each placement's Object Layer Options choice.\n";
         }
     }
     if let Some(params) = pdf {

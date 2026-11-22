@@ -1,4 +1,4 @@
-//! Reading linked files' bytes for the document model ([`designcraft_doc::asset_data`]): the
+//! Reading linked files' bytes for the document model ([`patronusdesign_doc::asset_data`]): the
 //! [`Loader`] every [`crate::Session`] installs. Files are read through [`crate::io`] (the
 //! automation roots of the loading thread apply) and only ever yield the bytes the link record
 //! names: other bytes at the path are [`Unavailable::Modified`] and are never handed out.
@@ -7,13 +7,13 @@
 
 use std::path::{Path, PathBuf};
 
-use designcraft_doc::asset_data::{Loaded, Loader, MAX_LINKED_BYTES};
-use designcraft_doc::{Fingerprint, LinkedSource, Unavailable};
+use patronusdesign_doc::asset_data::{Loaded, Loader, MAX_LINKED_BYTES};
+use patronusdesign_doc::{Fingerprint, LinkedSource, Unavailable};
 
 /// Read linked files with [`FileLoader`] in this process (on the web: nothing to install).
 pub fn install() {
     #[cfg(not(target_arch = "wasm32"))]
-    designcraft_doc::asset_data::install_loader(std::sync::Arc::new(FileLoader));
+    patronusdesign_doc::asset_data::install_loader(std::sync::Arc::new(FileLoader));
 }
 
 /// The engine's [`Loader`]: [`read_linked`].
@@ -76,7 +76,7 @@ pub fn read_current(source: &LinkedSource) -> Result<Vec<u8>, Unavailable> {
     Err(Unavailable::Missing)
 }
 
-/// `sha256:` and the hex digits of the SHA-256 of `bytes` ([`designcraft_doc::Asset::link_hash`]).
+/// `sha256:` and the hex digits of the SHA-256 of `bytes` ([`patronusdesign_doc::Asset::link_hash`]).
 pub fn content_hash(bytes: &[u8]) -> String {
     use sha2::Digest;
     use std::fmt::Write;
@@ -188,7 +188,7 @@ fn read_candidate(path: &Path, source: &LinkedSource, trusted: Option<Fingerprin
 #[cfg(test)]
 mod tests {
     use super::*;
-    use designcraft_doc::AssetData;
+    use patronusdesign_doc::AssetData;
 
     struct Dir(PathBuf);
 

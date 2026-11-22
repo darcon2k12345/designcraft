@@ -1,5 +1,5 @@
-use designcraft_color::cms::{self, Cms, ColorSettings};
 use image::{ImageEncoder, Rgba};
+use patronusdesign_color::cms::{self, Cms, ColorSettings};
 
 use super::*;
 use crate::decode_rgba;

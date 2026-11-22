@@ -1,5 +1,5 @@
-use designcraft_geom::Unit;
 use egui_kittest::{Harness, kittest::Queryable};
+use patronusdesign_geom::Unit;
 
 use super::*;
 
@@ -7,10 +7,10 @@ use super::*;
 /// a frame, and the release places that frame: what's shown is what lands.
 #[test]
 fn a_short_place_cursor_drag_places_the_frame_it_previews() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
-    let png = designcraft_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
-    app.run("place.load", json!({"base64": designcraft_engine::cmd::base64_encode(&png), "name": "a.png"})).unwrap();
+    let png = patronusdesign_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
+    app.run("place.load", json!({"base64": patronusdesign_engine::cmd::base64_encode(&png), "name": "a.png"})).unwrap();
     let mut h = Harness::builder().with_size(vec2(1400.0, 900.0)).with_step_dt(1.0 / 60.0).build_ui_state(
         |ui, app: &mut DesignApp| {
             let ctx = ui.ctx().clone();
@@ -41,7 +41,7 @@ fn a_short_place_cursor_drag_places_the_frame_it_previews() {
         .overlays(vi)
         .into_iter()
         .find_map(|o| match o {
-            designcraft_tools::Overlay::Marquee(r) => Some(r),
+            patronusdesign_tools::Overlay::Marquee(r) => Some(r),
             _ => None,
         })
         .expect("the frame is previewed");
@@ -114,7 +114,7 @@ fn vertical_lines_at(shapes: &[egui::epaint::ClippedShape], x: f32, page: Rect) 
 
 #[test]
 fn a_spread_shows_a_spine_line_between_its_pages() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", serde_json::json!({"pages": 3, "facingPages": true})).unwrap();
     let shapes = canvas_shapes(&mut app);
     let st = app.session.active().unwrap();
@@ -143,7 +143,7 @@ fn the_spine_sits_where_the_pages_of_a_right_to_left_spread_meet() {
     // Bound right to left, the spread lists its right page first. With pages of different
     // sizes, the line must be at their shared edge, not halfway between the outer ones, and
     // run the height of the taller page, not stop at the shorter one listed first.
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", serde_json::json!({"pages": 3, "facingPages": true})).unwrap();
     app.run("layout.documentSetup", serde_json::json!({"binding": "rightToLeft"})).unwrap();
     let settings = &app.session.active().unwrap().doc.settings;
@@ -163,7 +163,7 @@ fn the_spine_sits_where_the_pages_of_a_right_to_left_spread_meet() {
 #[test]
 fn the_spine_line_hides_with_the_other_guides() {
     for (guides, mode) in [(false, ScreenMode::Normal), (true, ScreenMode::Preview), (true, ScreenMode::Presentation)] {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", serde_json::json!({"pages": 3, "facingPages": true})).unwrap();
         app.ui.guides = guides;
         app.ui.screen_mode = mode;
@@ -179,14 +179,14 @@ fn the_spine_line_hides_with_the_other_guides() {
 /// While a page's render is on its way the page shows paper, not the black of its shadow.
 #[test]
 fn pages_show_paper_under_their_render() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", serde_json::json!({"pages": 3, "facingPages": true})).unwrap();
     let shapes = canvas_shapes(&mut app);
     let st = app.session.active().unwrap();
     let layout = CanvasLayout::new(&st.doc, false);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
     // The paper swatch on screen (white, as the colour settings show it).
-    let [r, g, b, _] = st.doc.resolve_color(designcraft_color::swatch::PAPER, 1.0).unwrap().to_rgba8(1.0);
+    let [r, g, b, _] = st.doc.resolve_color(patronusdesign_color::swatch::PAPER, 1.0).unwrap().to_rgba8(1.0);
     let paper: Vec<Rect> = shapes
         .iter()
         .filter_map(|c| match &c.shape {
@@ -207,7 +207,7 @@ fn pages_show_paper_under_their_render() {
 /// colour, beside the bleed guide.
 #[test]
 fn bleed_and_slug_are_preview_modes_that_show_their_area() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", serde_json::json!({"bleed": 9, "slug": 18})).unwrap();
     let strokes = |app: &mut DesignApp, want: [u8; 3]| -> usize {
         let ctx = egui::Context::default();
@@ -239,11 +239,11 @@ fn bleed_and_slug_are_preview_modes_that_show_their_area() {
 /// moving its top points, as in the Zero2Graphic tutorial's row of parallelograms.
 #[test]
 fn an_empty_frames_x_follows_its_corners() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let id = app.run("frame.create", json!({"rect": [100, 100, 200, 160]})).unwrap()["id"].as_u64().unwrap();
     let x = |app: &DesignApp| {
-        let it = app.session.active().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap().clone();
+        let it = app.session.active().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap().clone();
         let m = it.xf;
         frame_x(&it).map(|(a, b)| {
             let (a, b) = (m * a, m * b);
@@ -255,7 +255,7 @@ fn an_empty_frames_x_follows_its_corners() {
     lines.sort_by(|a, b| a.partial_cmp(b).unwrap());
     assert_eq!(lines, vec![[(100.0, 100.0), (200.0, 160.0)], [(100.0, 160.0), (200.0, 100.0)]], "corner to corner");
     // Slant it: the two top points move 30 pt right.
-    let it = app.session.active().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap().clone();
+    let it = app.session.active().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap().clone();
     let top: Vec<Value> =
         it.path.subpaths[0].anchors.iter().enumerate().filter(|(_, a)| (it.xf * a.p).y < 130.0).map(|(k, _)| json!([0, k])).collect();
     assert_eq!(top.len(), 2);
@@ -266,7 +266,7 @@ fn an_empty_frames_x_follows_its_corners() {
     assert_eq!(lines, vec![[(100.0, 160.0), (230.0, 100.0)], [(130.0, 100.0), (200.0, 160.0)]], "the slanted corners");
     // An ellipse frame (four smooth anchors) keeps the X across its bounds, not a plus.
     let e = app.run("frame.create", json!({"rect": [300, 100, 400, 160], "shape": "ellipse"})).unwrap()["id"].as_u64().unwrap();
-    let it = app.session.active().unwrap().doc.item(designcraft_doc::ItemId(e)).unwrap().clone();
+    let it = app.session.active().unwrap().doc.item(patronusdesign_doc::ItemId(e)).unwrap().clone();
     let mut lines: Vec<[(f64, f64); 2]> = frame_x(&it)
         .map(|(a, b)| {
             let (a, b) = (it.xf * a, it.xf * b);
@@ -278,7 +278,7 @@ fn an_empty_frames_x_follows_its_corners() {
     assert_eq!(lines, vec![[(300.0, 100.0), (400.0, 160.0)], [(300.0, 160.0), (400.0, 100.0)]], "the ellipse's bounds");
     // So does a four-sided polygon frame (a diamond): its corners would cross as a plus.
     let mut diamond = it.clone();
-    diamond.shape = designcraft_doc::Shape::Polygon;
+    diamond.shape = patronusdesign_doc::Shape::Polygon;
     for a in &mut diamond.path.subpaths[0].anchors {
         (a.h_in, a.h_out) = (a.p, a.p);
     }
@@ -289,8 +289,8 @@ fn an_empty_frames_x_follows_its_corners() {
         .as_u64()
         .unwrap();
     app.run("path.moveAnchors", json!({"id": p, "anchors": [[0, 0]], "dx": 5, "dy": 0})).unwrap();
-    let it = app.session.active().unwrap().doc.item(designcraft_doc::ItemId(p)).unwrap().clone();
-    assert_eq!(it.shape, designcraft_doc::Shape::Path);
+    let it = app.session.active().unwrap().doc.item(patronusdesign_doc::ItemId(p)).unwrap().clone();
+    assert_eq!(it.shape, patronusdesign_doc::Shape::Path);
     let lines: Vec<_> = frame_x(&it).to_vec();
     assert!(lines.iter().all(|(a, b)| (a.x - b.x).abs() > 1e-6 && (a.y - b.y).abs() > 1e-6), "an edited diamond: {lines:?}");
 }
@@ -301,8 +301,8 @@ fn an_empty_frames_x_follows_its_corners() {
 fn a_frame_with_pasted_in_content_shows_its_own_edge_only() {
     let dir = tempfile::tempdir().unwrap();
     let png = dir.path().join("photo.png");
-    std::fs::write(&png, designcraft_render::Rendered { width: 300, height: 300, pixels: vec![90; 300 * 300 * 4] }.to_png()).unwrap();
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    std::fs::write(&png, patronusdesign_render::Rendered { width: 300, height: 300, pixels: vec![90; 300 * 300 * 4] }.to_png()).unwrap();
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let big = app.run("frame.create", json!({"rect": [60, 60, 360, 360]})).unwrap()["id"].as_u64().unwrap();
     app.run("file.place", json!({"path": png.to_string_lossy(), "frame": big})).unwrap();
@@ -324,7 +324,7 @@ fn a_frame_with_pasted_in_content_shows_its_own_edge_only() {
     }
     let st = app.session.active().unwrap();
     let doc = &st.doc;
-    let it = doc.item(designcraft_doc::ItemId(shape)).unwrap();
+    let it = doc.item(patronusdesign_doc::ItemId(shape)).unwrap();
     assert!(it.has_nested_items(), "the graphic is inside the shape");
     let layout = CanvasLayout::new(doc, false);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
@@ -351,7 +351,7 @@ fn a_frame_with_pasted_in_content_shows_its_own_edge_only() {
 /// Slug the slug box. A slug narrower than the bleed never pulls the edge back in.
 #[test]
 fn shown_area_widens_to_the_bleed_and_slug_boxes() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", serde_json::json!({"bleed": 9, "slug": 18})).unwrap();
     let doc = app.session.active().unwrap().doc.clone();
     let layout = CanvasLayout::new(&doc, false);
@@ -425,7 +425,7 @@ fn finished_image_decodes_rerender_the_canvas_in_batches() {
 
 #[test]
 fn display_option_change_drops_the_render_in_flight() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let shown =
         crate::Shown { doc: (1, 2, 3, false), origin: Point::new(0.0, 0.0), zoom: 1.0, size: (10.0, 10.0), editing_parents: false, images: 0 };
     invalidate_on_display_change(&mut app);
@@ -435,7 +435,7 @@ fn display_option_change_drops_the_render_in_flight() {
     invalidate_on_display_change(&mut app);
     assert!(app.canvas.shown.is_some() && app.canvas.pending.is_some());
     // A display option changed while the render ran: its result must not be accepted.
-    app.ui.display_quality = designcraft_render::DisplayQuality::Fast;
+    app.ui.display_quality = patronusdesign_render::DisplayQuality::Fast;
     invalidate_on_display_change(&mut app);
     assert!(app.canvas.shown.is_none() && app.canvas.pending.is_none() && app.canvas.pending_doc.is_none());
     // The document grid is drawn into the texture too.
@@ -463,7 +463,7 @@ fn drag(h: &mut Harness<'_, DesignApp>, a: Pos2, b: Pos2) {
 fn the_page_tool_draws_liquid_guides_from_the_rulers() {
     // Chris Cicchino's Page Tool and Liquid Layout video (11:00): with the Page tool, a guide
     // dragged from the ruler is a liquid guide (dashed).
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     app.session.set_tool("page");
     let mut h = harness(app);
@@ -472,7 +472,7 @@ fn the_page_tool_draws_liquid_guides_from_the_rulers() {
     drag(&mut h, pos2(r.center().x, r.min.y - 8.0), r.center());
     let g = guides(&h);
     assert_eq!(g.len(), 1, "{g:?}");
-    assert!(g[0].liquid && g[0].orientation == designcraft_doc::Orientation::Horizontal);
+    assert!(g[0].liquid && g[0].orientation == patronusdesign_doc::Orientation::Horizontal);
     // With the Selection tool it's a ruler guide.
     h.state_mut().session.set_tool("selection");
     drag(&mut h, pos2(r.center().x, r.min.y - 8.0), r.center() + vec2(0.0, 40.0));
@@ -485,7 +485,7 @@ fn the_page_tool_draws_liquid_guides_from_the_rulers() {
 /// column guides locked the same drag leaves the columns alone.
 #[test]
 fn the_selection_tool_drags_a_column_guide() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     // Two columns across the 540 pt margin box: the gutter's left edge is at x = 300.
     app.run("layout.marginsAndColumns", json!({"parent": "A", "columns": 2, "gutter": 12})).unwrap();
@@ -574,7 +574,7 @@ fn the_selection_tool_drags_a_column_guide() {
 /// parent being edited lies over it, or where its columns cannot move.
 #[test]
 fn column_guides_are_picked_only_where_a_drag_can_move_them() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"pages": 1})).unwrap();
     app.run("layout.marginsAndColumns", json!({"parent": "A", "columns": 2, "gutter": 12})).unwrap();
     app.run("view.lockColumnGuides", json!({"on": false})).unwrap();
@@ -623,14 +623,14 @@ fn right_click(h: &mut Harness<'_, DesignApp>, p: Pos2) {
 }
 
 fn new_document() -> Harness<'static, DesignApp> {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     harness(app)
 }
 
 /// [`new_document`] at 60 frames a second, the cadence a wheel motion really arrives at.
 fn new_document_60fps() -> Harness<'static, DesignApp> {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     harness_with_step(app, 1.0 / 60.0)
 }
@@ -716,7 +716,7 @@ fn units(h: &Harness<'_, DesignApp>) -> (Unit, Unit) {
 }
 
 fn zoom_app(tool: &str) -> DesignApp {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     app.select_tool(tool);
     app.ui.rulers = false;
@@ -932,7 +932,7 @@ fn spring_zoom_does_not_zoom_on_the_rulers() {
 
 #[test]
 fn parent_guides_on_a_page_are_not_picked_there() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     // 100 pt into A's right page, which page 1 (a right page at x = 0) shows.
     let parent_guide = json!({"spread": {"kind": "parent", "index": 0}, "page": 1, "orientation": "vertical", "position": 712});
@@ -952,9 +952,9 @@ fn parent_guides_on_a_page_are_not_picked_there() {
 
 #[test]
 fn mouse_double_clicking_a_frame_handle_fits_with_one_undo_step() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
-    let id = designcraft_doc::ItemId(
+    let id = patronusdesign_doc::ItemId(
         app.run("frame.create", json!({"rect": [100, 100, 400, 300], "content": "text", "text": "Fit this text"})).unwrap()["id"].as_u64().unwrap(),
     );
     app.run("selection.set", json!({"ids": [id.0]})).unwrap();
@@ -995,7 +995,7 @@ const ART: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 5
 
 #[test]
 fn pasting_svg_from_another_app_places_editable_paths_in_the_middle_of_the_view() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let mut h = harness(app);
     h.run_steps(2);
@@ -1007,7 +1007,7 @@ fn pasting_svg_from_another_app_places_editable_paths_in_the_middle_of_the_view(
     assert_eq!(st.history.undo.len(), undo + 1, "one undo step");
     let id = *st.selection.items.first().expect("the pasted path is selected");
     let it = st.doc.item(id).unwrap();
-    assert_eq!(it.shape, designcraft_doc::Shape::Path);
+    assert_eq!(it.shape, patronusdesign_doc::Shape::Path);
     assert_eq!(it.path.subpaths[0].anchors.len(), 2);
     assert!((it.stroke.weight - 2.0).abs() < 1e-9);
     // Centred where text from another app would go: the middle of the view.
@@ -1017,10 +1017,10 @@ fn pasting_svg_from_another_app_places_editable_paths_in_the_middle_of_the_view(
 
 #[test]
 fn the_paste_in_place_shortcut_pastes_in_place_and_plain_paste_offsets() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let id = app.run("frame.create", json!({"rect": [100, 100, 200, 200]})).unwrap()["id"].as_u64().unwrap();
-    let original = app.session.doc().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap().bounds();
+    let original = app.session.doc().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap().bounds();
     app.run("edit.copy", json!({})).unwrap();
     let clip = app.object_clip_text.clone().expect("the copy's placeholder text");
     let mut h = harness(app);
@@ -1051,13 +1051,13 @@ fn the_paste_in_place_shortcut_pastes_in_place_and_plain_paste_offsets() {
 #[test]
 fn edit_paste_from_the_menu_pastes_svg_on_the_system_clipboard_as_paths() {
     let services = crate::Services { clipboard_text: Some(Box::new(|| Some(ART.to_string()))), ..Default::default() };
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), services);
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), services);
     app.native_menu = true;
     app.run("file.new", json!({})).unwrap();
     crate::menus::activate(&mut app, "edit.paste", &Value::Null);
     let st = app.session.doc().unwrap();
     let id = *st.selection.items.first().expect("the pasted path is selected");
-    assert_eq!(st.doc.item(id).unwrap().shape, designcraft_doc::Shape::Path);
+    assert_eq!(st.doc.item(id).unwrap().shape, patronusdesign_doc::Shape::Path);
     assert!(st.selection.text.is_none(), "paths, not a text frame of markup");
     // With an insertion point, the markup is text like any other.
     let story = app.run("frame.create", json!({"rect": [10, 10, 300, 300], "content": "text"})).unwrap()["story"].clone();
@@ -1093,7 +1093,7 @@ fn fake_clipboard(text: Option<&str>, image: Option<(u32, u32)>) -> (FakeClipboa
         clipboard_image: Some(Box::new(move || {
             let (width, height) = i.borrow().image?;
             // Sizes past the paste limit are refused before their pixels are read.
-            let len = if u64::from(width) * u64::from(height) > designcraft_engine::cmd::MAX_PASTED_PIXELS { 0 } else { width * height * 4 };
+            let len = if u64::from(width) * u64::from(height) > patronusdesign_engine::cmd::MAX_PASTED_PIXELS { 0 } else { width * height * 4 };
             Some(crate::ClipboardImage::Pixels { width, height, rgba: vec![90; len as usize] })
         })),
         clipboard_change: Some(Box::new(move || Some(c.borrow().change))),
@@ -1106,7 +1106,7 @@ fn fake_clipboard(text: Option<&str>, image: Option<(u32, u32)>) -> (FakeClipboa
 fn pasted_image(app: &DesignApp) -> Option<((u32, u32), String)> {
     let st = app.session.doc().unwrap();
     let id = *st.selection.items.first()?;
-    let designcraft_doc::Content::Graphic(g) = &st.doc.item(id)?.content else { return None };
+    let patronusdesign_doc::Content::Graphic(g) = &st.doc.item(id)?.content else { return None };
     let asset = &st.doc.assets[&g.asset];
     assert_eq!(asset.link, None, "embedded");
     Some((asset.pixels?, asset.name.clone()))
@@ -1115,11 +1115,11 @@ fn pasted_image(app: &DesignApp) -> Option<((u32, u32), String)> {
 #[test]
 fn edit_paste_from_the_menu_places_the_clipboard_image() {
     let (clip, services) = fake_clipboard(None, Some((40, 30)));
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), services);
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), services);
     app.native_menu = true;
     app.run("file.new", json!({})).unwrap();
     crate::menus::activate(&mut app, "edit.paste", &Value::Null);
-    assert_eq!(pasted_image(&app), Some(((40, 30), designcraft_engine::cmd::PASTED_IMAGE_NAME.to_string())));
+    assert_eq!(pasted_image(&app), Some(((40, 30), patronusdesign_engine::cmd::PASTED_IMAGE_NAME.to_string())));
     // A browser puts the image's address beside it: the image wins.
     copy_elsewhere(&clip, Some("https://example.com/cat.png"), Some((8, 6)));
     crate::menus::activate(&mut app, "edit.paste", &Value::Null);
@@ -1145,7 +1145,7 @@ fn edit_paste_from_the_menu_places_the_clipboard_image() {
 fn objects_copied_here_still_paste_as_objects_until_another_image_is_copied() {
     // A native menu: Copy leaves the system clipboard (here an older image) alone.
     let (clip, services) = fake_clipboard(None, Some((40, 30)));
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), services);
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), services);
     app.native_menu = true;
     app.run("file.new", json!({})).unwrap();
     let id = app.run("frame.create", json!({"rect": [100, 100, 200, 200], "content": "text"})).unwrap()["id"].clone();
@@ -1182,7 +1182,7 @@ fn objects_copied_here_still_paste_as_objects_until_another_image_is_copied() {
 fn a_paste_image_event_after_an_object_copy_does_not_paste_the_older_image() {
     // A native menu: Copy leaves the older image on the system clipboard.
     let (clip, services) = fake_clipboard(None, Some((40, 30)));
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), services);
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), services);
     app.native_menu = true;
     app.run("file.new", json!({})).unwrap();
     let id = app.run("frame.create", json!({"rect": [100, 100, 200, 200], "content": "text"})).unwrap()["id"].clone();
@@ -1204,7 +1204,7 @@ fn a_paste_image_event_after_an_object_copy_does_not_paste_the_older_image() {
 
 #[test]
 fn the_paste_keys_place_an_image_in_the_selected_empty_frame_but_not_in_text() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let frame = app.run("frame.create", json!({"rect": [100, 100, 300, 250]})).unwrap()["id"].as_u64().unwrap();
     app.run("selection.set", json!({"ids": [frame]})).unwrap();
@@ -1231,7 +1231,7 @@ fn a_paste_keys_image_past_the_size_limit_is_refused_without_copying_its_pixels(
     let image = crate::ClipboardImage::from_color_image(&big);
     let crate::ClipboardImage::Pixels { width, height, rgba } = &image else { panic!("a bitmap") };
     assert_eq!((*width, *height, rgba.len()), (9000, 8000, 0));
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let items = app.session.doc().unwrap().doc.spreads[0].items.len();
     assert!(app.paste_clipboard_image(image).is_err());
@@ -1248,7 +1248,7 @@ fn a_paste_keys_image_past_the_size_limit_is_refused_without_copying_its_pixels(
 fn selected_merged_owners_paint_the_same_row_and_column_targets() {
     for column in [true, false] {
         for merged in [false, true] {
-            let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+            let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
             app.run("file.new", json!({"pages": 1})).unwrap();
             app.run("frame.create", json!({"rect": [36, 36, 300, 300], "content": "text"})).unwrap();
             app.run("table.insert", json!({"rows": 2, "cols": 2})).unwrap();
@@ -1265,7 +1265,7 @@ fn selected_merged_owners_paint_the_same_row_and_column_targets() {
             let selected = selection.cells.unwrap();
             assert_eq!(
                 selected.range,
-                if column { designcraft_doc::CellRange::new(0, 1, 1, 1) } else { designcraft_doc::CellRange::new(1, 0, 1, 1) }
+                if column { patronusdesign_doc::CellRange::new(0, 1, 1, 1) } else { patronusdesign_doc::CellRange::new(1, 0, 1, 1) }
             );
             let layout = CanvasLayout::new(&st.doc, st.editing_parents);
             let cs = app.session.cache.get(&st.doc, ts.story, None);
@@ -1320,14 +1320,14 @@ fn selected_merged_owners_paint_the_same_row_and_column_targets() {
 /// A selected group lists the text frames inside it for ports.
 #[test]
 fn grouped_text_frames_get_ports() {
-    let mut s = designcraft_engine::Session::new();
+    let mut s = patronusdesign_engine::Session::new();
     s.execute("file.new", &json!({})).unwrap();
     let a = s.execute("frame.create", &json!({"rect": [10, 10, 110, 60], "content": "text"})).unwrap()["id"].as_u64().unwrap();
     let b = s.execute("frame.create", &json!({"rect": [10, 80, 110, 130]})).unwrap()["id"].as_u64().unwrap();
     s.execute("selection.set", &json!({"ids": [a, b]})).unwrap();
     let g = s.execute("object.group", &json!({})).unwrap()["id"].as_u64().unwrap();
     let doc = &s.doc().unwrap().doc;
-    let group = doc.item(designcraft_doc::ItemId(g)).unwrap();
+    let group = doc.item(patronusdesign_doc::ItemId(g)).unwrap();
     let mut out = Vec::new();
     text_frames_in(group, 0, &mut out);
     assert_eq!(out.iter().map(|(it, _)| it.id.0).collect::<Vec<_>>(), vec![a], "one text frame in the group");
@@ -1341,7 +1341,7 @@ fn grouped_text_frames_get_ports() {
 /// group's own selection marks.
 #[test]
 fn a_selected_group_paints_both_ports_of_its_text_frame() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let s = &mut app.session;
     let text = "far too much text for a frame this small, over and over again ".repeat(8);
@@ -1368,24 +1368,24 @@ fn a_selected_group_paints_both_ports_of_its_text_frame() {
         })
         .collect();
     for out in [false, true] {
-        let c = xf.to_screen(designcraft_tools::thread::port_center(&doc, &layout, designcraft_doc::ItemId(a), out, xf.zoom).unwrap());
+        let c = xf.to_screen(patronusdesign_tools::thread::port_center(&doc, &layout, patronusdesign_doc::ItemId(a), out, xf.zoom).unwrap());
         let port = white.iter().position(|r| (r.center() - c).length() < 0.01).unwrap_or_else(|| panic!("port (out: {out}) at {c:?}"));
         assert!(!white[port + 1..].iter().any(|r| r.contains(c)), "nothing painted later covers the port (out: {out})");
     }
 }
 
 fn out_frame(doc: &Document, id: u64) -> &Item {
-    doc.item(designcraft_doc::ItemId(id)).unwrap()
+    doc.item(patronusdesign_doc::ItemId(id)).unwrap()
 }
 
 /// An overset frame inside a group is listed for the red mark even when nothing is
 /// selected; a frame with room, or a hidden one, is not.
 #[test]
 fn overset_frames_are_found_inside_groups() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let s = &mut app.session;
-    let frame_with = |s: &mut designcraft_engine::Session, rect: [f64; 4], text: &str| {
+    let frame_with = |s: &mut patronusdesign_engine::Session, rect: [f64; 4], text: &str| {
         s.execute("frame.create", &json!({"rect": rect, "content": "text", "text": text})).unwrap()["id"].as_u64().unwrap()
     };
     let tiny = frame_with(s, [10.0, 10.0, 40.0, 16.0], "far too much text for a frame this small, over and over again");
@@ -1410,7 +1410,7 @@ fn overset_frames_are_found_inside_groups() {
 /// page), and the reverse.
 #[test]
 fn document_pages_have_no_place_on_the_parent_canvas() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"pages": 2})).unwrap();
     let s = &mut app.session;
     let body =
@@ -1421,7 +1421,7 @@ fn document_pages_have_no_place_on_the_parent_canvas() {
         .as_u64()
         .unwrap();
     let doc = app.session.doc().unwrap().doc.clone();
-    let (body, head) = (designcraft_doc::ItemId(body), designcraft_doc::ItemId(head));
+    let (body, head) = (patronusdesign_doc::ItemId(body), patronusdesign_doc::ItemId(head));
     let pages = CanvasLayout::new(&doc, false);
     assert!(item_canvas_xf(&doc, &pages, body).is_some());
     assert!(item_canvas_xf(&doc, &pages, head).is_none());
@@ -1435,7 +1435,7 @@ fn document_pages_have_no_place_on_the_parent_canvas() {
 /// selected overset frame gets only the mark its ports draw.
 #[test]
 fn overset_mark_sits_on_the_out_port_once() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let s = &mut app.session;
     let id = s
@@ -1471,7 +1471,7 @@ fn overset_mark_sits_on_the_out_port_once() {
 fn an_idle_canvas_frame_does_the_same_work_for_a_longer_document() {
     // Every page holds an empty frame and an overset text frame with a story of its own.
     let work = |pages: usize| {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"pages": pages, "facingPages": false})).unwrap();
         let text = "far too much text for a frame this small, over and over again ".repeat(8);
         for page in 0..pages {
@@ -1503,7 +1503,7 @@ fn an_idle_canvas_frame_does_the_same_work_for_a_longer_document() {
 /// too, and a view that shows none of it paints none of them.
 #[test]
 fn frame_edges_are_painted_for_the_frames_in_view() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let id = app.run("frame.create", json!({"rect": [-300, 100, -200, 200], "content": "text", "text": "a"})).unwrap()["id"].as_u64().unwrap();
     app.run("edit.deselectAll", json!({})).unwrap();
@@ -1532,7 +1532,7 @@ fn frame_edges_are_painted_for_the_frames_in_view() {
 
 #[test]
 fn right_clicking_a_ruler_sets_that_rulers_units() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let mut h = harness(app);
     let rect = h.state().canvas_rect.unwrap();
@@ -1579,7 +1579,7 @@ fn right_clicking_a_ruler_sets_that_rulers_units() {
 /// The live-corner widget draws on a selected rectangle frame; clicking it draws the diamonds.
 #[test]
 fn live_corner_widget_and_diamonds_draw() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     app.run("frame.create", json!({"rect": [100, 100, 300, 250], "content": "graphic"})).unwrap();
     let id = app.session.doc().unwrap().doc.spreads[0].items[0].id;
@@ -1675,7 +1675,7 @@ fn zero_point(h: &Harness<'_, DesignApp>) -> [f64; 2] {
 
 #[test]
 fn the_ruler_corner_drags_resets_and_locks_the_zero_point() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"pages": 3})).unwrap();
     let mut h = fast_harness(app);
     let rect = h.state().canvas_rect.unwrap();
@@ -1732,7 +1732,7 @@ fn the_ruler_corner_drags_resets_and_locks_the_zero_point() {
 
 #[test]
 fn cmd_dragging_the_ruler_corner_makes_a_guide_each_way() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let mut h = harness(app);
     let rect = h.state().canvas_rect.unwrap();
@@ -1751,9 +1751,9 @@ fn cmd_dragging_the_ruler_corner_makes_a_guide_each_way() {
     let doc = h.state().session.doc().unwrap().doc.clone();
     let guides: Vec<_> = doc.spread(r).unwrap().pages.iter().flat_map(|p| p.guides.clone()).collect();
     assert_eq!(guides.len(), 2, "{guides:?}");
-    let pos = |o: designcraft_doc::Orientation| guides.iter().find(|g| g.orientation == o).map(|g| g.position).unwrap();
-    assert!((pos(designcraft_doc::Orientation::Horizontal) - at.y).abs() < 0.5);
-    assert!((pos(designcraft_doc::Orientation::Vertical) - at.x).abs() < 0.5);
+    let pos = |o: patronusdesign_doc::Orientation| guides.iter().find(|g| g.orientation == o).map(|g| g.position).unwrap();
+    assert!((pos(patronusdesign_doc::Orientation::Horizontal) - at.y).abs() < 0.5);
+    assert!((pos(patronusdesign_doc::Orientation::Vertical) - at.x).abs() < 0.5);
     assert!(guides.iter().all(|g| g.spread));
     assert_eq!(doc.settings.zero_point, [0.0, 0.0], "the zero point stays");
 }
@@ -1762,7 +1762,7 @@ fn cmd_dragging_the_ruler_corner_makes_a_guide_each_way() {
 /// from the zero point, in the ruler units, and the label follows the pointer while it moves.
 #[test]
 fn a_dragged_guide_shows_where_it_is() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     app.run("view.zeroPoint", json!({"at": [100, 50]})).unwrap();
     let mut h = harness(app);
@@ -1776,14 +1776,14 @@ fn a_dragged_guide_shows_where_it_is() {
     };
     let units = h.state().session.doc().unwrap().doc.settings.horizontal_units;
     for (orientation, label, want) in
-        [(designcraft_doc::Orientation::Vertical, "X", at.x - 100.0), (designcraft_doc::Orientation::Horizontal, "Y", at.y - 50.0)]
+        [(patronusdesign_doc::Orientation::Vertical, "X", at.x - 100.0), (patronusdesign_doc::Orientation::Horizontal, "Y", at.y - 50.0)]
     {
         let g = GuideDrag { orientation, from: None, at: Some(dest), mods: egui::Modifiers::NONE };
         let (l, v, _) = guide_measure(h.state(), &xf, &g).unwrap();
         assert_eq!(l, label);
         assert!((v - want).abs() < 1e-6, "{label}: {v} vs {want}");
         let text = guide_readout(h.state(), &xf, &g).unwrap();
-        assert_eq!(text, format!("{label}: {}", designcraft_geom::units::format_measure(v, units)));
+        assert_eq!(text, format!("{label}: {}", patronusdesign_geom::units::format_measure(v, units)));
     }
     // While a guide is actually being dragged out of the top ruler, the readout is there.
     let ruler = pos2(rect.min.x + 200.0, rect.min.y - RULER / 2.0);
@@ -1793,7 +1793,7 @@ fn a_dragged_guide_shows_where_it_is() {
     h.event(egui::Event::PointerMoved(dest));
     h.run_steps(2);
     let g = h.ctx.data(|d| d.get_temp::<GuideDrag>(egui::Id::unique(GUIDE_DRAG))).expect("dragging");
-    assert_eq!(g.orientation, designcraft_doc::Orientation::Horizontal);
+    assert_eq!(g.orientation, patronusdesign_doc::Orientation::Horizontal);
     assert!(guide_readout(h.state(), &xf, &g).is_some_and(|t| t.starts_with("Y: ")));
     primary(&mut h, dest, false);
 }
@@ -1802,7 +1802,7 @@ fn a_dragged_guide_shows_where_it_is() {
 /// spread, the one the guide is dropped on: it reads the position the guide gets.
 #[test]
 fn the_guide_readout_measures_the_spread_under_the_pointer() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"pages": 5})).unwrap();
     app.run("view.zeroPoint", json!({"at": [100, 50]})).unwrap();
     let h = harness(app);
@@ -1817,8 +1817,12 @@ fn the_guide_readout_measures_the_spread_under_the_pointer() {
     let inside = Point::new(last.bounds.center().x, last.bounds.y0 + (last.bounds.y1 - last.bounds.y0) * 0.3);
     let (r, sp) = layout.spread_at(inside).unwrap();
     assert_eq!(r, last.spread);
-    let g =
-        GuideDrag { orientation: designcraft_doc::Orientation::Horizontal, from: None, at: Some(xf.to_screen(inside)), mods: egui::Modifiers::NONE };
+    let g = GuideDrag {
+        orientation: patronusdesign_doc::Orientation::Horizontal,
+        from: None,
+        at: Some(xf.to_screen(inside)),
+        mods: egui::Modifiers::NONE,
+    };
     let (label, v, _) = guide_measure(h.state(), &xf, &g).unwrap();
     assert_eq!(label, "Y");
     // The guide would be stored at `sp.y` on that spread, which its ruler reads from the zero point.
@@ -1828,7 +1832,7 @@ fn the_guide_readout_measures_the_spread_under_the_pointer() {
     // spread): no readout over this one, a readout over its own.
     let first = layout.slots[current].spread;
     let moving = GuideDrag {
-        orientation: designcraft_doc::Orientation::Horizontal,
+        orientation: patronusdesign_doc::Orientation::Horizontal,
         from: Some((first, 0, 0)),
         at: Some(xf.to_screen(inside)),
         mods: egui::Modifiers::NONE,
@@ -1865,7 +1869,7 @@ fn the_guide_readout_stays_inside_the_canvas() {
 
 #[test]
 fn rulers_and_xy_fields_measure_from_the_zero_point_on_every_spread() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     // Spread 0: page 1; spread 1: pages 2 and 3.
     app.run("file.new", json!({"pages": 3})).unwrap();
     app.run("view.zeroPoint", json!({"at": [100, 50]})).unwrap();
@@ -1931,7 +1935,7 @@ fn selected(h: &Harness<'_, DesignApp>) -> Vec<u64> {
 
 #[test]
 fn right_clicking_an_object_selects_it_and_its_menu_arranges_it() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let a = app.run("frame.create", json!({"rect": [36, 36, 200, 200]})).unwrap()["id"].as_u64().unwrap();
     let b = app.run("frame.create", json!({"rect": [150, 150, 300, 300]})).unwrap()["id"].as_u64().unwrap();
@@ -1955,7 +1959,7 @@ fn right_clicking_an_object_selects_it_and_its_menu_arranges_it() {
 
 #[test]
 fn right_clicking_empty_canvas_offers_paste_after_a_copy() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let a = app.run("frame.create", json!({"rect": [36, 36, 200, 200]})).unwrap()["id"].as_u64().unwrap();
     app.run("edit.copy", json!({})).unwrap();
@@ -1981,7 +1985,7 @@ fn right_clicking_empty_canvas_offers_paste_after_a_copy() {
 
 #[test]
 fn right_clicking_another_object_while_the_menu_is_open_reopens_it_there() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let a = app.run("frame.create", json!({"rect": [36, 36, 200, 200]})).unwrap()["id"].as_u64().unwrap();
     let b = app.run("frame.create", json!({"rect": [36, 600, 200, 760]})).unwrap()["id"].as_u64().unwrap();
@@ -1998,7 +2002,7 @@ fn right_clicking_another_object_while_the_menu_is_open_reopens_it_there() {
 
 #[test]
 fn a_context_menu_in_one_pane_keeps_the_keys_from_the_other() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let a = app.run("frame.create", json!({"rect": [36, 36, 100, 100]})).unwrap()["id"].as_u64().unwrap();
     app.select_tool("rectangleFrame");
@@ -2017,7 +2021,7 @@ fn a_context_menu_in_one_pane_keeps_the_keys_from_the_other() {
 
 #[test]
 fn right_clicking_text_keeps_the_selected_text_or_places_the_caret() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     app.run("frame.create", json!({"rect": [36, 36, 400, 200], "content": "text"})).unwrap();
     app.select_tool("type");
@@ -2042,7 +2046,7 @@ fn right_clicking_text_keeps_the_selected_text_or_places_the_caret() {
 
 #[test]
 fn rows_hidden_in_the_menu_bar_are_hidden_in_context_menus() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     app.run("frame.create", json!({"rect": [36, 36, 200, 200]})).unwrap();
     app.ui.hidden_menu_items.push(crate::menus::menu_key("Object/Arrange", "Bring to Front"));
@@ -2058,7 +2062,7 @@ fn rows_hidden_in_the_menu_bar_are_hidden_in_context_menus() {
 
 #[test]
 fn a_secondary_drag_neither_moves_marquees_nor_draws() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let a = app.run("frame.create", json!({"rect": [36, 36, 200, 200]})).unwrap()["id"].as_u64().unwrap();
     let mut h = harness(app);
@@ -2076,7 +2080,7 @@ fn a_secondary_drag_neither_moves_marquees_nor_draws() {
         h.event(egui::Event::PointerButton { pos: to, button: egui::PointerButton::Secondary, pressed: false, modifiers: Default::default() });
         h.run_steps(3);
     };
-    let xf = |h: &Harness<'_, DesignApp>| h.state().session.doc().unwrap().doc.item(designcraft_doc::ItemId(a)).unwrap().xf;
+    let xf = |h: &Harness<'_, DesignApp>| h.state().session.doc().unwrap().doc.item(patronusdesign_doc::ItemId(a)).unwrap().xf;
     let before = xf(&h);
     // Selection tool: on the object (no move), and from empty page across it (no marquee).
     drag(&mut h, (100.0, 100.0), (300.0, 300.0));
@@ -2093,7 +2097,7 @@ fn a_secondary_drag_neither_moves_marquees_nor_draws() {
 /// A text frame holding `text`, the Type tool, and a harness stepping at 60 fps (clicks in a
 /// row must land within the double-click delay).
 fn typing(text: &str) -> (Harness<'static, DesignApp>, u64) {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let r = app.run("frame.create", json!({"rect": [72, 72, 400, 400], "content": "text", "text": text})).unwrap();
     let id = r["id"].as_u64().unwrap();
@@ -2203,7 +2207,7 @@ fn slow_clicks_do_not_add_up() {
 #[test]
 fn an_edit_repaints_a_canvas_texture_sampled_down_to_the_gpu_limit_whole() {
     for (width, sampled_down) in [(1440.0, false), (2600.0, true)] {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let frame = app.run("frame.create", json!({"rect": [72, 72, 400, 300], "content": "text", "text": "Text"})).unwrap();
         let mut h = Harness::builder().with_size(vec2(width, 900.0)).build_ui_state(
@@ -2265,7 +2269,7 @@ fn dead_keys_compose_through_the_input_method() {
 
 #[test]
 fn tools_show_their_own_cursors_over_the_page() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let mut h = harness(app);
     let p = h.state().canvas_rect.unwrap().center();
@@ -2295,8 +2299,8 @@ fn tools_show_their_own_cursors_over_the_page() {
 
 #[test]
 fn document_grid_is_drawn_where_points_snap_to_it() {
-    use designcraft_tools::{SnapView, ToolContext};
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    use patronusdesign_tools::{SnapView, ToolContext};
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let doc = app.session.active().unwrap().doc.clone();
     let layout = CanvasLayout::new(&doc, false);
@@ -2316,19 +2320,19 @@ fn document_grid_is_drawn_where_points_snap_to_it() {
         stroke_in_front: false,
         loaded: None,
     };
-    let (snapped, _) = designcraft_tools::snap::snap_point(&cx, sr, Point::new(page.x0 + 31.3, page.y0 + 47.9));
+    let (snapped, _) = patronusdesign_tools::snap::snap_point(&cx, sr, Point::new(page.x0 + 31.3, page.y0 + 47.9));
     assert_eq!((snapped.x - page.x0, snapped.y - page.y0), (27.0, 45.0));
     // Render 40 × 40 pt around it at 4 px/pt.
     let scale = 4.0;
     let corner = layout.xf(sr) * Point::new(snapped.x - 20.0, snapped.y - 20.0);
     let view = Affine::scale(scale) * Affine::translate((-corner.x, -corner.y));
-    let placed: Vec<_> = layout.slots.iter().map(|s| designcraft_render::Placed { spread: s.spread, xf: s.xf }).collect();
+    let placed: Vec<_> = layout.slots.iter().map(|s| patronusdesign_render::Placed { spread: s.spread, xf: s.xf }).collect();
     let render = |app: &DesignApp| {
         let opts = screen_options(app, &layout, false, 1.0);
-        designcraft_render::Renderer::new().render(&doc, &app.session.cache, &placed, (160, 160), view, &opts)
+        patronusdesign_render::Renderer::new().render(&doc, &app.session.cache, &placed, (160, 160), view, &opts)
     };
     // The snapped point is at pixel (80, 80); halfway to the next line is 18 px further.
-    let darkest = |img: &designcraft_render::Rendered, xs: [u32; 2], ys: [u32; 2]| {
+    let darkest = |img: &patronusdesign_render::Rendered, xs: [u32; 2], ys: [u32; 2]| {
         (xs[0]..xs[1]).flat_map(|x| (ys[0]..ys[1]).map(move |y| (x, y))).map(|(x, y)| img.pixel(x, y)[0]).min().unwrap()
     };
     let off = render(&app);
@@ -2347,7 +2351,7 @@ fn document_grid_is_drawn_where_points_snap_to_it() {
 /// focused widget (e.g. the status bar's spread buttons) while typing still reaches the text.
 #[test]
 fn arrow_keys_and_tab_keep_keyboard_focus_on_the_canvas() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"pages": 3})).unwrap();
     let f = app.run("frame.create", json!({"rect": [36, 36, 300, 200], "content": "text", "text": "Hello"})).unwrap();
     app.select_tool("type");
@@ -2385,7 +2389,7 @@ fn arrow_keys_and_tab_keep_keyboard_focus_on_the_canvas() {
 
 #[test]
 fn rulers_open_no_units_menu_without_a_document() {
-    let mut h = harness(DesignApp::new(designcraft_engine::Session::new(), crate::Services::default()));
+    let mut h = harness(DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default()));
     let Some(rect) = h.state().canvas_rect else { return };
     right_click(&mut h, pos2(rect.center().x, rect.min.y - RULER / 2.0));
     assert!(h.query_by_label("   Points").is_none());
@@ -2408,7 +2412,7 @@ fn ime_frame(app: &mut DesignApp, ctx: &egui::Context, events: Vec<egui::Event>)
 #[test]
 fn edits_patch_the_canvas_only_at_full_resolution() {
     for (max_side, patches) in [(None, true), (Some(1024), false)] {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         let ctx = egui::Context::default();
         let frame = |app: &mut DesignApp| {
             // Wider than the limit (egui's font atlas needs at least 1024).
@@ -2438,7 +2442,7 @@ fn edits_patch_the_canvas_only_at_full_resolution() {
 /// moving one without a shadow does, instead of rendering the whole canvas again on every step.
 #[test]
 fn moving_a_frame_with_a_drop_shadow_patches_the_canvas() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     let frame = |app: &mut DesignApp| {
         let raw = egui::RawInput { screen_rect: Some(Rect::from_min_size(Pos2::ZERO, vec2(1200.0, 900.0))), ..Default::default() };
@@ -2512,7 +2516,7 @@ struct NativeClickFixture {
 
 /// Build the old and target stories, measure an interior target caret, and leave the old story selected before the click.
 fn native_gui_click_fixture() -> NativeClickFixture {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     let old = typing_app(&mut app, &ctx, "Old story");
     let frame = app.run("frame.create", json!({"rect": [36, 280, 300, 400], "content": "text", "text": "Target story"})).unwrap();
@@ -2885,14 +2889,14 @@ fn native_gui_outside_press_and_open_menu_do_not_click_through() {
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn native_gui_font_inventory_keeps_exact_regular_and_missing_style_diagnostics() {
-    if designcraft_fonts::CRAFT_FONTS.is_empty() {
+    if patronusdesign_fonts::CRAFT_FONTS.is_empty() {
         assert!(std::env::var_os("CRAFT_FONTS_REQUIRED").is_none(), "required canonical fonts were not embedded");
         return; // The supported optional-input build has no central document fonts.
     }
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     for (family, text) in [("Noto Sans Hebrew", "שלום"), ("Noto Sans Devanagari", "नमस्ते")] {
-        assert!(designcraft_fonts::CRAFT_FONTS.iter().any(|f| f.family == family && f.style == "Regular"), "canonical {family} Regular absent");
+        assert!(patronusdesign_fonts::CRAFT_FONTS.iter().any(|f| f.family == family && f.style == "Regular"), "canonical {family} Regular absent");
         for style in ["Regular", "Unavailable Native GUI Style"] {
             let frame = app.run("frame.create", json!({"rect": [36, 36, 300, 120], "content": "text", "text": text})).unwrap();
             app.run("text.select", json!({"story": frame["story"], "anchor": 0, "focus": text.len()})).unwrap();
@@ -2925,14 +2929,14 @@ fn native_gui_font_inventory_keeps_exact_regular_and_missing_style_diagnostics()
 #[test]
 #[allow(deprecated)] // `ImeEvent::Enabled` / `Disabled`: egui no longer sends them, other integrations may.
 fn ime_events_compose_in_the_story_with_the_candidate_window_at_the_caret() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     let sid = typing_app(&mut app, &ctx, "曲:");
     // At a text caret the IME is allowed, its window on the caret as the canvas draws it.
     let ime = ime_frame(&mut app, &ctx, vec![]).expect("IME allowed at a text caret");
     let (top, bottom) = {
         let st = app.session.active().unwrap();
-        let cs = app.session.cache.get(&st.doc, designcraft_doc::StoryId(sid.as_u64().unwrap()), None);
+        let cs = app.session.cache.get(&st.doc, patronusdesign_doc::StoryId(sid.as_u64().unwrap()), None);
         let (fi, x, bl, asc, desc) = compose::caret(&cs, "曲:".len()).unwrap();
         let fid = cs.frames[fi].frame;
         let (a, _) = item_canvas_xf(&st.doc, &CanvasLayout::new(&st.doc, st.editing_parents), fid).unwrap();
@@ -2983,7 +2987,7 @@ fn ime_events_compose_in_the_story_with_the_candidate_window_at_the_caret() {
 /// types them.
 #[test]
 fn a_split_window_types_once() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     let sid = typing_app(&mut app, &ctx, "ab");
     app.run("window.split", json!({"on": true})).unwrap();
@@ -3007,7 +3011,7 @@ fn a_split_window_types_once() {
 /// Surrounding text is committed text only, preserves reversed selection direction, and a commit keeps owner/generation while reporting `InputMethod`.
 #[test]
 fn ime_reports_the_committed_story_and_excludes_the_pre_edit() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     let sid = typing_app(&mut app, &ctx, "a😀b");
     let len = "a😀b".len();
@@ -3033,7 +3037,7 @@ fn ime_reports_the_committed_story_and_excludes_the_pre_edit() {
 /// An empty story provides `("",0,0)`; long text is bounded and an out-of-window selection is explicitly unavailable.
 #[test]
 fn ime_empty_story_is_available_and_wide_text_is_bounded() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     typing_app(&mut app, &ctx, "");
     let ime = ime_frame(&mut app, &ctx, vec![]).expect("a text caret");
@@ -3053,7 +3057,7 @@ fn ime_empty_story_is_available_and_wide_text_is_bounded() {
 /// Caret movement preserves owner; changing story or document changes owner and generation.
 #[test]
 fn ime_owner_follows_the_story_and_the_document() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     typing_app(&mut app, &ctx, "ab");
     let first = ime_frame(&mut app, &ctx, vec![]).expect("a text caret");
@@ -3079,7 +3083,7 @@ fn ime_owner_follows_the_story_and_the_document() {
 /// Pure commits report `InputMethod`; typing before or after a commit in one pass makes the cause `Other`.
 #[test]
 fn ime_cause_distinguishes_commits_from_application_edits() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     typing_app(&mut app, &ctx, "a");
     let committed = ime_frame(&mut app, &ctx, vec![egui::Event::Ime(egui::ImeEvent::Commit("日".into()))]).expect("a text caret");
@@ -3089,7 +3093,7 @@ fn ime_cause_distinguishes_commits_from_application_edits() {
     assert_eq!(ime_payload(&typed), Some(("a日!", 5, 5)));
 
     // An application edit before the commit in one pass breaks the receipt chain.
-    let mut before = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut before = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     typing_app(&mut before, &ctx, "a");
     let mixed = ime_frame(&mut before, &ctx, vec![egui::Event::Text("x".into()), egui::Event::Ime(egui::ImeEvent::Commit("日".into()))])
         .expect("a text caret");
@@ -3097,7 +3101,7 @@ fn ime_cause_distinguishes_commits_from_application_edits() {
     assert_eq!(ime_payload(&mixed), Some(("ax日", 5, 5)));
 
     // An application edit after the commit in one pass also dominates.
-    let mut after = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut after = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     typing_app(&mut after, &ctx, "a");
     let mixed = ime_frame(&mut after, &ctx, vec![egui::Event::Ime(egui::ImeEvent::Commit("日".into())), egui::Event::Text("!".into())])
         .expect("a text caret");
@@ -3108,7 +3112,7 @@ fn ime_cause_distinguishes_commits_from_application_edits() {
 /// The settled multipass result rebuilds the current surrounding text while retaining the accepted commit cause.
 #[test]
 fn ime_cause_and_context_survive_a_discarded_pass() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     typing_app(&mut app, &ctx, "a");
     let raw = egui::RawInput {
@@ -3135,7 +3139,7 @@ fn ime_cause_and_context_survive_a_discarded_pass() {
 /// Autocorrected commit text is an application edit with cause `Other`.
 #[test]
 fn ime_autocorrect_is_not_an_input_method_cause() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     app.session.prefs.autocorrect = true;
     let sid = typing_app(&mut app, &ctx, "teh");
@@ -3147,7 +3151,7 @@ fn ime_autocorrect_is_not_an_input_method_cause() {
 /// The selection stays selected and directed; byte partials leave whole characters; the deletion is one undo step.
 #[test]
 fn ime_delete_surrounding_excludes_the_selection_and_rounds_bytes_inward() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     let sid = typing_app(&mut app, &ctx, "aé😀b");
     // Select é, which keeps its bytes and direction; 'a' before and 😀 after go.
@@ -3189,7 +3193,7 @@ fn ime_delete_surrounding_excludes_the_selection_and_rounds_bytes_inward() {
 /// A 200-character request deletes the whole 100-character story.
 #[test]
 fn ime_delete_surrounding_has_no_sixty_four_character_cap() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     let sid = typing_app(&mut app, &ctx, &"x".repeat(100));
     ime_frame(&mut app, &ctx, vec![egui::Event::Ime(egui::ImeEvent::DeleteSurrounding { before_chars: 200, after_chars: 0 })]);
@@ -3199,7 +3203,7 @@ fn ime_delete_surrounding_has_no_sixty_four_character_cap() {
 /// Delete plus commit in one IME batch produces one undoable edit and reports the final surrounding text.
 #[test]
 fn ime_delete_and_commit_are_one_undo_step() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     let sid = typing_app(&mut app, &ctx, "ab");
     text_selection(&mut app, &sid, 1, 2);
@@ -3226,7 +3230,7 @@ fn ime_delete_and_commit_are_one_undo_step() {
 /// must not type the marked text again at the clicked caret.
 #[test]
 fn a_commit_after_a_click_in_the_same_batch_is_not_typed_twice() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     let sid = typing_app(&mut app, &ctx, "ab");
     ime_frame(&mut app, &ctx, vec![preedit("い", 1)]);
@@ -3251,7 +3255,7 @@ fn a_delete_and_commit_after_a_click_in_the_same_batch_are_dropped() {
         egui::ImeEvent::DeleteSurrounding { before_chars: 1, after_chars: 0 },
         egui::ImeEvent::DeleteSurroundingBytes { before_bytes: 1, after_bytes: 0 },
     ] {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         let ctx = egui::Context::default();
         let sid = typing_app(&mut app, &ctx, "ab");
         ime_frame(&mut app, &ctx, vec![preedit("い", 1)]);
@@ -3275,7 +3279,7 @@ fn a_delete_and_commit_after_a_click_in_the_same_batch_are_dropped() {
 /// input method mutation: the engine reports the ranges from the whole story.
 #[test]
 fn a_delete_beyond_the_surrounding_window_is_still_an_input_method_cause() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     let sid = typing_app(&mut app, &ctx, &"x".repeat(5000));
     let ime = ime_frame(&mut app, &ctx, vec![egui::Event::Ime(egui::ImeEvent::DeleteSurroundingBytes { before_bytes: 4500, after_bytes: 0 })])
@@ -3290,7 +3294,7 @@ fn a_delete_beyond_the_surrounding_window_is_still_an_input_method_cause() {
 /// ends there and the canvas reports no IME.
 #[test]
 fn a_later_field_taking_the_keyboard_ends_the_composition_in_that_pass() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     let f = app.run("frame.create", json!({"rect": [36, 36, 300, 200], "content": "text", "text": "ab"})).unwrap();
     let sid = f["story"].clone();
@@ -3321,7 +3325,7 @@ fn a_later_field_taking_the_keyboard_ends_the_composition_in_that_pass() {
 
 #[test]
 fn clicking_away_mid_composition_keeps_the_text_and_interrupts_the_ime() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     let sid = typing_app(&mut app, &ctx, "");
     ime_frame(&mut app, &ctx, vec![preedit("しょうこ", 4)]);
@@ -3363,7 +3367,7 @@ fn baseline_grid_lines_are_the_ones_on_the_page() {
 #[test]
 fn enter_or_tab_in_a_panel_field_leave_the_selected_text_alone() {
     for key in [egui::Key::Enter, egui::Key::Tab] {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let f = app.run("frame.create", json!({"rect": [36, 36, 300, 200], "content": "text", "text": "Hello"})).unwrap();
         app.select_tool("type");
@@ -3389,7 +3393,7 @@ fn enter_or_tab_in_a_panel_field_leave_the_selected_text_alone() {
 #[test]
 fn trailing_spaces_show_dots_before_the_paragraph_mark() {
     let text = "ab  \ncd  ";
-    let mut d = Document::new(&designcraft_doc::build::NewDocument::default());
+    let mut d = Document::new(&patronusdesign_doc::build::NewDocument::default());
     let lid = d.default_layer();
     let rect = DRect::new(0.0, 0.0, 300.0, 100.0);
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), rect, lid, text, Default::default()).unwrap();
@@ -3413,11 +3417,11 @@ fn trailing_spaces_show_dots_before_the_paragraph_mark() {
 /// ends, and the table paragraph's ¶ just after the table's bottom right corner.
 #[test]
 fn table_cells_show_their_hidden_characters() {
-    let mut d = Document::new(&designcraft_doc::build::NewDocument::default());
+    let mut d = Document::new(&patronusdesign_doc::build::NewDocument::default());
     let lid = d.default_layer();
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), DRect::new(0.0, 0.0, 300.0, 300.0), lid, "", Default::default()).unwrap();
     let data = vec![vec!["Name:".to_string(), "".into()], vec!["a\nb".into(), "".into()]];
-    let t = designcraft_doc::Table::from_strings(d.alloc(), &data, 200.0, &Default::default(), &Default::default());
+    let t = patronusdesign_doc::Table::from_strings(d.alloc(), &data, 200.0, &Default::default(), &Default::default());
     d.story_mut(sid).unwrap().insert_table(0, t);
     let cs = compose::compose_story(&d, sid, &compose::ComposeOptions::default());
     let frag = &cs.frames[0].tables[0];
@@ -3438,15 +3442,15 @@ fn table_cells_show_their_hidden_characters() {
     let name = frag.cell(0, 0).unwrap();
     assert!(marks.iter().any(|m| m.1 == "#" && name.rect.contains(m.0) && m.0.x > name.origin.x + 20.0), "after Name:");
     let last = marks.last().unwrap();
-    assert_eq!((last.0, last.1), (designcraft_geom::Point::new(frag.rect.x1 + 1.0, frag.rect.y1), "¶"));
+    assert_eq!((last.0, last.1), (patronusdesign_geom::Point::new(frag.rect.x1 + 1.0, frag.rect.y1), "¶"));
 }
 
 #[test]
 fn the_caret_blink_restarts_on_input_and_caret_changes() {
     let ctx = egui::Context::default();
-    let caret = designcraft_doc::TextSel::caret(designcraft_doc::StoryId(1), 7);
+    let caret = patronusdesign_doc::TextSel::caret(patronusdesign_doc::StoryId(1), 7);
 
-    let shown = |t: f64, caret: designcraft_doc::TextSel, reset: bool| {
+    let shown = |t: f64, caret: patronusdesign_doc::TextSel, reset: bool| {
         let mut visible = false;
 
         let mut out = ctx.run_ui(egui::RawInput { time: Some(t), ..Default::default() }, |ui| {
@@ -3465,7 +3469,7 @@ fn the_caret_blink_restarts_on_input_and_caret_changes() {
     assert!(shown(10.7, caret, true), "typing shows it again");
     assert!(!shown(11.4, caret, false), "and its phase follows the reset");
 
-    let moved = designcraft_doc::TextSel::caret(designcraft_doc::StoryId(1), 8);
+    let moved = patronusdesign_doc::TextSel::caret(patronusdesign_doc::StoryId(1), 8);
     assert!(shown(11.4, moved, false), "a caret that moved shows at once");
     assert!((caret::until_flip(0.0) - 0.625).abs() < 1e-9);
     assert!((caret::until_flip(0.96) - 0.025).abs() < 1e-9);
@@ -3474,7 +3478,7 @@ fn the_caret_blink_restarts_on_input_and_caret_changes() {
 
 #[test]
 fn leaving_parent_editing_for_the_left_page_of_a_spread_keeps_that_page_selected() {
-    let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"pages": 4, "facingPages": true})).unwrap();
     let mut h = harness(app);
     h.state_mut().run("layout.parents.edit", json!({"on": true, "parent": "A-Parent"})).unwrap();

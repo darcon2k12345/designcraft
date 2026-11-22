@@ -77,7 +77,7 @@ pub(super) fn go_to_row(s: &mut Session, p: &Value) -> Result<Value> {
     // The part of the table that shows the row, its frame, and the cells that cover the row there.
     let placed = cs.frames.iter().find_map(|ft| {
         ft.tables.iter().filter(|t| t.table == g.table).find_map(|t| {
-            let covering: Vec<designcraft_geom::Rect> =
+            let covering: Vec<patronusdesign_geom::Rect> =
                 t.cells.iter().filter(|c| !c.repeated && cells.contains(&(c.row, c.col))).map(|c| c.rect).collect();
             (!covering.is_empty()).then_some((ft.frame, t, covering))
         })
@@ -86,7 +86,7 @@ pub(super) fn go_to_row(s: &mut Session, p: &Value) -> Result<Value> {
     let on_spread = frame.and_then(|f| frame_on_spread(&st.doc, &s.cache, g.story, f));
     // The document page under the row's first cell: a frame can span two pages of a spread.
     let page = placed.as_ref().zip(on_spread).and_then(|((_, _, covering), (spread, xf))| {
-        let designcraft_doc::SpreadRef::Doc(si) = spread else { return None };
+        let patronusdesign_doc::SpreadRef::Doc(si) = spread else { return None };
         let at = xf * covering.first()?.center();
         Some(st.doc.first_page_of_spread(si) + st.doc.spreads.get(si)?.page_at_x(at.x).unwrap_or(0) + 1)
     });
@@ -95,7 +95,7 @@ pub(super) fn go_to_row(s: &mut Session, p: &Value) -> Result<Value> {
     let bounds = placed.as_ref().zip(on_spread).and_then(|((_, t, covering), (_, xf))| {
         let across = covering.iter().copied().reduce(|a, b| a.union(b))?;
         let &(_, top, bottom) = t.rows.iter().find(|r| r.0 == index)?;
-        Some(xf.transform_rect_bbox(designcraft_geom::Rect::new(across.x0, top, across.x1, bottom)))
+        Some(xf.transform_rect_bbox(patronusdesign_geom::Rect::new(across.x0, top, across.x1, bottom)))
     });
     let spread = on_spread.map(|(si, _)| si);
     // The caret is shown in the frame that shows the row, and in no frame when the row is overset.
@@ -116,11 +116,11 @@ pub(super) fn go_to_row(s: &mut Session, p: &Value) -> Result<Value> {
 /// transform from the frame's inner space to that spread's coordinates. An anchored frame is where
 /// its host story places it.
 fn frame_on_spread(
-    doc: &designcraft_doc::Document,
-    cache: &designcraft_compose::Cache,
+    doc: &patronusdesign_doc::Document,
+    cache: &patronusdesign_compose::Cache,
     sid: StoryId,
-    frame: designcraft_doc::ItemId,
-) -> Option<(designcraft_doc::SpreadRef, designcraft_geom::Affine)> {
+    frame: patronusdesign_doc::ItemId,
+) -> Option<(patronusdesign_doc::SpreadRef, patronusdesign_geom::Affine)> {
     let (spread, parent, it) = match doc.find(frame) {
         Some(loc) => (loc.spread, doc.parent_xf(&loc), doc.item_at(&loc)?),
         None => {
@@ -213,7 +213,7 @@ pub(super) fn toggle_selection(s: &mut Session) -> Result<Value> {
 }
 
 /// The table cell under spread point `pt` in text frame `frame`: (story, table, row, col).
-pub(super) fn cell_at(s: &Session, frame: designcraft_doc::ItemId, pt: designcraft_geom::Point) -> Option<(StoryId, u64, usize, usize)> {
+pub(super) fn cell_at(s: &Session, frame: patronusdesign_doc::ItemId, pt: patronusdesign_geom::Point) -> Option<(StoryId, u64, usize, usize)> {
     let st = s.active()?;
     let loc = st.doc.find(frame)?;
     let it = st.doc.item_at(&loc)?;
@@ -221,7 +221,7 @@ pub(super) fn cell_at(s: &Session, frame: designcraft_doc::ItemId, pt: designcra
     let inner = (st.doc.parent_xf(&loc) * st.doc.text_xf(it)).inverse() * pt;
     let cs = s.cache.get(&st.doc, sid, None);
     let fi = cs.frames.iter().position(|f| f.frame == frame)?;
-    let (table, row, col, _) = designcraft_compose::hit_cell(&cs, fi, inner)?;
+    let (table, row, col, _) = patronusdesign_compose::hit_cell(&cs, fi, inner)?;
     Some((sid, table, row, col))
 }
 
@@ -238,7 +238,7 @@ pub(super) fn move_rc(s: &mut Session, p: &Value, rows: bool) -> Result<Value> {
 
 #[cfg(test)]
 mod go_to_row_tests {
-    use designcraft_doc::CellRange;
+    use patronusdesign_doc::CellRange;
     use serde_json::json;
 
     use crate::Session;
@@ -390,7 +390,7 @@ mod go_to_row_tests {
 
     #[test]
     fn go_to_row_finds_a_row_in_an_anchored_text_frame() {
-        use designcraft_doc::{AnchorPosition, AnchoredObject, Content, Item, ItemId, Shape, Story, StoryId, TextFrame};
+        use patronusdesign_doc::{AnchorPosition, AnchoredObject, Content, Item, ItemId, Shape, Story, StoryId, TextFrame};
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let host = s.execute("frame.create", &json!({"rect": [72, 72, 500, 400], "content": "text", "text": "Host text"})).unwrap();
@@ -402,8 +402,12 @@ mod go_to_row_tests {
             story.frames.push(fid);
             d.stories.insert(sid, std::sync::Arc::new(story));
             let layer = d.item(ItemId(host["id"].as_u64().unwrap())).unwrap().layer;
-            let mut it =
-                Item::new(fid, layer, Shape::Rectangle, designcraft_geom::shapes::rectangle(designcraft_geom::Rect::new(0.0, 0.0, 200.0, 100.0)));
+            let mut it = Item::new(
+                fid,
+                layer,
+                Shape::Rectangle,
+                patronusdesign_geom::shapes::rectangle(patronusdesign_geom::Rect::new(0.0, 0.0, 200.0, 100.0)),
+            );
             it.content = Content::Text(TextFrame { story: sid, options: Default::default() });
             let host_story = StoryId(host["story"].as_u64().unwrap());
             d.story_mut(host_story).unwrap().insert_object(4, AnchoredObject::new(it, AnchorPosition::default()));

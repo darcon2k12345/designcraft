@@ -35,14 +35,14 @@ impl<'r> Importer<'r> {
         for e in craft_idml::model::stroke_styles(&top) {
             let (Some(id), Some(name)) = (e.values.self_id(), e.values.name()) else { continue };
             let kind = match e.kind {
-                craft_idml::model::StrokeStyleKind::Striped => designcraft_doc::StrokeType::Stripes {
+                craft_idml::model::StrokeStyleKind::Striped => patronusdesign_doc::StrokeType::Stripes {
                     bands: e.stripe_array().as_chunks::<2>().0.iter().map(|c| (c[0] / 100.0, (c[1] - c[0]) / 100.0)).collect(),
                 },
-                craft_idml::model::StrokeStyleKind::Dashed => designcraft_doc::StrokeType::Dashed { pattern: e.dash_array() },
-                craft_idml::model::StrokeStyleKind::Dotted => designcraft_doc::StrokeType::Dotted,
+                craft_idml::model::StrokeStyleKind::Dashed => patronusdesign_doc::StrokeType::Dashed { pattern: e.dash_array() },
+                craft_idml::model::StrokeStyleKind::Dotted => patronusdesign_doc::StrokeType::Dotted,
             };
             let _ = id;
-            self.stroke_styles.push(designcraft_doc::StrokeStyleDef { name: name.to_string(), kind });
+            self.stroke_styles.push(patronusdesign_doc::StrokeStyleDef { name: name.to_string(), kind });
         }
     }
 
@@ -175,7 +175,7 @@ impl<'r> Importer<'r> {
         // Colour groups other than the root one become Swatches panel folders.
         for g in groups.iter().filter(|g| !g.is_root()) {
             let swatches = g.members().into_iter().filter_map(|r| self.swatch_names.get(r).cloned()).collect();
-            self.color_groups.push(designcraft_doc::ColorGroup { name: g.values.name().unwrap_or("Color Group").to_string(), swatches });
+            self.color_groups.push(patronusdesign_doc::ColorGroup { name: g.values.name().unwrap_or("Color Group").to_string(), swatches });
         }
     }
 
@@ -195,7 +195,7 @@ impl<'r> Importer<'r> {
                 SwatchValue::Tint { base, tint } => {
                     let mut all: Vec<Swatch> = self.swatches.clone();
                     all.extend(pending.iter().map(|(_, s)| s.clone()));
-                    return designcraft_color::swatch::resolve(&all, base, *tint).unwrap_or(Color::BLACK);
+                    return patronusdesign_color::swatch::resolve(&all, base, *tint).unwrap_or(Color::BLACK);
                 }
                 _ => {}
             }
@@ -229,7 +229,7 @@ impl<'r> Importer<'r> {
         }
         if let Some(c) = self.hidden_colors.get(r).copied() {
             let name = match c {
-                Color::Cmyk { c, m, y, k } => designcraft_color::swatch::cmyk_name(c, m, y, k),
+                Color::Cmyk { c, m, y, k } => patronusdesign_color::swatch::cmyk_name(c, m, y, k),
                 Color::Rgb { r, g, b } => format!("R={} G={} B={}", (r * 255.0).round(), (g * 255.0).round(), (b * 255.0).round()),
                 Color::Gray { k } => format!("K={}", (k * 100.0).round()),
             };

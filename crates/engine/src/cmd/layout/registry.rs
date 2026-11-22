@@ -144,7 +144,7 @@ pub fn specs() -> Vec<CommandSpec> {
                         let columns = pg.columns_from(src);
                         (pg.width, pg.height, pg.margins, pg.columns, pg.liquid) = (src.width, src.height, src.margins, columns, src.liquid);
                         pg.guides = src.guides.clone();
-                        for g in pg.guides.iter_mut().filter(|g| g.orientation == designcraft_doc::Orientation::Vertical) {
+                        for g in pg.guides.iter_mut().filter(|g| g.orientation == patronusdesign_doc::Orientation::Vertical) {
                             g.position += dx;
                         }
                         nsp.relayout();
@@ -153,7 +153,7 @@ pub fn specs() -> Vec<CommandSpec> {
                     let src = d.clone();
                     let ids: Vec<_> = sp.items.iter().map(|i| i.id).collect();
                     let (nsi, _) = d.page_loc(after + 1).ok_or_else(|| bad("layout.pages.duplicateSpread", "insert failed"))?;
-                    crate::cmd::object::duplicate_from(d, &src, &ids, designcraft_doc::SpreadRef::Doc(nsi), designcraft_geom::Vec2::ZERO)?;
+                    crate::cmd::object::duplicate_from(d, &src, &ids, patronusdesign_doc::SpreadRef::Doc(nsi), patronusdesign_geom::Vec2::ZERO)?;
                     let first = after + 1;
                     let Some(to) = to else { return Ok(json!({"page": first})) };
                     // Moving a page shifts the ones between; order the moves so each copy keeps
@@ -204,14 +204,14 @@ pub fn specs() -> Vec<CommandSpec> {
                 let base = parent_ref(ID, &s.doc()?.doc, p.get("basedOn"))?.flatten();
                 s.edit(|d, _| {
                     let prefix = prefix.unwrap_or_else(|| d.next_parent_prefix());
-                    let label = designcraft_doc::ParentInfo { prefix: prefix.clone(), name: name.clone(), based_on: None }.label();
+                    let label = patronusdesign_doc::ParentInfo { prefix: prefix.clone(), name: name.clone(), based_on: None }.label();
                     if parent_label_taken(d, &label, None) {
                         return Err(bad(ID, format!("a parent named {label} exists")));
                     }
                     let src = d.page(0).cloned();
                     let (columns, margins) = src
                         .as_ref()
-                        .map_or_else(|| (designcraft_doc::Columns::default(), Margins::uniform(36.0)), |p| (p.columns.clone(), p.margins));
+                        .map_or_else(|| (patronusdesign_doc::Columns::default(), Margins::uniform(36.0)), |p| (p.columns.clone(), p.margins));
                     let id = d.add_parent(&prefix, &name, columns.count, columns.gutter, margins);
                     // Dragged column guides carry over to the parent pages they still fit, mirrored
                     // on the parent page across the spine from the first page.
@@ -248,7 +248,7 @@ pub fn specs() -> Vec<CommandSpec> {
                     let ids: Vec<_> =
                         src.parent_index(id).and_then(|i| src.parents.get(i)).map(|sp| sp.items.iter().map(|i| i.id).collect()).unwrap_or_default();
                     let (new, at) = d.duplicate_parent_shell(id, &prefix)?;
-                    crate::cmd::object::duplicate_from(d, &src, &ids, designcraft_doc::SpreadRef::Parent(at), designcraft_geom::Vec2::ZERO)?;
+                    crate::cmd::object::duplicate_from(d, &src, &ids, patronusdesign_doc::SpreadRef::Parent(at), patronusdesign_geom::Vec2::ZERO)?;
                     Ok(json!({"id": new.0, "prefix": prefix}))
                 })
             }
@@ -305,7 +305,7 @@ pub fn specs() -> Vec<CommandSpec> {
                 };
                 let shown = index.filter(|_| on);
                 if let Some(i) = shown {
-                    s.ui_requests.push(crate::UiRequest::View { params: json!({"showSpread": designcraft_doc::SpreadRef::Parent(i)}) });
+                    s.ui_requests.push(crate::UiRequest::View { params: json!({"showSpread": patronusdesign_doc::SpreadRef::Parent(i)}) });
                 }
                 Ok(json!({"on": on, "parent": shown.and_then(|i| doc.parents.get(i)).map(|x| x.id.0)}))
             }
@@ -413,7 +413,7 @@ pub fn specs() -> Vec<CommandSpec> {
                 if p.get("margins").is_some() && margins.is_none() {
                     return Err(bad("layout.documentSetup", "margins: a number or {top, bottom, inside, outside}"));
                 }
-                let intent: Option<designcraft_doc::Intent> = p.get("intent").and_then(|v| serde_json::from_value(v.clone()).ok());
+                let intent: Option<patronusdesign_doc::Intent> = p.get("intent").and_then(|v| serde_json::from_value(v.clone()).ok());
                 let pages = p.get("pages").and_then(Value::as_u64).map(|n| n.clamp(1, 9999) as usize);
                 let adjust = p.get("adjustLayout").and_then(Value::as_bool).unwrap_or(false);
                 s.edit(|d, _| {
@@ -438,7 +438,7 @@ pub fn specs() -> Vec<CommandSpec> {
                         if !d.sections.iter().any(|x| x.start == 0) {
                             d.sections.insert(
                                 0,
-                                designcraft_doc::Section {
+                                patronusdesign_doc::Section {
                                     start: 0,
                                     start_number: None,
                                     style: Default::default(),
@@ -466,7 +466,7 @@ pub fn specs() -> Vec<CommandSpec> {
                     let w = p.get("width").and_then(Value::as_f64);
                     let h = p.get("height").and_then(Value::as_f64);
                     // Pages with a liquid rule re-flow their objects (Adjust Layout aside).
-                    let liquid_before: Vec<(usize, usize, designcraft_geom::Rect)> = if adjust {
+                    let liquid_before: Vec<(usize, usize, patronusdesign_geom::Rect)> = if adjust {
                         vec![]
                     } else {
                         d.spreads
@@ -505,7 +505,7 @@ pub fn specs() -> Vec<CommandSpec> {
                         adjust_layout(d, &b);
                     }
                     for (si, pi, old) in liquid_before {
-                        crate::cmd::liquid::apply(d, designcraft_doc::SpreadRef::Doc(si), pi, old);
+                        crate::cmd::liquid::apply(d, patronusdesign_doc::SpreadRef::Doc(si), pi, old);
                     }
                     Ok(document_setup(d))
                 })
@@ -603,16 +603,16 @@ pub fn specs() -> Vec<CommandSpec> {
                 None | Some(Value::Null) => None,
                 Some(v) => Some(v.as_u64().filter(|v| *v >= 1 && *v as usize <= n).ok_or_else(|| bad("layout.selectPage", format!("`page`: 1–{n}")))? as usize - 1),
             };
-            let ids: Vec<designcraft_doc::ItemId> = {
+            let ids: Vec<patronusdesign_doc::ItemId> = {
                 let d = &s.doc()?.doc;
                 p.get("ids")
                     .and_then(Value::as_array)
-                    .map(|a| a.iter().filter_map(Value::as_u64).map(designcraft_doc::ItemId).filter(|id| d.item(*id).is_some()).collect())
+                    .map(|a| a.iter().filter_map(Value::as_u64).map(patronusdesign_doc::ItemId).filter(|id| d.item(*id).is_some()).collect())
                     .unwrap_or_default()
             };
             let st = s.doc_mut()?;
             if page.is_some() {
-                st.selection = designcraft_doc::Selection::items(ids);
+                st.selection = patronusdesign_doc::Selection::items(ids);
             }
             st.selection.page = page;
             st.selection.parent_page = None;
@@ -691,7 +691,7 @@ pub fn specs() -> Vec<CommandSpec> {
             let id = LayerId(p.get("id").and_then(Value::as_u64).unwrap_or(0));
             let st = s.doc_mut()?;
             let ids: Vec<_> = st.doc.spreads.iter().flat_map(|sp| sp.items.iter().filter(|i| i.layer == id && !i.locked).map(|i| i.id)).collect();
-            st.selection = designcraft_doc::Selection::items(ids);
+            st.selection = patronusdesign_doc::Selection::items(ids);
             st.bump_revision();
             ok()
         }),

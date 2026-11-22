@@ -1,4 +1,4 @@
-//! DOCX to DesignCraft story adapter. Package, XML, styles and numbering are read by craft-docx;
+//! DOCX to Patronus Design story adapter. Package, XML, styles and numbering are read by craft-docx;
 //! this module maps the neutral Word model into the app's story and style model.
 
 use std::collections::{HashMap, HashSet};
@@ -9,8 +9,8 @@ use craft_wordmodel::para::{InlineObject, NoteKind, Paragraph};
 use craft_wordmodel::props::{Align as WordAlign, CharProps as WordCharProps, NumRef, ParaProps as WordParaProps, Underline, VertAlign};
 use craft_wordmodel::section::NumFormat;
 use craft_wordmodel::styles::{StyleKind, StyleSheet};
-use designcraft_doc::story::{BASIC_PARAGRAPH, NO_CHAR_STYLE};
-use designcraft_doc::{CharAttrs, CharFormat, ListCounter, ListType, NumberStyle, ParaAttrs, ParaFormat, ParaProps, Story, StoryId, Table};
+use patronusdesign_doc::story::{BASIC_PARAGRAPH, NO_CHAR_STYLE};
+use patronusdesign_doc::{CharAttrs, CharFormat, ListCounter, ListType, NumberStyle, ParaAttrs, ParaFormat, ParaProps, Story, StoryId, Table};
 
 use crate::{ImportError, Imported, ImportedStyle};
 
@@ -36,14 +36,14 @@ fn char_attrs(p: &WordCharProps) -> CharAttrs {
             (Some(false), Some(false)) | (Some(false), None) | (None, Some(false)) => Some("Regular".into()),
             _ => None,
         },
-        size: p.size.map(f64::from).and_then(designcraft_doc::attrs::imported_type_size),
+        size: p.size.map(f64::from).and_then(patronusdesign_doc::attrs::imported_type_size),
         underline: p.underline.map(|u| u != Underline::None),
         strikethrough: p.strike.or(p.double_strike),
-        capitalization: p.caps.filter(|&on| on).map(|_| designcraft_doc::Capitalization::AllCaps),
+        capitalization: p.caps.filter(|&on| on).map(|_| patronusdesign_doc::Capitalization::AllCaps),
         position: p.vert_align.map(|v| match v {
-            VertAlign::Superscript => designcraft_doc::Position::Superscript,
-            VertAlign::Subscript => designcraft_doc::Position::Subscript,
-            VertAlign::Baseline => designcraft_doc::Position::Normal,
+            VertAlign::Superscript => patronusdesign_doc::Position::Superscript,
+            VertAlign::Subscript => patronusdesign_doc::Position::Subscript,
+            VertAlign::Baseline => patronusdesign_doc::Position::Normal,
         }),
         ..Default::default()
     }
@@ -221,8 +221,8 @@ impl NumberingState {
             a.number_expression = Some(format!("{}{number_sep}", label("^#", true, true)));
             fixed_expression = Some(format!("{}{number_sep}", label("^#", true, false)));
         }
-        a.left_indent = designcraft_doc::attrs::imported_measure(f64::from(def.indent));
-        a.first_line_indent = designcraft_doc::attrs::imported_measure(-f64::from(def.hanging));
+        a.left_indent = patronusdesign_doc::attrs::imported_measure(f64::from(def.indent));
+        a.first_line_indent = patronusdesign_doc::attrs::imported_measure(-f64::from(def.hanging));
         a.list_level = Some(u32::from(num_ref.level) + 1);
         if !def.restart {
             a.restart_numbers = Some(false);
@@ -263,16 +263,16 @@ impl NumberingState {
 fn para_attrs(p: &WordParaProps) -> ParaAttrs {
     ParaAttrs {
         align: p.align.map(|a| match a {
-            WordAlign::Center => designcraft_doc::Align::Center,
-            WordAlign::Right => designcraft_doc::Align::Right,
-            WordAlign::Justify | WordAlign::Distribute => designcraft_doc::Align::LeftJustified,
-            WordAlign::Left => designcraft_doc::Align::Left,
+            WordAlign::Center => patronusdesign_doc::Align::Center,
+            WordAlign::Right => patronusdesign_doc::Align::Right,
+            WordAlign::Justify | WordAlign::Distribute => patronusdesign_doc::Align::LeftJustified,
+            WordAlign::Left => patronusdesign_doc::Align::Left,
         }),
-        left_indent: p.indent_left.map(f64::from).and_then(designcraft_doc::attrs::imported_measure),
-        right_indent: p.indent_right.map(f64::from).and_then(designcraft_doc::attrs::imported_measure),
-        first_line_indent: p.indent_first.map(f64::from).and_then(designcraft_doc::attrs::imported_measure),
-        space_before: p.space_before.map(f64::from).and_then(designcraft_doc::attrs::imported_measure),
-        space_after: p.space_after.map(f64::from).and_then(designcraft_doc::attrs::imported_measure),
+        left_indent: p.indent_left.map(f64::from).and_then(patronusdesign_doc::attrs::imported_measure),
+        right_indent: p.indent_right.map(f64::from).and_then(patronusdesign_doc::attrs::imported_measure),
+        first_line_indent: p.indent_first.map(f64::from).and_then(patronusdesign_doc::attrs::imported_measure),
+        space_before: p.space_before.map(f64::from).and_then(patronusdesign_doc::attrs::imported_measure),
+        space_after: p.space_after.map(f64::from).and_then(patronusdesign_doc::attrs::imported_measure),
         ..Default::default()
     }
 }
@@ -321,7 +321,7 @@ fn plain_blocks(blocks: &[std::sync::Arc<Block>]) -> String {
                 first = false;
                 // The importer accepts tracked changes: deletions are left out, inline objects expanded.
                 let text = p.final_text();
-                let is_break = |c: char| matches!(c, designcraft_doc::PAGE_BREAK | designcraft_doc::COLUMN_BREAK);
+                let is_break = |c: char| matches!(c, patronusdesign_doc::PAGE_BREAK | patronusdesign_doc::COLUMN_BREAK);
                 out.push_str(&text.chars().map(|c| if is_break(c) { '\n' } else { c }).collect::<String>());
             }
             Block::Table(t) => {
@@ -341,9 +341,9 @@ fn plain_blocks(blocks: &[std::sync::Arc<Block>]) -> String {
 fn word_text(c: char) -> char {
     use craft_wordmodel::para::{COLUMN_BREAK, LINE_BREAK, PAGE_BREAK};
     match c {
-        LINE_BREAK => designcraft_doc::FORCED_LINE_BREAK,
-        PAGE_BREAK => designcraft_doc::PAGE_BREAK,
-        COLUMN_BREAK => designcraft_doc::COLUMN_BREAK,
+        LINE_BREAK => patronusdesign_doc::FORCED_LINE_BREAK,
+        PAGE_BREAK => patronusdesign_doc::PAGE_BREAK,
+        COLUMN_BREAK => patronusdesign_doc::COLUMN_BREAK,
         c => c,
     }
 }

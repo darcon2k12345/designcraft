@@ -1,13 +1,13 @@
 //! Paste vector art copied in another app (Illustrator, VectorCraft, Figma, Inkscape) as editable
 //! paths, as InDesign pastes Illustrator art. Those apps put the copied objects on the system
-//! clipboard as SVG markup; each path becomes a DesignCraft path with its fill and stroke, groups
+//! clipboard as SVG markup; each path becomes a Patronus Design path with its fill and stroke, groups
 //! stay groups, and text comes in as outlines.
 
 use std::collections::{HashMap, HashSet};
 
 use craft_svg::tree::document::{Document as SvgDocument, LineCap, LineJoin, Node as SvgNode, Paint as SvgPaint, Segment};
-use designcraft_doc::{Content, Fill, Item, ItemId, Selection, Shape, Stroke, StrokeType};
-use designcraft_geom::{Affine, BezPath, PathData, Point, Rect};
+use patronusdesign_doc::{Content, Fill, Item, ItemId, Selection, Shape, Stroke, StrokeType};
+use patronusdesign_geom::{Affine, BezPath, PathData, Point, Rect};
 use serde_json::{Value, json};
 
 use super::{CommandSpec, Result, Session, bad, cmd, has_doc, spread_param, str_param};
@@ -26,7 +26,7 @@ pub fn specs() -> Vec<CommandSpec> {
 
 /// Is `text` SVG markup (rather than text to paste as text)?
 pub fn is_svg_markup(text: &str) -> bool {
-    designcraft_images::is_svg(text.as_bytes())
+    patronusdesign_images::is_svg(text.as_bytes())
 }
 
 /// Cap conversion nesting too; the shared SVG scene builder enforces this limit.
@@ -55,8 +55,8 @@ struct Paint {
 
 struct StrokeStyle {
     width: f64,
-    cap: designcraft_doc::Cap,
-    join: designcraft_doc::Join,
+    cap: patronusdesign_doc::Cap,
+    join: patronusdesign_doc::Join,
     miter: f64,
     dashes: Option<Vec<f64>>,
 }
@@ -92,7 +92,7 @@ fn round(v: f64) -> f64 {
 }
 
 fn bezpath(segments: &[Segment]) -> BezPath {
-    let p = |q: [f64; 2]| Point::new(q[0] * designcraft_images::PT_PER_PX, q[1] * designcraft_images::PT_PER_PX);
+    let p = |q: [f64; 2]| Point::new(q[0] * patronusdesign_images::PT_PER_PX, q[1] * patronusdesign_images::PT_PER_PX);
     let mut bp = BezPath::new();
     for seg in segments {
         match seg {
@@ -113,19 +113,19 @@ fn convert(nodes: &[SvgNode], notes: &mut Notes, out: &mut Vec<Art>) {
                 let fill = path.fill.as_ref().and_then(|p| paint(p, notes));
                 let stroke = path.stroke.as_ref().and_then(|s| {
                     let c = paint(&s.paint, notes)?;
-                    let width = round(s.width * designcraft_images::PT_PER_PX);
-                    let dashes = s.dash_array.as_ref().map(|d| d.iter().map(|v| round(v * designcraft_images::PT_PER_PX)).collect::<Vec<_>>());
+                    let width = round(s.width * patronusdesign_images::PT_PER_PX);
+                    let dashes = s.dash_array.as_ref().map(|d| d.iter().map(|v| round(v * patronusdesign_images::PT_PER_PX)).collect::<Vec<_>>());
                     let style = StrokeStyle {
                         width,
                         cap: match s.cap {
-                            LineCap::Butt => designcraft_doc::Cap::Butt,
-                            LineCap::Round => designcraft_doc::Cap::Round,
-                            LineCap::Square => designcraft_doc::Cap::Projecting,
+                            LineCap::Butt => patronusdesign_doc::Cap::Butt,
+                            LineCap::Round => patronusdesign_doc::Cap::Round,
+                            LineCap::Square => patronusdesign_doc::Cap::Projecting,
                         },
                         join: match s.join {
-                            LineJoin::Round => designcraft_doc::Join::Round,
-                            LineJoin::Bevel => designcraft_doc::Join::Bevel,
-                            _ => designcraft_doc::Join::Miter,
+                            LineJoin::Round => patronusdesign_doc::Join::Round,
+                            LineJoin::Bevel => patronusdesign_doc::Join::Bevel,
+                            _ => patronusdesign_doc::Join::Miter,
                         },
                         miter: s.miter_limit,
                         dashes,
@@ -165,7 +165,7 @@ fn convert(nodes: &[SvgNode], notes: &mut Notes, out: &mut Vec<Art>) {
 fn bounds(art: &[Art]) -> Option<Rect> {
     art.iter()
         .filter_map(|a| match a {
-            Art::Path { path, .. } => Some(designcraft_geom::Shape::bounding_box(path)),
+            Art::Path { path, .. } => Some(patronusdesign_geom::Shape::bounding_box(path)),
             Art::Group(items, _) => bounds(items),
         })
         .reduce(|a, b| a.union(b))
@@ -184,11 +184,11 @@ impl PasteSwatches {
         [(r + 0.0).to_bits(), (g + 0.0).to_bits(), (b + 0.0).to_bits()]
     }
 
-    fn new(d: &designcraft_doc::Document) -> Self {
-        use designcraft_color::swatch::SwatchValue;
+    fn new(d: &patronusdesign_doc::Document) -> Self {
+        use patronusdesign_color::swatch::SwatchValue;
         let mut by_rgb = HashMap::new();
         for w in &d.swatches {
-            if let SwatchValue::Color { color: designcraft_color::Color::Rgb { r, g, b }, .. } = &w.value {
+            if let SwatchValue::Color { color: patronusdesign_color::Color::Rgb { r, g, b }, .. } = &w.value {
                 // The first swatch of a colour is the one, as a search from the start finds it.
                 by_rgb.entry(Self::key(*r, *g, *b)).or_insert_with(|| w.name.clone());
             }
@@ -199,21 +199,21 @@ impl PasteSwatches {
 
 /// The swatch holding exactly `rgb`: an existing process colour, else a new unnamed one (hidden
 /// from the Swatches panel until Add to Swatches), as InDesign does for pasted colours.
-fn swatch_for(d: &mut designcraft_doc::Document, known: &mut PasteSwatches, rgb: [u8; 3]) -> String {
-    use designcraft_color::swatch::{Swatch, SwatchValue};
-    let color = designcraft_color::Color::rgb8(rgb[0], rgb[1], rgb[2]);
-    let designcraft_color::Color::Rgb { r, g, b } = color else { return String::new() };
+fn swatch_for(d: &mut patronusdesign_doc::Document, known: &mut PasteSwatches, rgb: [u8; 3]) -> String {
+    use patronusdesign_color::swatch::{Swatch, SwatchValue};
+    let color = patronusdesign_color::Color::rgb8(rgb[0], rgb[1], rgb[2]);
+    let patronusdesign_color::Color::Rgb { r, g, b } = color else { return String::new() };
     let key = PasteSwatches::key(r, g, b);
     if let Some(name) = known.by_rgb.get(&key) {
         return name.clone();
     }
     let base = format!("R={} G={} B={}", rgb[0], rgb[1], rgb[2]);
-    let name = designcraft_doc::Styles::unique_name(|n| known.names.contains(n), &base);
+    let name = patronusdesign_doc::Styles::unique_name(|n| known.names.contains(n), &base);
     known.names.insert(name.clone());
     known.by_rgb.insert(key, name.clone());
     d.swatches.push(Swatch {
         name: name.clone(),
-        value: SwatchValue::Color { color, color_type: designcraft_color::ColorType::Process },
+        value: SwatchValue::Color { color, color_type: patronusdesign_color::ColorType::Process },
         locked: false,
         named: false,
         hidden: true,
@@ -221,7 +221,13 @@ fn swatch_for(d: &mut designcraft_doc::Document, known: &mut PasteSwatches, rgb:
     name
 }
 
-fn build(d: &mut designcraft_doc::Document, known: &mut PasteSwatches, art: Vec<Art>, layer: designcraft_doc::LayerId, shift: Affine) -> Vec<Item> {
+fn build(
+    d: &mut patronusdesign_doc::Document,
+    known: &mut PasteSwatches,
+    art: Vec<Art>,
+    layer: patronusdesign_doc::LayerId,
+    shift: Affine,
+) -> Vec<Item> {
     let mut out = Vec::new();
     for a in art {
         match a {
@@ -232,7 +238,7 @@ fn build(d: &mut designcraft_doc::Document, known: &mut PasteSwatches, art: Vec<
                 }
                 let anchors: usize = data.subpaths.iter().map(|s| s.anchors.len()).sum();
                 // A straight two-point segment is a graphic line (Line tool); anything else a path.
-                let straight = |a: &designcraft_geom::Anchor| a.h_in == a.p && a.h_out == a.p;
+                let straight = |a: &patronusdesign_geom::Anchor| a.h_in == a.p && a.h_out == a.p;
                 let line = data.subpaths.len() == 1 && anchors == 2 && data.subpaths.iter().all(|s| !s.closed && s.anchors.iter().all(straight));
                 // The object's opacity: its own times the paint's. Items have no separate fill and
                 // stroke opacity, so a path with both takes the fill's (`Notes::mixed_opacity`).
@@ -279,7 +285,7 @@ fn paste_svg(s: &mut Session, p: &Value) -> Result<Value> {
     if !is_svg_markup(svg) {
         return Err(bad(ID, "the clipboard doesn't hold SVG markup"));
     }
-    let tree = designcraft_images::svg_tree(svg.as_bytes()).ok_or_else(|| bad(ID, "the SVG on the clipboard can't be read"))?;
+    let tree = patronusdesign_images::svg_tree(svg.as_bytes()).ok_or_else(|| bad(ID, "the SVG on the clipboard can't be read"))?;
     let scene = SvgDocument::from_tree(&tree, MAX_DEPTH);
     let mut notes = Notes { images: scene.images, too_deep: scene.too_deep, ..Default::default() };
     let mut art = Vec::new();
@@ -329,7 +335,7 @@ fn paste_svg(s: &mut Session, p: &Value) -> Result<Value> {
 mod tests {
     use super::*;
     use crate::Session;
-    use designcraft_doc::SpreadRef;
+    use patronusdesign_doc::SpreadRef;
 
     const SPIRAL: &str = r##"<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400pt" height="400pt">
@@ -358,7 +364,7 @@ mod tests {
         assert!(it.fill.is_none());
         assert_eq!(it.stroke.weight, 1.0, "a 1-unit stroke in a pt-sized SVG is 1 pt");
         let c = st.doc.swatch(&it.stroke.swatch).unwrap();
-        assert!(matches!(&c.value, designcraft_color::swatch::SwatchValue::Color { color, .. } if color.to_rgb() == [0.0, 0.0, 0.0]));
+        assert!(matches!(&c.value, patronusdesign_color::swatch::SwatchValue::Color { color, .. } if color.to_rgb() == [0.0, 0.0, 0.0]));
         // Centred on `at`, at its own size (100 × 120 user units of a 400 pt viewBox).
         let b = it.bounds();
         assert!((b.center().x - 300.0).abs() < 0.01 && (b.center().y - 400.0).abs() < 0.01, "{b:?}");
@@ -386,7 +392,7 @@ mod tests {
         assert!((rect.opacity - 0.5).abs() < 1e-3);
         // CSS pixels: 8 px = 6 pt, the 200 px art is 150 pt wide.
         assert!((circle.stroke.weight - 6.0).abs() < 1e-6);
-        assert_eq!(circle.stroke.cap, designcraft_doc::Cap::Round);
+        assert_eq!(circle.stroke.cap, patronusdesign_doc::Cap::Round);
         assert!(matches!(&circle.stroke.kind, StrokeType::Dashed { pattern } if (pattern[0] - 3.0).abs() < 1e-6));
         assert_eq!(st.doc.item(ids[1]).unwrap().shape, Shape::GraphicLine);
         let all = g.bounds().union(st.doc.item(ids[1]).unwrap().bounds());

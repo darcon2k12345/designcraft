@@ -44,7 +44,7 @@ impl<R: BufRead> BufRead for CountedInput<R> {
     }
 }
 
-const INSTRUCTIONS: &str = "DesignCraft is a page-layout app (an InDesign clone). Coordinates are points in spread \
+const INSTRUCTIONS: &str = "Patronus Design is a page-layout app (an InDesign clone). Coordinates are points in spread \
 space (y down; on a single-page spread the page's top-left is (0,0); a default Letter page is 612×792). Every action \
 is a command: find ids and parameters with list_commands and run them with execute (or several with batch). Typical \
 flow: new_document → execute frame.create {rect:[x0,y0,x1,y1], content:\"text\", text:\"…\"} → set_story_text / \
@@ -52,21 +52,21 @@ execute type.char / style.paragraph.apply → render_page to look at the result.
 (ids, bounds), stories (overset) and styles. place_image puts a picture on the page.";
 
 /// Resource URIs.
-pub const DOC_URI: &str = "designcraft://document";
-pub const COMMANDS_URI: &str = "designcraft://commands";
+pub const DOC_URI: &str = "patronusdesign://document";
+pub const COMMANDS_URI: &str = "patronusdesign://commands";
 
-struct DesignCraftTools {
+struct PatronusDesignTools {
     backend: Box<dyn Backend>,
 }
 
-impl Tools for DesignCraftTools {
+impl Tools for PatronusDesignTools {
     fn instructions(&self) -> String {
         format!(
             "{INSTRUCTIONS} Backend: {}. Community: {} (Discord), {} (app page), {} (source). The `app.links` command returns these links.",
             self.backend.describe(),
-            designcraft_engine::links::DISCORD,
-            designcraft_engine::links::APP_PAGE,
-            designcraft_engine::links::GITHUB
+            patronusdesign_engine::links::DISCORD,
+            patronusdesign_engine::links::APP_PAGE,
+            patronusdesign_engine::links::GITHUB
         )
     }
 
@@ -100,14 +100,14 @@ impl Tools for DesignCraftTools {
 }
 
 /// An MCP server bound to one backend.
-pub struct Server(craft_mcp_server::Server<DesignCraftTools>);
+pub struct Server(craft_mcp_server::Server<PatronusDesignTools>);
 
 impl Server {
     pub fn new(backend: Box<dyn Backend>) -> Self {
-        let info = Info { name: "designcraft", title: "DesignCraft", version: env!("CARGO_PKG_VERSION"), max_line: MAX_LINE_BYTES };
+        let info = Info { name: "patronusdesign", title: "Patronus Design", version: env!("CARGO_PKG_VERSION"), max_line: MAX_LINE_BYTES };
         let options =
-            Options { website_url: Some(designcraft_engine::links::APP_PAGE.to_string()), tool_errors_as_results: true, strict_request_ids: true };
-        Self(craft_mcp_server::Server::new(info, DesignCraftTools { backend }).with_options(options))
+            Options { website_url: Some(patronusdesign_engine::links::APP_PAGE.to_string()), tool_errors_as_results: true, strict_request_ids: true };
+        Self(craft_mcp_server::Server::new(info, PatronusDesignTools { backend }).with_options(options))
     }
 
     pub fn backend(&mut self) -> &mut dyn Backend {
@@ -124,7 +124,7 @@ impl Server {
     pub fn serve(&mut self, input: impl BufRead, mut output: impl Write) -> std::io::Result<()> {
         let mut input = CountedInput { inner: input, consumed: 0 };
         while let Some(incoming) = craft_mcp_server::read_message(&mut input, MAX_LINE_BYTES)? {
-            // The shared limit excludes LF; DesignCraft's historical limit includes it.
+            // The shared limit excludes LF; Patronus Design's historical limit includes it.
             let incoming = if input.consumed > MAX_LINE_BYTES {
                 Incoming::Refused(json!({"jsonrpc":"2.0", "id":null, "error":{"code":-32600,"message":"request line is too long"}}).to_string())
             } else {
@@ -203,7 +203,7 @@ fn check_arguments(name: &str, args: &Value) -> Result<(), String> {
     }
     let command = |step: &Value| -> Result<(), String> {
         match (step.get("command").and_then(Value::as_str), step.get("params")) {
-            (Some(id), Some(params)) => designcraft_engine::check_params(id, params).map_err(|e| e.to_string()),
+            (Some(id), Some(params)) => patronusdesign_engine::check_params(id, params).map_err(|e| e.to_string()),
             _ => Ok(()),
         }
     };
@@ -213,7 +213,7 @@ fn check_arguments(name: &str, args: &Value) -> Result<(), String> {
             let steps = match (arguments.get("commands").and_then(Value::as_array), arguments.get("script").and_then(Value::as_str)) {
                 (Some(steps), _) => steps.clone(),
                 // A script that doesn't parse is the tool's to report.
-                (None, Some(text)) => match designcraft_engine::script::parse(text) {
+                (None, Some(text)) => match patronusdesign_engine::script::parse(text) {
                     Ok(steps) => steps.into_iter().map(|s| json!({"command": s.command, "params": s.params})).collect(),
                     Err(_) => return Ok(()),
                 },

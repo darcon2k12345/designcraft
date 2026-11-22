@@ -5,15 +5,15 @@ use super::{Arc, Cow, EngineError, Result, Session, Value, bad, json, str_param}
 pub(super) fn print_booklet(s: &mut Session, p: &Value) -> Result<Value> {
     const ID: &str = "file.printBooklet";
     let kind = match str_param(p, "type").unwrap_or("saddleStitch") {
-        "saddleStitch" => designcraft_pdf::BookletKind::SaddleStitch,
-        "twoUpConsecutive" | "twoUp" => designcraft_pdf::BookletKind::TwoUpConsecutive,
+        "saddleStitch" => patronusdesign_pdf::BookletKind::SaddleStitch,
+        "twoUpConsecutive" | "twoUp" => patronusdesign_pdf::BookletKind::TwoUpConsecutive,
         t => {
             return Err(bad(ID, format!("unknown type `{t}` (saddleStitch, twoUpConsecutive)")));
         }
     };
-    let opts = designcraft_pdf::BookletOptions { kind, space_between: p.get("spaceBetween").and_then(Value::as_f64).unwrap_or(0.0), title: None };
+    let opts = patronusdesign_pdf::BookletOptions { kind, space_between: p.get("spaceBetween").and_then(Value::as_f64).unwrap_or(0.0), title: None };
     let st = s.doc()?;
-    let r = designcraft_pdf::export_booklet(&crate::cmd::interchange::with_pdf_boxes(&st.doc), &s.cache, &opts)
+    let r = patronusdesign_pdf::export_booklet(&crate::cmd::interchange::with_pdf_boxes(&st.doc), &s.cache, &opts)
         .map_err(|e| EngineError::Other(e.to_string()))?;
     match str_param(p, "path") {
         Some(path) => {
@@ -27,20 +27,20 @@ pub(super) fn print_booklet(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// HTML and reflowable EPUB read embedded bytes only: every used linked asset gets its output
 /// bytes embedded, and EPS its preview. The session's own assets stay as they are.
-fn eps_previews(d: &designcraft_doc::Document) -> (Cow<'_, designcraft_doc::Document>, Vec<String>) {
+fn eps_previews(d: &patronusdesign_doc::Document) -> (Cow<'_, patronusdesign_doc::Document>, Vec<String>) {
     // Match the exporter's reading order (including Article exclusions), not every asset
     // in the document: unused or hidden graphics must not prevent an export.
     let mut used = std::collections::BTreeSet::new();
-    for block in designcraft_epub::reading_order(d) {
-        let designcraft_epub::Block::Image(id) = block else {
+    for block in patronusdesign_epub::reading_order(d) {
+        let patronusdesign_epub::Block::Image(id) = block else {
             continue;
         };
         let Some(it) = d.item(id) else { continue };
-        let designcraft_doc::Content::Graphic(g) = &it.content else {
+        let patronusdesign_doc::Content::Graphic(g) = &it.content else {
             continue;
         };
         used.insert(g.asset);
-        if d.assets.get(&g.asset).is_some_and(|a| designcraft_doc::media_kind(&a.mime).is_some())
+        if d.assets.get(&g.asset).is_some_and(|a| patronusdesign_doc::media_kind(&a.mime).is_some())
             && let Some(poster) = it.media.as_ref().and_then(|m| m.poster)
         {
             used.insert(poster);
@@ -61,7 +61,7 @@ fn eps_previews(d: &designcraft_doc::Document) -> (Cow<'_, designcraft_doc::Docu
             }
         };
         let bytes = got.bytes;
-        let eps = designcraft_images::is_eps(&bytes);
+        let eps = patronusdesign_images::is_eps(&bytes);
         // Embedded bytes the writers read as they are; a linked asset's bytes are read here
         // (the writers only see embedded data), and EPS is replaced by its preview.
         if !eps && !linked {
@@ -69,7 +69,7 @@ fn eps_previews(d: &designcraft_doc::Document) -> (Cow<'_, designcraft_doc::Docu
         }
         warnings.extend(got.warning);
         let data = if eps {
-            let png = designcraft_images::eps_png(&bytes);
+            let png = patronusdesign_images::eps_png(&bytes);
             if png.is_none() {
                 warnings.push(format!("{}: unusable EPS preview; graphic omitted", a.name));
             }
@@ -82,7 +82,7 @@ fn eps_previews(d: &designcraft_doc::Document) -> (Cow<'_, designcraft_doc::Docu
             if eps {
                 a.mime = "image/png".into();
             }
-            a.data = designcraft_doc::AssetData::embedded(data);
+            a.data = patronusdesign_doc::AssetData::embedded(data);
         }
     }
     (out, warnings)
@@ -90,13 +90,13 @@ fn eps_previews(d: &designcraft_doc::Document) -> (Cow<'_, designcraft_doc::Docu
 
 pub(super) fn export_html(s: &mut Session, p: &Value) -> Result<Value> {
     let st = s.doc()?;
-    let opts = designcraft_epub::HtmlOptions {
+    let opts = patronusdesign_epub::HtmlOptions {
         title: str_param(p, "title").map(str::to_string),
         language: str_param(p, "language").map(str::to_string),
         generic_families: generic_families(&st.doc),
     };
     let (doc, warnings) = eps_previews(&st.doc);
-    let text = designcraft_epub::export_html(&doc, &opts);
+    let text = patronusdesign_epub::export_html(&doc, &opts);
     match str_param(p, "path") {
         Some(path) => {
             #[cfg(not(target_arch = "wasm32"))]
@@ -111,11 +111,11 @@ pub(super) fn export_pptx(s: &mut Session, p: &Value) -> Result<Value> {
     const ID: &str = "file.exportPptx";
     let st = s.doc()?;
     let line_breaks = match str_param(p, "lineBreaks") {
-        None | Some("keep") => designcraft_pptx::LineBreaks::Keep,
-        Some("reflow") => designcraft_pptx::LineBreaks::Reflow,
+        None | Some("keep") => patronusdesign_pptx::LineBreaks::Keep,
+        Some("reflow") => patronusdesign_pptx::LineBreaks::Reflow,
         Some(x) => return Err(bad(ID, format!("unknown lineBreaks `{x}` (keep, reflow)"))),
     };
-    let opts = designcraft_pptx::PptxOptions {
+    let opts = patronusdesign_pptx::PptxOptions {
         pages: pages_param(ID, p, st.doc.page_count())?,
         line_breaks,
         title: str_param(p, "title").map(str::to_string),
@@ -127,10 +127,10 @@ pub(super) fn export_pptx(s: &mut Session, p: &Value) -> Result<Value> {
     // stays text: a picture of it would drop the rest of its story).
     let auto = p.get("rasterize").and_then(Value::as_bool).unwrap_or(true);
     let (raster, rasterized) = rasterize_where(&st.doc, &s.cache, 300.0, true, |it| {
-        !threaded(&st.doc, it) && (it.export_options.rasterize || (auto && designcraft_pptx::needs_raster(&st.doc, it)))
+        !threaded(&st.doc, it) && (it.export_options.rasterize || (auto && patronusdesign_pptx::needs_raster(&st.doc, it)))
     });
-    let doc: &designcraft_doc::Document = raster.as_ref().unwrap_or(&st.doc);
-    let mut r = designcraft_pptx::export_pptx(doc, &s.cache, &opts).map_err(|e| EngineError::Other(e.to_string()))?;
+    let doc: &patronusdesign_doc::Document = raster.as_ref().unwrap_or(&st.doc);
+    let mut r = patronusdesign_pptx::export_pptx(doc, &s.cache, &opts).map_err(|e| EngineError::Other(e.to_string()))?;
     if rasterized > 0 {
         r.warnings.push(format!("{rasterized} object(s) went in as images"));
     }
@@ -164,9 +164,9 @@ pub(super) fn export_text(s: &mut Session, p: &Value) -> Result<Value> {
         None => "txt",
     };
     let text = match format {
-        "rtf" => designcraft_textimport::export::rtf(doc, story),
-        "tagged" => designcraft_textimport::tagged::tagged_text(doc, story),
-        _ => designcraft_textimport::export::plain_text(doc, story),
+        "rtf" => patronusdesign_textimport::export::rtf(doc, story),
+        "tagged" => patronusdesign_textimport::tagged::tagged_text(doc, story),
+        _ => patronusdesign_textimport::export::plain_text(doc, story),
     };
     match path {
         Some(path) => {
@@ -179,7 +179,7 @@ pub(super) fn export_text(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// Text of the frames on page `abs`, in line order (for fixed-layout pages).
-fn page_text(d: &designcraft_doc::Document, cache: &designcraft_compose::Cache, abs: usize) -> String {
+fn page_text(d: &patronusdesign_doc::Document, cache: &patronusdesign_compose::Cache, abs: usize) -> String {
     let mut out = String::new();
     for st in d.stories.values() {
         let cs = cache.get(d, st.id, None);
@@ -192,7 +192,7 @@ fn page_text(d: &designcraft_doc::Document, cache: &designcraft_compose::Cache, 
             // Inside a multi-state object only the active state is drawn.
             if d.find(ft.frame).is_some_and(|loc| {
                 (1..=loc.path.len()).any(|n| {
-                    d.item_at(&designcraft_doc::ItemLoc { spread: loc.spread, path: loc.path[..n].to_vec() }).is_some_and(|it| {
+                    d.item_at(&patronusdesign_doc::ItemLoc { spread: loc.spread, path: loc.path[..n].to_vec() }).is_some_and(|it| {
                         it.hidden
                             || it.nonprinting
                             || n == 1 && d.layers.iter().any(|l| (!l.visible || !l.printable) && l.id == it.layer)
@@ -206,7 +206,7 @@ fn page_text(d: &designcraft_doc::Document, cache: &designcraft_compose::Cache, 
                 let r = l.range.start.min(st.text.len())..l.range.end.min(st.text.len());
                 // The line's text as it shows: hidden conditional text and deletions left out.
                 let t: String =
-                    designcraft_doc::Document::visible_text(st, &spans, r).chars().filter(|c| !('\u{E000}'..='\u{F8FF}').contains(c)).collect();
+                    patronusdesign_doc::Document::visible_text(st, &spans, r).chars().filter(|c| !('\u{E000}'..='\u{F8FF}').contains(c)).collect();
                 if !t.trim().is_empty() {
                     out.push_str(t.trim_end_matches('\n'));
                     out.push('\n');
@@ -219,11 +219,11 @@ fn page_text(d: &designcraft_doc::Document, cache: &designcraft_compose::Cache, 
 
 /// The CSS generic family of each font family the EPUB/HTML stylesheet names, from the fonts'
 /// classification (PANOSE, OS/2 class, name), for the `font-family` fallbacks.
-fn generic_families(d: &designcraft_doc::Document) -> std::collections::BTreeMap<String, String> {
-    use designcraft_fonts::FontClass;
-    let db = designcraft_fonts::FontDb::global().scoped(d.font_scope);
+fn generic_families(d: &patronusdesign_doc::Document) -> std::collections::BTreeMap<String, String> {
+    use patronusdesign_fonts::FontClass;
+    let db = patronusdesign_fonts::FontDb::global().scoped(d.font_scope);
     let mut out = std::collections::BTreeMap::new();
-    for (family, _) in designcraft_epub::stylesheet_fonts(d) {
+    for (family, _) in patronusdesign_epub::stylesheet_fonts(d) {
         if out.contains_key(&family) {
             continue;
         }
@@ -242,10 +242,10 @@ fn generic_families(d: &designcraft_doc::Document) -> std::collections::BTreeMap
 
 /// The faces the EPUB stylesheet names, to package with it; `warnings` gets the ones left out
 /// (not available, a licence that forbids embedding, or part of a font collection).
-fn embedded_fonts(d: &designcraft_doc::Document, warnings: &mut Vec<String>) -> Vec<designcraft_epub::EmbeddedFont> {
-    let db = designcraft_fonts::FontDb::global().scoped(d.font_scope);
+fn embedded_fonts(d: &patronusdesign_doc::Document, warnings: &mut Vec<String>) -> Vec<patronusdesign_epub::EmbeddedFont> {
+    let db = patronusdesign_fonts::FontDb::global().scoped(d.font_scope);
     let mut out = Vec::new();
-    for (family, style) in designcraft_epub::stylesheet_fonts(d) {
+    for (family, style) in patronusdesign_epub::stylesheet_fonts(d) {
         let face = db.face(&family, &style);
         if !face.family.eq_ignore_ascii_case(&family) {
             warnings.push(format!("font `{family} {style}` is not available; not embedded"));
@@ -254,7 +254,7 @@ fn embedded_fonts(d: &designcraft_doc::Document, warnings: &mut Vec<String>) -> 
         } else if face.data().starts_with(b"ttcf") {
             warnings.push(format!("font `{family} {style}` is part of a font collection; not embedded"));
         } else {
-            out.push(designcraft_epub::EmbeddedFont { family, style: face.style.clone(), data: face.data().to_vec() });
+            out.push(patronusdesign_epub::EmbeddedFont { family, style: face.style.clone(), data: face.data().to_vec() });
         }
     }
     out
@@ -262,10 +262,10 @@ fn embedded_fonts(d: &designcraft_doc::Document, warnings: &mut Vec<String>) -> 
 
 /// A Split Document setting (`"off"`, `"exportTags"` or `{"style": name}`), naming a paragraph
 /// style the document has.
-pub(crate) fn epub_split_param(id: &str, doc: &designcraft_doc::Document, v: &Value) -> Result<designcraft_doc::EpubSplit> {
-    let split: designcraft_doc::EpubSplit =
+pub(crate) fn epub_split_param(id: &str, doc: &patronusdesign_doc::Document, v: &Value) -> Result<patronusdesign_doc::EpubSplit> {
+    let split: patronusdesign_doc::EpubSplit =
         serde_json::from_value(v.clone()).map_err(|_| bad(id, "`split`: \"off\", \"exportTags\" or {\"style\": name}"))?;
-    if let designcraft_doc::EpubSplit::Style(name) = &split
+    if let patronusdesign_doc::EpubSplit::Style(name) = &split
         && doc.styles.para(name).is_none()
     {
         return Err(bad(id, format!("no paragraph style `{name}`")));
@@ -278,12 +278,12 @@ pub(super) fn export_epub(s: &mut Session, p: &Value) -> Result<Value> {
     let split = p.get("split").map(|v| epub_split_param("file.exportEpub", &st.doc, v)).transpose()?;
     // Object Export Options › Rasterize: those objects go in as images.
     let (raster, _) = rasterize_where(&st.doc, &s.cache, 144.0, false, |it| it.export_options.rasterize && !threaded(&st.doc, it));
-    let epub_doc: &designcraft_doc::Document = raster.as_ref().unwrap_or(&st.doc);
+    let epub_doc: &patronusdesign_doc::Document = raster.as_ref().unwrap_or(&st.doc);
     let fixed = p.get("fixedLayout").and_then(Value::as_bool).unwrap_or(false);
     let want_cover = p.get("cover").and_then(Value::as_bool).unwrap_or(false);
-    let mut rr = designcraft_render::Renderer::new();
-    rr.threads = designcraft_render::default_threads();
-    let ropts = designcraft_render::RenderOptions { printing_only: true, ..Default::default() };
+    let mut rr = patronusdesign_render::Renderer::new();
+    rr.threads = patronusdesign_render::default_threads();
+    let ropts = patronusdesign_render::RenderOptions { printing_only: true, ..Default::default() };
     let mut warnings: Vec<String> = Vec::new();
     // A cover image file (PNG or JPEG), else the first page rendered when `cover` asks for it.
     let cover = match p.get("coverImage").and_then(Value::as_str).filter(|_| !fixed) {
@@ -297,7 +297,7 @@ pub(super) fn export_epub(s: &mut Session, p: &Value) -> Result<Value> {
     {
         return Err(crate::EngineError::Other("the cover image must be a PNG or JPEG file".into()));
     }
-    let opts = designcraft_epub::EpubOptions {
+    let opts = patronusdesign_epub::EpubOptions {
         title: p.get("title").and_then(Value::as_str).map(str::to_string),
         author: p.get("author").and_then(Value::as_str).map(str::to_string),
         language: p.get("language").and_then(Value::as_str).unwrap_or("en").to_string(),
@@ -328,9 +328,9 @@ pub(super) fn export_epub(s: &mut Session, p: &Value) -> Result<Value> {
             let Some(img) = rr.render_page(d, &s.cache, i, 2.0, false, &ropts) else {
                 continue;
             };
-            pages.push(designcraft_epub::FixedPage { png: img.to_png(), width: b.width(), height: b.height(), text: page_text(d, &s.cache, i) });
+            pages.push(patronusdesign_epub::FixedPage { png: img.to_png(), width: b.width(), height: b.height(), text: page_text(d, &s.cache, i) });
         }
-        let bytes = designcraft_epub::export_fixed_epub(d, &pages, &opts).map_err(|e| crate::EngineError::Other(e.to_string()))?;
+        let bytes = patronusdesign_epub::export_fixed_epub(d, &pages, &opts).map_err(|e| crate::EngineError::Other(e.to_string()))?;
         return match p.get("path").and_then(Value::as_str) {
             Some(path) => {
                 write_file(path, &bytes)?;
@@ -341,9 +341,9 @@ pub(super) fn export_epub(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let (epub_doc, eps_warnings) = eps_previews(epub_doc);
     warnings.extend(eps_warnings);
-    let bytes = designcraft_epub::export_epub(&epub_doc, &opts).map_err(|e| crate::EngineError::Other(e.to_string()))?;
+    let bytes = patronusdesign_epub::export_epub(&epub_doc, &opts).map_err(|e| crate::EngineError::Other(e.to_string()))?;
     warnings.extend(
-        designcraft_epub::images_without_alt(&epub_doc)
+        patronusdesign_epub::images_without_alt(&epub_doc)
             .into_iter()
             .map(|name| format!("{name}: no alt text (Object Export Options); exported as decorative (alt=\"\")")),
     );
@@ -375,7 +375,7 @@ mod booklet_tests {
 
     #[test]
     fn booklet_imposes_pages_in_pairs() {
-        use designcraft_pdf::{BookletKind, booklet_pairs};
+        use patronusdesign_pdf::{BookletKind, booklet_pairs};
         assert_eq!(booklet_pairs(8, BookletKind::SaddleStitch), [(Some(7), Some(0)), (Some(1), Some(6)), (Some(5), Some(2)), (Some(3), Some(4))]);
         assert_eq!(booklet_pairs(6, BookletKind::SaddleStitch)[0], (None, Some(0)), "padded with blanks");
         assert_eq!(booklet_pairs(3, BookletKind::TwoUpConsecutive), [(Some(0), Some(1)), (Some(2), None)]);
@@ -392,7 +392,7 @@ mod booklet_tests {
         s.execute("object.fill", &json!({"swatch": "[Black]", "ids": [id]})).unwrap();
         let r = s.execute("file.printBooklet", &json!({})).unwrap();
         let bytes = crate::cmd::file::base64_decode(r["base64"].as_str().unwrap());
-        let px = designcraft_render::decode_pixmap_page(&bytes, 0).expect("rasterised");
+        let px = patronusdesign_render::decode_pixmap_page(&bytes, 0).expect("rasterised");
         let (w, h) = (px.width() as f64, px.height() as f64);
         let at = |x: f64, y: f64| px.sample((x / 1224.0 * w) as u16, (y / 792.0 * h) as u16);
         let (ink, blank) = (at(612.0 + 200.0, 200.0), at(200.0, 200.0));

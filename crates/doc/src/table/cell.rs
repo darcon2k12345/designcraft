@@ -54,7 +54,7 @@ pub struct CellStroke {
 }
 
 fn is_no_swatch(s: &str) -> bool {
-    s == designcraft_color::swatch::NONE
+    s == patronusdesign_color::swatch::NONE
 }
 
 fn is_full(t: &f32) -> bool {
@@ -65,10 +65,10 @@ impl Default for CellStroke {
     fn default() -> Self {
         CellStroke {
             weight: 1.0,
-            color: designcraft_color::swatch::BLACK.into(),
+            color: patronusdesign_color::swatch::BLACK.into(),
             tint: 1.0,
             kind: StrokeType::Solid,
-            gap_color: designcraft_color::swatch::NONE.into(),
+            gap_color: patronusdesign_color::swatch::NONE.into(),
             gap_tint: 1.0,
         }
     }
@@ -110,8 +110,8 @@ impl CellDiagonal {
     }
 
     /// The diagonals' ends in the cell rectangle `r`, as (start, end) pairs.
-    pub fn segments(&self, r: designcraft_geom::Rect) -> Vec<(designcraft_geom::Point, designcraft_geom::Point)> {
-        use designcraft_geom::Point;
+    pub fn segments(&self, r: patronusdesign_geom::Rect) -> Vec<(patronusdesign_geom::Point, patronusdesign_geom::Point)> {
+        use patronusdesign_geom::Point;
         let down = (Point::new(r.x0, r.y0), Point::new(r.x1, r.y1));
         let up = (Point::new(r.x1, r.y0), Point::new(r.x0, r.y1));
         match self.lines {
@@ -128,7 +128,7 @@ impl CellStroke {
         CellStroke { weight: 0.0, ..Default::default() }
     }
     pub fn is_visible(&self) -> bool {
-        self.weight > 0.0 && self.color != designcraft_color::swatch::NONE
+        self.weight > 0.0 && self.color != patronusdesign_color::swatch::NONE
     }
 }
 
@@ -194,7 +194,7 @@ fn full() -> f32 {
 }
 
 fn no_fill() -> String {
-    designcraft_color::swatch::NONE.into()
+    patronusdesign_color::swatch::NONE.into()
 }
 
 fn is_ascent(f: &FirstBaseline) -> bool {
@@ -300,7 +300,7 @@ impl Cell {
         c
     }
     pub fn has_fill(&self) -> bool {
-        self.fill != designcraft_color::swatch::NONE
+        self.fill != patronusdesign_color::swatch::NONE
     }
 }
 
@@ -322,10 +322,10 @@ impl Default for AltFills {
     fn default() -> Self {
         AltFills {
             first: 1,
-            first_color: designcraft_color::swatch::BLACK.into(),
+            first_color: patronusdesign_color::swatch::BLACK.into(),
             first_tint: 0.2,
             next: 1,
-            next_color: designcraft_color::swatch::NONE.into(),
+            next_color: patronusdesign_color::swatch::NONE.into(),
             next_tint: 1.0,
             skip_first: 0,
             skip_last: 0,
@@ -343,7 +343,7 @@ impl AltFills {
         let period = (u64::from(self.first) + u64::from(self.next)).max(1);
         let k = (i - sf) as u64 % period;
         let (c, t) = if k < u64::from(self.first) { (&self.first_color, self.first_tint) } else { (&self.next_color, self.next_tint) };
-        (c != designcraft_color::swatch::NONE).then_some((c.as_str(), t))
+        (c != patronusdesign_color::swatch::NONE).then_some((c.as_str(), t))
     }
 }
 

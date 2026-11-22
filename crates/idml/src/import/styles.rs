@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use designcraft_geom::corners::CornerOptions;
+use patronusdesign_geom::corners::CornerOptions;
 
 use super::object_style::{corners, corners_in};
 use super::table::uniform_cell_stroke;
@@ -45,13 +45,13 @@ impl<'r> Importer<'r> {
             // Keep the app's UI default for unrecognized/named IDML indicator colors.
             let color = values.indicator_rgb.unwrap_or([79, 153, 255]);
             self.condition_names.insert(id, name.clone());
-            self.conditions.push(designcraft_doc::Condition { name, color, visible: values.visible });
+            self.conditions.push(patronusdesign_doc::Condition { name, color, visible: values.visible });
         }
         for e in top.iter().filter(|node| node.kind == TopKind::NumberingList).map(top_el) {
             let values = craft_idml::model::NumberingListValues::from_el(&crate::xml::to_craft(&e));
             let name = values.name;
             if !name.is_empty() && !name.starts_with("$ID/") && !self.lists.iter().any(|l| l.name == name) {
-                self.lists.push(designcraft_doc::NumberedList { name, continue_across_stories: values.continue_across_stories });
+                self.lists.push(patronusdesign_doc::NumberedList { name, continue_across_stories: values.continue_across_stories });
             }
         }
         let (paras, chars, objects, cell_styles, table_styles) = style_elements(top);
@@ -74,7 +74,7 @@ impl<'r> Importer<'r> {
         }
         for (_, e) in &paras {
             let name = names::style_name_in(PARA_BUILTINS, e.get("Name").unwrap_or(""));
-            let based_on = if name == designcraft_doc::NO_PARA_STYLE { None } else { self.based_on(e, true) };
+            let based_on = if name == patronusdesign_doc::NO_PARA_STYLE { None } else { self.based_on(e, true) };
             let next_style = e.get("NextStyle").map(|n| self.para_style_ref(n)).filter(|n| *n != name);
             let para = self.para_attrs(e);
             let chars = self.char_attrs(e);
@@ -115,9 +115,9 @@ impl<'r> Importer<'r> {
         for (_, e) in &cell_styles {
             let values = craft_idml::model::CellStyleValues::from_el(&crate::xml::to_craft(e));
             let name = names::style_name_in(names::CELL_BUILTINS, values.name.as_deref().unwrap_or(""));
-            let mut cs = designcraft_doc::CellStyle { name: name.clone(), ..Default::default() };
+            let mut cs = patronusdesign_doc::CellStyle { name: name.clone(), ..Default::default() };
             cs.based_on =
-                values.based_on.map(|r| self.cell_style_ref(&r)).or_else(|| Some(designcraft_doc::NO_CELL_STYLE.into())).filter(|n| *n != name);
+                values.based_on.map(|r| self.cell_style_ref(&r)).or_else(|| Some(patronusdesign_doc::NO_CELL_STYLE.into())).filter(|n| *n != name);
             cs.fill = values.fill.as_deref().map(|c| self.swatch_ref(c));
             cs.fill_tint = tint(values.fill_tint);
             cs.inset_overrides = values.insets;
@@ -133,7 +133,7 @@ impl<'r> Importer<'r> {
                 cs.stroke = Some(stroke);
                 cs.strokes = Default::default();
             }
-            cs.paragraph_style = values.paragraph_style.as_deref().map(|r| self.para_style_ref(r)).filter(|n| n != designcraft_doc::NO_PARA_STYLE);
+            cs.paragraph_style = values.paragraph_style.as_deref().map(|r| self.para_style_ref(r)).filter(|n| n != patronusdesign_doc::NO_PARA_STYLE);
             match self.styles.cell.iter_mut().find(|c| c.name == name) {
                 Some(slot) => *slot = cs,
                 None => self.styles.cell.push(cs),
@@ -142,11 +142,11 @@ impl<'r> Importer<'r> {
         for (_, e) in &table_styles {
             let values = craft_idml::model::TableStyleValues::from_el(&crate::xml::to_craft(e));
             let name = names::style_name_in(names::TABLE_BUILTINS, values.name.as_deref().unwrap_or(""));
-            let mut ts = designcraft_doc::TableStyle { name: name.clone(), ..Default::default() };
+            let mut ts = patronusdesign_doc::TableStyle { name: name.clone(), ..Default::default() };
             ts.based_on =
-                values.based_on.map(|r| self.table_style_ref(&r)).or_else(|| Some(designcraft_doc::NO_TABLE_STYLE.into())).filter(|n| *n != name);
+                values.based_on.map(|r| self.table_style_ref(&r)).or_else(|| Some(patronusdesign_doc::NO_TABLE_STYLE.into())).filter(|n| *n != name);
             let cell_ref = |r: Option<String>, importer: &Self| {
-                r.map(|r| if r == "n" { designcraft_doc::NO_CELL_STYLE.into() } else { importer.cell_style_ref(&r) })
+                r.map(|r| if r == "n" { patronusdesign_doc::NO_CELL_STYLE.into() } else { importer.cell_style_ref(&r) })
             };
             ts.header = cell_ref(values.header_cell_style, self);
             ts.body = cell_ref(values.body_cell_style, self);
@@ -183,7 +183,7 @@ impl<'r> Importer<'r> {
                     .cloned()
                     .unwrap_or_else(|| names::style_name_in(OBJECT_BUILTINS, &unescape_id(b.trim_start_matches("ObjectStyle/"))))
             });
-            let based_on = based_on.filter(|b| *b != designcraft_doc::NO_OBJECT_STYLE && *b != name);
+            let based_on = based_on.filter(|b| *b != patronusdesign_doc::NO_OBJECT_STYLE && *b != name);
             let fill = values.fill_enabled.then(|| {
                 let sw = values.fill_color.as_deref().map(|r| self.swatch_ref(r)).unwrap_or_else(|| swatch::NONE.into());
                 Fill { swatch: sw, tint: tint(values.fill_tint).unwrap_or(1.0), ..Fill::none() }
@@ -314,8 +314,8 @@ impl<'r> Importer<'r> {
     /// a swatch reference; anything else leaves the default.
     fn rule_color_ref(&mut self, c: &str) -> Option<String> {
         let c = c.trim();
-        if c == designcraft_doc::TEXT_COLOR || c.strip_prefix("$ID/") == Some(designcraft_doc::TEXT_COLOR) {
-            Some(designcraft_doc::TEXT_COLOR.to_string())
+        if c == patronusdesign_doc::TEXT_COLOR || c.strip_prefix("$ID/") == Some(patronusdesign_doc::TEXT_COLOR) {
+            Some(patronusdesign_doc::TEXT_COLOR.to_string())
         } else {
             c.contains('/').then(|| self.swatch_ref(c))
         }
@@ -357,8 +357,8 @@ impl<'r> Importer<'r> {
             .unwrap_or_else(|| names::style_name_in(names::TABLE_BUILTINS, &unescape_id(reference.trim_start_matches("TableStyle/"))))
     }
 
-    pub(super) fn map_stroke_values(&mut self, values: craft_idml::model::StrokeValues) -> designcraft_doc::CellStrokeAttrs {
-        designcraft_doc::CellStrokeAttrs {
+    pub(super) fn map_stroke_values(&mut self, values: craft_idml::model::StrokeValues) -> patronusdesign_doc::CellStrokeAttrs {
+        patronusdesign_doc::CellStrokeAttrs {
             weight: values.weight,
             color: values.color.map(|v| self.swatch_ref(&v)),
             tint: tint(values.tint),
@@ -368,13 +368,13 @@ impl<'r> Importer<'r> {
         }
     }
 
-    pub(super) fn alt_fill_attrs(&mut self, el: &El, kind: &str) -> designcraft_doc::AltFillsAttrs {
+    pub(super) fn alt_fill_attrs(&mut self, el: &El, kind: &str) -> patronusdesign_doc::AltFillsAttrs {
         let values = craft_idml::model::Values::of(&crate::xml::to_craft(el)).alternating_fill_values(kind);
         self.map_alt_fill_values(values)
     }
 
-    fn map_alt_fill_values(&mut self, values: craft_idml::model::AlternatingFillValues) -> designcraft_doc::AltFillsAttrs {
-        designcraft_doc::AltFillsAttrs {
+    fn map_alt_fill_values(&mut self, values: craft_idml::model::AlternatingFillValues) -> patronusdesign_doc::AltFillsAttrs {
+        patronusdesign_doc::AltFillsAttrs {
             first: values.first_count.map(|v| v as u32),
             first_color: values.first_color.map(|v| self.swatch_ref(&v)),
             first_tint: tint(values.first_tint),
@@ -386,15 +386,15 @@ impl<'r> Importer<'r> {
         }
     }
 
-    pub(super) fn alt_stroke_attrs(&mut self, el: &El, kind: &str) -> designcraft_doc::AltStrokesAttrs {
+    pub(super) fn alt_stroke_attrs(&mut self, el: &El, kind: &str) -> patronusdesign_doc::AltStrokesAttrs {
         let values = craft_idml::model::Values::of(&crate::xml::to_craft(el)).alternating_stroke_values(kind);
         self.map_alt_stroke_values(values)
     }
 
-    fn map_alt_stroke_values(&mut self, values: craft_idml::model::AlternatingStrokeValues) -> designcraft_doc::AltStrokesAttrs {
+    fn map_alt_stroke_values(&mut self, values: craft_idml::model::AlternatingStrokeValues) -> patronusdesign_doc::AltStrokesAttrs {
         let first_stroke = self.map_stroke_values(values.first);
         let next_stroke = self.map_stroke_values(values.next);
-        designcraft_doc::AltStrokesAttrs {
+        patronusdesign_doc::AltStrokesAttrs {
             first: values.first_count.map(|v| v as u32),
             next: values.next_count.map(|v| v as u32),
             first_stroke,

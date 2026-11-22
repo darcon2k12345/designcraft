@@ -23,9 +23,9 @@ pub mod typography;
 #[cfg(test)]
 mod color_panel_tests;
 
-use designcraft_doc::{Content, StrokeAlign, WrapMode};
-use designcraft_geom::Rect;
 use egui::vec2;
+use patronusdesign_doc::{Content, StrokeAlign, WrapMode};
+use patronusdesign_geom::Rect;
 use serde_json::{Value, json};
 
 use crate::DesignApp;
@@ -54,7 +54,7 @@ pub struct SelInfo {
     /// Stroke type id (`solid`, `dashed`, `thickThin`, …).
     pub stroke_kind: String,
     /// Uniform corner (shape, size) — the first corner.
-    pub corner: (designcraft_geom::corners::CornerShape, f64),
+    pub corner: (patronusdesign_geom::corners::CornerShape, f64),
     pub wrap_invert: bool,
     /// Text wrap offsets: top, left, bottom, right.
     pub wrap_offsets: [f64; 4],
@@ -120,10 +120,10 @@ pub fn apply_swatch(app: &mut DesignApp, stroke: bool, swatch: &str, tint: Optio
 /// Keep `swatch` as the colour or gradient Apply Color / Apply Gradient use next.
 pub fn remember_swatch(app: &mut DesignApp, swatch: &str) {
     let Some(st) = app.session.active() else { return };
-    if swatch == designcraft_color::swatch::NONE {
+    if swatch == patronusdesign_color::swatch::NONE {
         return;
     }
-    if designcraft_color::swatch::resolve_gradient(&st.doc.swatches, swatch).is_some() {
+    if patronusdesign_color::swatch::resolve_gradient(&st.doc.swatches, swatch).is_some() {
         app.ui.last_gradient = Some(swatch.to_string());
     } else if st.doc.resolve_color(swatch, 1.0).is_some() {
         app.ui.last_color = Some(swatch.to_string());
@@ -141,21 +141,21 @@ pub fn sel_tint(app: &DesignApp, stroke: bool) -> f32 {
 /// point (and the page, when rulers restart per page), in that ruler's units.
 #[derive(Clone, Copy, Debug)]
 pub struct GuideField {
-    pub guide: designcraft_doc::GuideSel,
-    pub orientation: designcraft_doc::Orientation,
+    pub guide: patronusdesign_doc::GuideSel,
+    pub orientation: patronusdesign_doc::Orientation,
     /// Points from the ruler origin.
     pub value: f64,
     /// Where `value` 0 is: a spread x for a vertical guide, a y for a horizontal one.
     pub origin: f64,
-    pub unit: designcraft_geom::Unit,
+    pub unit: patronusdesign_geom::Unit,
 }
 
 impl GuideField {
     /// Which field shows it: 0 for X, 1 for Y.
     pub fn row(&self) -> usize {
         match self.orientation {
-            designcraft_doc::Orientation::Vertical => 0,
-            designcraft_doc::Orientation::Horizontal => 1,
+            patronusdesign_doc::Orientation::Vertical => 0,
+            patronusdesign_doc::Orientation::Horizontal => 1,
         }
     }
     /// The `guide.move` params that put it at `value` (as the field reads).
@@ -172,15 +172,15 @@ pub fn guide_field(app: &DesignApp) -> Option<GuideField> {
     let pg = st.doc.spread(g.spread)?.pages.get(g.page)?;
     let guide = pg.guides.get(g.index)?;
     let (origin, unit) = match guide.orientation {
-        designcraft_doc::Orientation::Vertical => (st.doc.ruler_origin(g.spread, guide.position)?.x, st.doc.settings.horizontal_units),
-        designcraft_doc::Orientation::Horizontal => (st.doc.ruler_origin(g.spread, pg.x + pg.width / 2.0)?.y, st.doc.settings.vertical_units),
+        patronusdesign_doc::Orientation::Vertical => (st.doc.ruler_origin(g.spread, guide.position)?.x, st.doc.settings.horizontal_units),
+        patronusdesign_doc::Orientation::Horizontal => (st.doc.ruler_origin(g.spread, pg.x + pg.width / 2.0)?.y, st.doc.settings.vertical_units),
     };
     let value = guide.position - origin;
     value.is_finite().then_some(GuideField { guide: *g, orientation: guide.orientation, value, origin, unit })
 }
 
 /// The anchor points selected with Direct Selection, each with where it is in its spread.
-pub fn selected_anchor_points(app: &DesignApp) -> Vec<((designcraft_doc::ItemId, usize, usize), designcraft_geom::Point)> {
+pub fn selected_anchor_points(app: &DesignApp) -> Vec<((patronusdesign_doc::ItemId, usize, usize), patronusdesign_geom::Point)> {
     let Some(st) = app.session.active() else { return vec![] };
     let d = &st.doc;
     st.selection
@@ -208,7 +208,7 @@ pub fn sel_info(app: &DesignApp) -> Option<SelInfo> {
         // Direct Selection of a placed graphic: its bounds, as the Transform fields then set.
         let ib = match it.graphic() {
             Some(g) if st.selection.content => {
-                let full = d.find(*id).map_or(designcraft_geom::Affine::IDENTITY, |l| d.parent_xf(&l));
+                let full = d.find(*id).map_or(patronusdesign_geom::Affine::IDENTITY, |l| d.parent_xf(&l));
                 (full * it.xf * g.xf).transform_rect_bbox(Rect::new(0.0, 0.0, g.size.0, g.size.1))
             }
             _ if with_stroke => it.visible_bounds(),
@@ -270,23 +270,23 @@ pub fn sel_info(app: &DesignApp) -> Option<SelInfo> {
 /// Resolved attributes at the text selection (or the selected text frames).
 /// The fonts the active document sees: its own (its `Document Fonts` folder) ahead of the shared
 /// ones.
-pub fn fonts(app: &DesignApp) -> designcraft_fonts::ScopedFonts<'static> {
-    designcraft_fonts::FontDb::global().scoped(font_scope(app))
+pub fn fonts(app: &DesignApp) -> patronusdesign_fonts::ScopedFonts<'static> {
+    patronusdesign_fonts::FontDb::global().scoped(font_scope(app))
 }
 
 /// The font menus' families in menu order: Western (and other scripts) first, then Japanese,
 /// Simplified Chinese, Traditional Chinese and Korean, each alphabetical by the name shown (CJK
 /// families by their native names unless Show Font Names in English).
 /// macOS's hidden system families (named with a leading `.`) are left out.
-pub fn font_menu(app: &DesignApp) -> Vec<designcraft_fonts::FamilyInfo> {
+pub fn font_menu(app: &DesignApp) -> Vec<patronusdesign_fonts::FamilyInfo> {
     let mut v = fonts(app).family_infos();
     v.retain(|f| !f.family.starts_with('.'));
-    designcraft_fonts::sort_for_menu(&mut v, app.session.prefs.show_font_names_in_english);
+    patronusdesign_fonts::sort_for_menu(&mut v, app.session.prefs.show_font_names_in_english);
     v
 }
 
 /// The name the font menus show for `family` (its native name, see [`font_menu`]).
-pub fn font_label(app: &DesignApp, menu: &[designcraft_fonts::FamilyInfo], family: &str) -> String {
+pub fn font_label(app: &DesignApp, menu: &[patronusdesign_fonts::FamilyInfo], family: &str) -> String {
     let english = app.session.prefs.show_font_names_in_english;
     menu.iter().find(|f| f.family == family).map_or(family, |f| f.label(english)).to_string()
 }
@@ -324,7 +324,7 @@ fn swatch_menu_font() -> egui::FontId {
 
 /// One swatch in a swatch list, `width` wide: the swatch under the pointer is highlighted (white
 /// on blue, like a menu), the current one shaded.
-pub fn swatch_menu_row(ui: &mut egui::Ui, doc: &designcraft_doc::Document, name: &str, current: &str, width: f32) -> bool {
+pub fn swatch_menu_row(ui: &mut egui::Ui, doc: &patronusdesign_doc::Document, name: &str, current: &str, width: f32) -> bool {
     let t = Tokens::get(ui.ctx());
     let (row, resp) = ui.allocate_exact_size(vec2(width, SWATCH_MENU_ROW_H), egui::Sense::click());
     resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, name == current, name));
@@ -352,7 +352,7 @@ pub fn swatch_menu_row(ui: &mut egui::Ui, doc: &designcraft_doc::Document, name:
 
 /// The list in a swatch popup → the swatch picked. It is as wide as its longest name (within
 /// limits), and its rows stop short of the scroll bar that floats over the list's edge.
-pub fn swatch_list(ui: &mut egui::Ui, doc: &designcraft_doc::Document, current: &str) -> Option<String> {
+pub fn swatch_list(ui: &mut egui::Ui, doc: &patronusdesign_doc::Document, current: &str) -> Option<String> {
     let font = swatch_menu_font();
     let widest = doc
         .swatches
@@ -439,7 +439,7 @@ pub fn font_popup(
     app: &mut DesignApp,
     ui: &egui::Ui,
     field: &egui::Response,
-    menu: &[designcraft_fonts::FamilyInfo],
+    menu: &[patronusdesign_fonts::FamilyInfo],
     current: &str,
 ) -> Option<FontPick> {
     let shown = if current.is_empty() { "—".to_string() } else { font_label(app, menu, current) };
@@ -514,7 +514,7 @@ pub fn para_style_picker(app: &mut DesignApp, ui: &mut egui::Ui, current: &str, 
     let shown = crate::i18n::style_name(&app.ui.language, current);
     let label = if overridden { format!("{shown}+") } else { shown.to_string() };
     let combo = craft_ui::ComboBox::from_id_salt("para_style").selected_text(crate::rtl::widget(ui, label)).width(width).show_ui(ui, |ui| {
-        for n in names.iter().filter(|n| *n != designcraft_doc::NO_PARA_STYLE) {
+        for n in names.iter().filter(|n| *n != patronusdesign_doc::NO_PARA_STYLE) {
             if ui.selectable_label(n == current, crate::rtl::widget(ui, crate::i18n::style_name(&app.ui.language, n))).clicked() {
                 pick = Some(n.clone());
             }
@@ -528,8 +528,8 @@ pub fn para_style_picker(app: &mut DesignApp, ui: &mut egui::Ui, current: &str, 
 
 #[cfg(test)]
 mod font_menu_tests {
-    use designcraft_fonts::FontGroup;
-    use designcraft_fonts::testing::{font_with, with_names};
+    use patronusdesign_fonts::FontGroup;
+    use patronusdesign_fonts::testing::{font_with, with_names};
 
     use super::*;
 
@@ -547,22 +547,22 @@ mod font_menu_tests {
         let font = with_names(&font, &[(3, 1, 0x409, 1, FAMILY), (3, 1, 0x409, 2, "Regular"), (3, 1, 0x0411, 1, "UIテスト明朝")]).unwrap();
         // A database of this test's own: a font added to the process-wide one stays there, and its
         // Japanese native name would then need CJK glyphs in every later test that draws the menu.
-        let db = designcraft_fonts::FontDb::with_font_dirs(Vec::new());
+        let db = patronusdesign_fonts::FontDb::with_font_dirs(Vec::new());
         db.add_font(font);
         let menu = |app: &DesignApp| {
-            let mut v: Vec<designcraft_fonts::FamilyInfo> = db.scoped(0).family_infos();
+            let mut v: Vec<patronusdesign_fonts::FamilyInfo> = db.scoped(0).family_infos();
             v.retain(|f| !f.family.starts_with('.'));
-            designcraft_fonts::sort_for_menu(&mut v, app.session.prefs.show_font_names_in_english);
+            patronusdesign_fonts::sort_for_menu(&mut v, app.session.prefs.show_font_names_in_english);
             v
         };
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         let entries = menu(&app);
         let at = entries.iter().position(|f| f.family == FAMILY).unwrap();
         assert_eq!(entries[at].group, FontGroup::Japanese);
-        assert!(entries[..at].iter().any(|f| f.family == designcraft_fonts::DEFAULT_FAMILY), "Western fonts first");
+        assert!(entries[..at].iter().any(|f| f.family == patronusdesign_fonts::DEFAULT_FAMILY), "Western fonts first");
         assert!(entries.windows(2).all(|w| w[0].group <= w[1].group), "grouped");
         assert_eq!(font_label(&app, &entries, FAMILY), "UIテスト明朝");
-        assert_eq!(font_label(&app, &entries, designcraft_fonts::DEFAULT_FAMILY), designcraft_fonts::DEFAULT_FAMILY);
+        assert_eq!(font_label(&app, &entries, patronusdesign_fonts::DEFAULT_FAMILY), patronusdesign_fonts::DEFAULT_FAMILY);
         app.run("prefs.set", json!({"showFontNamesInEnglish": true})).unwrap();
         assert_eq!(font_label(&app, &menu(&app), FAMILY), FAMILY);
     }
@@ -570,8 +570,8 @@ mod font_menu_tests {
     #[test]
     fn hidden_system_fonts_stay_out_of_the_font_menus() {
         const HIDDEN: &str = ".DC UI Test Hidden";
-        designcraft_fonts::FontDb::global().add_font(font_with(HIDDEN, &['a']).unwrap());
-        let app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        patronusdesign_fonts::FontDb::global().add_font(font_with(HIDDEN, &['a']).unwrap());
+        let app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         assert!(fonts(&app).family_infos().iter().any(|f| f.family == HIDDEN), "installed");
         let menu = font_menu(&app);
         assert!(menu.iter().all(|f| !f.family.starts_with('.')), "no hidden family is listed");
@@ -615,7 +615,7 @@ mod swatch_list_tests {
 
     #[test]
     fn the_swatch_under_the_pointer_is_highlighted_and_names_clear_the_scroll_bar() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", serde_json::json!({})).unwrap();
         // A long name, as process swatches have.
         app.run("swatch.create", serde_json::json!({"name": "C=15 M=100 Y=100 K=0 Long Name", "color": {"c": 15, "m": 100, "y": 100, "k": 0}}))
@@ -679,11 +679,11 @@ mod content_selection_tests {
     /// Transform fields then set.
     #[test]
     fn a_selected_graphic_shows_its_own_bounds() {
-        let mut app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let f = app.run("frame.create", json!({"rect": [100, 100, 300, 300], "content": "graphic"})).unwrap()["id"].clone();
-        let png = designcraft_render::Rendered { width: 400, height: 400, pixels: vec![200u8; 400 * 400 * 4] }.to_png();
-        let b64 = designcraft_engine::cmd::base64_encode(&png);
+        let png = patronusdesign_render::Rendered { width: 400, height: 400, pixels: vec![200u8; 400 * 400 * 4] }.to_png();
+        let b64 = patronusdesign_engine::cmd::base64_encode(&png);
         app.run("file.place", json!({"base64": b64, "name": "a.png", "frame": f})).unwrap();
         app.run("selection.set", json!({"ids": [f]})).unwrap();
         let frame = super::sel_info(&app).unwrap().page_rect;

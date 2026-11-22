@@ -5,7 +5,7 @@
 
 use std::fmt::Write as _;
 
-use designcraft_doc::{Document, FieldKind, FormField, Item, MediaOptions};
+use patronusdesign_doc::{Document, FieldKind, FormField, Item, MediaOptions};
 
 use crate::export::Sheet;
 use crate::transitions::{bracketed, int_after, object, rfind};
@@ -49,7 +49,7 @@ pub(crate) fn collect(doc: &Document, sheets: &[Sheet]) -> Vec<Placed> {
 pub(crate) fn collect_media(doc: &Document, sheets: &[Sheet]) -> Vec<PlacedMedia> {
     let mut out = Vec::new();
     visit(doc, sheets, |pi, r, it| {
-        if let (Some(m), designcraft_doc::Content::Graphic(g)) = (&it.media, &it.content)
+        if let (Some(m), patronusdesign_doc::Content::Graphic(g)) = (&it.media, &it.content)
             && let Some(a) = doc.assets.get(&g.asset)
             && let Ok(data) = a.data.load()
             && !data.is_empty()

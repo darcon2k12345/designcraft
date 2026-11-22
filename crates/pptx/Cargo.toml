@@ -1,20 +1,20 @@
 [package]
-name = "designcraft-pptx"
+name = "patronusdesign-pptx"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "DesignCraft PowerPoint (PPTX) export: pages as slides of editable shapes, pictures and text"
+description = "Patronus Design PowerPoint (PPTX) export: pages as slides of editable shapes, pictures and text"
 
 [lints]
 workspace = true
 
 [dependencies]
-designcraft-geom = { workspace = true }
-designcraft-color = { workspace = true }
-designcraft-doc = { workspace = true }
-designcraft-fonts = { workspace = true }
-designcraft-compose = { workspace = true }
-designcraft-images = { workspace = true }
+patronusdesign-geom = { workspace = true }
+patronusdesign-color = { workspace = true }
+patronusdesign-doc = { workspace = true }
+patronusdesign-fonts = { workspace = true }
+patronusdesign-compose = { workspace = true }
+patronusdesign-images = { workspace = true }
 skrifa = { workspace = true }
 thiserror = { workspace = true }
 craft-opc = { workspace = true }
@@ -25,5 +25,5 @@ chrono = { workspace = true }
 [dev-dependencies]
 zip = { workspace = true }
 image = { workspace = true, features = ["png"] }
-designcraft-fonts = { workspace = true, features = ["testing"] }
+patronusdesign-fonts = { workspace = true, features = ["testing"] }
 quick-xml = { workspace = true }

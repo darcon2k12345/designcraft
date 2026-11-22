@@ -243,10 +243,10 @@ mod save_tests {
         let path = dir.join("doc.designcraft");
         s.execute("file.save", &json!({"path": path.to_string_lossy()})).unwrap();
         let before = std::fs::read(&path).unwrap();
-        let id = designcraft_doc::ItemId(s.execute("frame.create", &json!({"rect": [36, 36, 300, 200]})).unwrap()["id"].as_u64().unwrap());
+        let id = patronusdesign_doc::ItemId(s.execute("frame.create", &json!({"rect": [36, 36, 300, 200]})).unwrap()["id"].as_u64().unwrap());
         let st = s.doc_mut().unwrap();
-        let infinite = designcraft_geom::Rect::new(36.0, 36.0, f64::INFINITY, 200.0);
-        std::sync::Arc::make_mut(&mut st.doc).item_mut(id).unwrap().path = designcraft_geom::shapes::rectangle(infinite);
+        let infinite = patronusdesign_geom::Rect::new(36.0, 36.0, f64::INFINITY, 200.0);
+        std::sync::Arc::make_mut(&mut st.doc).item_mut(id).unwrap().path = patronusdesign_geom::shapes::rectangle(infinite);
         let e = s.execute("file.save", &json!({})).unwrap_err();
         assert!(e.to_string().contains("not a finite number"), "{e}");
         assert_eq!(std::fs::read(&path).unwrap(), before, "the saved file is untouched");

@@ -26,7 +26,7 @@ pub(super) fn margins_of(m: &craft_idml::model::MarginPreference) -> (Margins, C
         inside: m.left().unwrap_or(36.0),
         outside: m.right().unwrap_or(36.0),
     };
-    let count = m.column_count().unwrap_or(1.0).clamp(1.0, f64::from(designcraft_doc::MAX_COLUMNS)) as u32;
+    let count = m.column_count().unwrap_or(1.0).clamp(1.0, f64::from(patronusdesign_doc::MAX_COLUMNS)) as u32;
     let gutter = m.column_gutter().unwrap_or(12.0);
     let positions = m.column_positions(2 * count as usize + 1).and_then(|pos| custom_columns(&pos, count, gutter));
     (margins, Columns { count, gutter, positions })
@@ -37,14 +37,14 @@ pub(super) fn margins_of_el(m: &El) -> (Margins, Columns) {
 }
 
 /// `ColumnsPositions` when the column guides have been dragged off the even split: `2 × count`
-/// offsets from the margin box's left edge, valid as [`designcraft_doc::valid_column_positions`]
+/// offsets from the margin box's left edge, valid as [`patronusdesign_doc::valid_column_positions`]
 /// over the box they span. InDesign writes the attribute whether or not they have been moved, so
 /// an even set is dropped: `positions` means "custom", and keeping an even copy would freeze the
 /// columns against a later change of count or gutter. Anything malformed is the even split; at
 /// most one number past `2 × count` is parsed, so a long list costs nothing.
 fn custom_columns(pos: &[f64], count: u32, gutter: f64) -> Option<Vec<f64>> {
     let width = *pos.last()?;
-    if !designcraft_doc::valid_column_positions(pos, count, width) {
+    if !patronusdesign_doc::valid_column_positions(pos, count, width) {
         return None;
     }
     let even = Columns { count, gutter, positions: None }.edges(width);
@@ -280,9 +280,9 @@ mod frame_preference_safety_tests {
         let o = text_frame_options(&[&local, &base]);
         assert_eq!(o.columns_kind, ColumnsKind::FlexibleWidth);
         assert!(o.balance_columns && o.ignore_wrap && o.column_rule);
-        assert_eq!(o.vertical_justification, designcraft_doc::VerticalJustification::Bottom);
-        assert_eq!(o.first_baseline, designcraft_doc::FirstBaseline::Fixed);
-        assert_eq!(o.auto_size, designcraft_doc::AutoSize::HeightAndWidth);
+        assert_eq!(o.vertical_justification, patronusdesign_doc::VerticalJustification::Bottom);
+        assert_eq!(o.first_baseline, patronusdesign_doc::FirstBaseline::Fixed);
+        assert_eq!(o.auto_size, patronusdesign_doc::AutoSize::HeightAndWidth);
         assert_eq!(o.auto_size_ref, 8);
         let fixed = pref(&[], &[("UseFixedColumnWidth", "true")]);
         assert_eq!(text_frame_options(&[&fixed, &local, &base]).columns_kind, ColumnsKind::FixedWidth);
@@ -406,9 +406,9 @@ mod frame_preference_scalar_tests {
             let expected = text_frame_options(&[&clean]);
             assert_eq!(expected.columns_kind, if fixed { ColumnsKind::FixedWidth } else { ColumnsKind::FlexibleWidth });
             assert!(expected.balance_columns && expected.ignore_wrap && expected.column_rule);
-            assert_eq!(expected.vertical_justification, designcraft_doc::VerticalJustification::Bottom);
-            assert_eq!(expected.first_baseline, designcraft_doc::FirstBaseline::Fixed);
-            assert_eq!(expected.auto_size, designcraft_doc::AutoSize::HeightAndWidth);
+            assert_eq!(expected.vertical_justification, patronusdesign_doc::VerticalJustification::Bottom);
+            assert_eq!(expected.first_baseline, patronusdesign_doc::FirstBaseline::Fixed);
+            assert_eq!(expected.auto_size, patronusdesign_doc::AutoSize::HeightAndWidth);
             assert_eq!(expected.auto_size_ref, 8);
             for properties in [false, true] {
                 let padded = preference(properties, true, fixed);

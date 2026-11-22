@@ -60,7 +60,7 @@ fn decode_for_proxy(bytes: &[u8], page: u32) -> Option<Pixmap> {
         let (w, h) = image_size(bytes)?;
         let long = w.max(h);
         let mut shrink = 0u8;
-        while shrink < designcraft_images::MAX_REDUCED_SHRINK && (long >> (shrink + 1)) >= MAX_SIDE_PX {
+        while shrink < patronusdesign_images::MAX_REDUCED_SHRINK && (long >> (shrink + 1)) >= MAX_SIDE_PX {
             shrink += 1;
         }
         if shrink > 0

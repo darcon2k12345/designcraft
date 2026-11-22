@@ -3,8 +3,8 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use designcraft_color::{Swatch, SwatchValue};
-use designcraft_doc::{CharAttrs, Document, NO_CHAR_STYLE, NO_PARA_STYLE, NumberedList, ParaAttrs, ParagraphStyle, Styles};
+use patronusdesign_color::{Swatch, SwatchValue};
+use patronusdesign_doc::{CharAttrs, Document, NO_CHAR_STYLE, NO_PARA_STYLE, NumberedList, ParaAttrs, ParagraphStyle, Styles};
 use serde_json::{Value, json};
 
 use super::{CommandSpec, bad, cmd, has_doc, str_param};
@@ -86,7 +86,7 @@ fn source(p: &Value, id: &str) -> Result<Document> {
         _ => return Err(bad(id, "give `path` or `base64`")),
     };
     if craft_file_formats::detect(&name, &bytes) == Some(craft_file_formats::Format::Idml) {
-        designcraft_idml::import_idml(&bytes).map_err(|e| bad(id, e.to_string()))
+        patronusdesign_idml::import_idml(&bytes).map_err(|e| bad(id, e.to_string()))
     } else {
         super::file::from_bytes(&bytes).map_err(|e| bad(id, e.to_string()))
     }

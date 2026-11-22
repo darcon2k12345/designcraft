@@ -1,4 +1,4 @@
-# Where DesignCraft falls short of InDesign
+# Where Patronus Design falls short of InDesign
 
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-15 · **Change:** minor (gap 7 closed: pull-request quality gate already runs; linked placed images and multi-image place; gap 20: automatic recovery moved off the interface thread; gap 21 shrunk: pt-BR translates the whole interface; gap 29 added: document tabs can't be reordered (overflowing tabs now scroll); placed graphic layer-option preservation and explicit rendering warnings; gap 16 shrunk: File › File Info; gap 16: Convert Variable to Text; gap 28 added: placed-PDF font repair remains after visible unembedded font detection, #909; gap 26 shrunk: autoflow fills the following pages before it adds pages at the end; gap 6 shrunk: Type › Reload Fonts reads fonts installed, edited or removed while running (#328); gap 3: Package links are relative, #340; gap 27 closed: the loaded text cursor threads into a frame inside a group (#1075); .indd and .indt open through indd-utils; gap 0 shrunk: text threads by hand; threading gaps added; Optical kerning from outlines (#181); gap 6: macOS lists fonts that font services and managers activate; shared print spooler; image clipping paths from IDML; Tabs panel listed as present (#343); book chapter update safety; gap 16: Based on Parent leftovers; bounded control click/drag input; swatches on placed greyscale and bitmap images) · **Target:** Adobe InDesign 2026 (21.6)
 
@@ -42,11 +42,11 @@ Kind: **F** feature · **U** UI/UX · **T** typography · **FF** file format · 
 ### 2. INDD opening isn't measured on real files (FF)
 - **Missing:** a real-file corpus test of opening `.indd` and `.indt`. They open through
   [storytold/indd-utils](https://github.com/storytold/indd-utils), which converts them to IDML in
-  memory for the IDML importer, but DesignCraft's own tests use synthetic bytes only. INDB and
+  memory for the IDML importer, but Patronus Design's own tests use synthetic bytes only. INDB and
   INDL are still not read.
 - **Evidence:** #21, #114 (PR #98 proposed another converter). indd-utils reports 96.9% of
   InDesign's IDML values reproduced on ~650 INDD/IDML pairs and 0 failures on ~4,300 files; what
-  DesignCraft draws from those files is unmeasured, and it inherits the IDML importer's open bugs
+  Patronus Design draws from those files is unmeasured, and it inherits the IDML importer's open bugs
   (gap 3).
 - **Impact:** a client's `.indd` opens, but nobody knows how close it comes to the original.
 - **Estimate:** 10–30 h (corpus pinned in a sibling of `storytold/photocraft-corpus`, metric,
@@ -67,7 +67,7 @@ Kind: **F** feature · **U** UI/UX · **T** typography · **FF** file format · 
 
 ### 4. Composition isn't compared with InDesign (T)
 - **Missing:** an oracle harness: the same synthetic stories set by InDesign 2026 (observed
-  black-box, results kept under `plan/`) and by DesignCraft, comparing line breaks, overset and
+  black-box, results kept under `plan/`) and by Patronus Design, comparing line breaks, overset and
   frame fit. Known differences: optical kerning is an outline-based approximation, not Adobe's
   algorithm (#181); a frame goes overset when descenders don't fit, InDesign needs only the baseline
   (#180); setting the text language was missing (#130; Language is now in Properties, #145, the issue is still open); "hyphenation doesn't work"
@@ -117,7 +117,7 @@ Kind: **F** feature · **U** UI/UX · **T** typography · **FF** file format · 
   bleed, the options dialog with remembered settings (#196). File ▸ Export Layouts and Versions
   (`file.exportBatch`): several outputs at once (PDF with any marks/bleed, PNG, JPEG), per
   alternate layout or combined, in a folder per version, saved as export presets
-  (`file.saveExportPreset`) — DesignCraft's own presets, not Adobe `.joboptions`.
+  (`file.saveExportPreset`) — Patronus Design's own presets, not Adobe `.joboptions`.
 - **Estimate:** 30–60 h. **Doc:** [file-format-parity.md](file-format-parity.md)
 
 ### 28. Placed-PDF font repair for PDF/X-4 (FF)
@@ -203,7 +203,7 @@ Kind: **F** feature · **U** UI/UX · **T** typography · **FF** file format · 
 
 ### 19. Placed graphics depth (FF)
 - **Have:** files placed from disk are linked with status OK/Modified/Missing, Update, Relink, Embed and Unembed, packaged and preflighted ([linked-artwork.md](linked-artwork.md)); several images load into a place cursor, a grid or a contact sheet ([multi-image-placement.md](multi-image-placement.md)). Per-placement IDML graphic-layer settings survive IDML/native round trips; native format 4 guards older readers. Unsupported layer visibility is reported by import, preflight and PDF export. See [graphic-layer-options.md](graphic-layer-options.md).
-- **Still missing:** DesignCraft does not apply retained IDML graphic-layer visibility to raster or PDF output; layer-comp choices and the layer-options UI are also missing. Metadata preservation does not establish visual fidelity. Placed-PDF layer choices are applied (see **Layer choices** below).
+- **Still missing:** Patronus Design does not apply retained IDML graphic-layer visibility to raster or PDF output; layer-comp choices and the layer-options UI are also missing. Metadata preservation does not establish visual fidelity. Placed-PDF layer choices are applied (see **Layer choices** below).
 - **Safety:** PDF visibility variants preserve catalog/configuration entries and nonzero-generation
   references, redefining the existing catalog rather than choosing an arbitrary object number.
   Encrypted, hybrid-reference and over-budget rewrites are rejected; no print-fidelity claim.

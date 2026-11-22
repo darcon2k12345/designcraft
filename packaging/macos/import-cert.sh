@@ -19,9 +19,9 @@ fi
 
 # A fresh private folder (mode 0700) of our own: a file at a known name under a shared
 # temporary folder could already be there, readable by whoever made it.
-TMP="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/designcraft-signing.XXXXXX")" || { echo "error: cannot make a private temporary folder" >&2; exit 1; }
-KEYCHAIN="$TMP/designcraft-signing.keychain-db"
-CERT="$TMP/designcraft-signing.p12"
+TMP="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/patronusdesign-signing.XXXXXX")" || { echo "error: cannot make a private temporary folder" >&2; exit 1; }
+KEYCHAIN="$TMP/patronusdesign-signing.keychain-db"
+CERT="$TMP/patronusdesign-signing.p12"
 KC_PASS="${KEYCHAIN_PASSWORD:-$(openssl rand -hex 24)}"
 
 # The keychain stays for the signing steps that follow; the certificate file doesn't.

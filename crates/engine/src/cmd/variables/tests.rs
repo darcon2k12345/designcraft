@@ -1,6 +1,6 @@
 use super::*;
 
-fn shown_on_parent(s: &Session, d: &designcraft_doc::Document, sid: designcraft_doc::StoryId) -> usize {
+fn shown_on_parent(s: &Session, d: &patronusdesign_doc::Document, sid: patronusdesign_doc::StoryId) -> usize {
     let cs = s.cache.get(d, sid, None);
     cs.frames.iter().flat_map(|f| f.lines.iter()).map(|l| l.glyphs.iter().filter(|g| g.visible && g.adv > 0.0).count()).sum()
 }
@@ -12,11 +12,11 @@ fn shown_on_parent(s: &Session, d: &designcraft_doc::Document, sid: designcraft_
 fn parent_page_number_follows_section_renumbering() {
     let mut s = Session::new();
     s.execute("file.new", &json!({"pages": 3, "facingPages": false})).unwrap();
-    let marker = designcraft_doc::story::PAGE_NUMBER.to_string();
+    let marker = patronusdesign_doc::story::PAGE_NUMBER.to_string();
     let r = s
         .execute("frame.create", &json!({"spread": {"kind": "parent", "index": 0}, "rect": [72, 30, 500, 60], "content": "text", "text": marker}))
         .unwrap();
-    let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+    let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
     assert_eq!(s.doc().unwrap().doc.story(sid).unwrap().text, marker);
     let shown = |s: &Session, page: usize| -> usize {
         let d = s.doc().unwrap().doc.clone();
@@ -37,14 +37,14 @@ fn section_marker_shows_the_pages_section_marker() {
     let mut s = Session::new();
     s.execute("file.new", &json!({"pages": 4, "facingPages": false})).unwrap();
     s.execute("layout.section", &json!({"page": 3, "startNumber": 1, "marker": "Intro"})).unwrap();
-    let marker = designcraft_doc::story::SECTION_MARKER.to_string();
+    let marker = patronusdesign_doc::story::SECTION_MARKER.to_string();
     let r = s
         .execute("frame.create", &json!({"spread": {"kind": "parent", "index": 0}, "rect": [72, 30, 500, 60], "content": "text", "text": marker}))
         .unwrap();
-    let parent = s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+    let parent = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
     let sp = s.doc().unwrap().doc.page_loc(3).unwrap().0;
     let r = s.execute("frame.create", &json!({"spread": sp, "rect": [72, 200, 400, 260], "content": "text", "text": marker})).unwrap();
-    let own = s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+    let own = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
     let shown = |s: &Session, sid, page: Option<usize>| -> usize {
         let d = s.doc().unwrap().doc.clone();
         let cs = s.cache.get(&d, sid, page);
@@ -74,14 +74,14 @@ fn running_header_on_parent_page_with_repeated_page_numbers() {
     // The only heading is on the third page (the second section's page 1).
     let sp = s.doc().unwrap().doc.page_loc(2).unwrap().0;
     let r = s.execute("frame.create", &json!({"spread": sp, "rect": [72, 200, 400, 260], "content": "text", "text": "Epsilon"})).unwrap();
-    let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+    let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
     s.execute("text.select", &json!({"story": sid.0, "anchor": 0, "focus": 1})).unwrap();
     s.execute("style.paragraph.apply", &json!({"name": "Heading"})).unwrap();
     s.execute("variables.define", &json!({"name": "Chapter Head", "type": "runningHeader", "style": "Heading"})).unwrap();
     let r = s
         .execute("frame.create", &json!({"spread": {"kind": "parent", "index": 0}, "rect": [72, 30, 500, 60], "content": "text", "text": ""}))
         .unwrap();
-    let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+    let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
     s.execute("text.select", &json!({"story": sid.0, "anchor": 0, "focus": 0})).unwrap();
     s.execute("variables.insert", &json!({"name": "Chapter Head"})).unwrap();
     let d = s.doc().unwrap().doc.clone();
@@ -97,14 +97,14 @@ fn running_header_on_parent_page_with_repeated_page_numbers() {
 /// Three pages with "Alpha" in the Heading style on page 1 and "Epsilon" on page 3, a
 /// `Chapter Head` running header on Heading, and a text frame on pages 1 and 3 that each hold
 /// "<head>|<head>" (two instances). Returns the two frames' stories.
-fn running_heads() -> (Session, designcraft_doc::StoryId, designcraft_doc::StoryId) {
+fn running_heads() -> (Session, patronusdesign_doc::StoryId, patronusdesign_doc::StoryId) {
     let mut s = Session::new();
     s.execute("file.new", &json!({"pages": 3, "facingPages": false})).unwrap();
     s.execute("style.paragraph.create", &json!({"name": "Heading"})).ok();
     let frame = |s: &mut Session, page: usize, y: f64, text: &str| {
         let sp = s.doc().unwrap().doc.page_loc(page).unwrap().0;
         let r = s.execute("frame.create", &json!({"spread": sp, "rect": [72, y, 400, y + 60.0], "content": "text", "text": text})).unwrap();
-        s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story
+        s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story
     };
     for (page, text) in [(0, "Alpha"), (2, "Epsilon")] {
         let sid = frame(&mut s, page, 200.0, text);
@@ -156,16 +156,16 @@ fn convert_variable_to_text_needs_a_selected_instance() {
 /// A story threaded from a frame on page 1, which holds only "Lead", to a frame on page 3,
 /// where the caret is left at the end of "Body". A cell's or a note's own byte 0 read in this
 /// story is on page 1, its anchor on page 3.
-fn threaded(s: &mut Session) -> designcraft_doc::StoryId {
+fn threaded(s: &mut Session) -> patronusdesign_doc::StoryId {
     let sp1 = s.doc().unwrap().doc.page_loc(0).unwrap().0;
     let sp3 = s.doc().unwrap().doc.page_loc(2).unwrap().0;
     let r = s.execute("frame.create", &json!({"spread": sp1, "rect": [72, 500, 400, 520], "content": "text", "text": "Lead\nBody"})).unwrap();
     let from = r["id"].as_u64().unwrap();
     s.execute("text.thread", &json!({"from": from, "rect": [72, 500, 400, 700], "spread": sp3})).unwrap();
     let d = s.doc().unwrap().doc.clone();
-    let sid = d.item(designcraft_doc::ItemId(from)).unwrap().text_frame().unwrap().story;
+    let sid = d.item(patronusdesign_doc::ItemId(from)).unwrap().text_frame().unwrap().story;
     let cs = s.cache.get(&d, sid, None);
-    let page = |pos| designcraft_compose::vars::page_of(&d, &cs, pos);
+    let page = |pos| patronusdesign_compose::vars::page_of(&d, &cs, pos);
     assert_eq!((page(0), page("Lead\nB".len())), (Some(0), Some(2)), "Lead on page 1, Body on page 3");
     s.execute("text.select", &json!({"story": sid.0, "anchor": "Lead\nBody".len(), "focus": "Lead\nBody".len()})).unwrap();
     sid
@@ -180,9 +180,14 @@ fn convert_variable_to_text_in_a_table_cell() {
     s.execute("table.insert", &json!({"rows": 1, "cols": 1})).unwrap();
     s.execute("table.setCell", &json!({"row": 0, "col": 0, "text": c.to_string()})).unwrap();
     let table = *s.doc().unwrap().doc.story(sid).unwrap().tables.keys().next().unwrap();
-    let cell = designcraft_doc::CellAddr { table, row: 0, col: 0 };
-    s.doc_mut().unwrap().selection =
-        designcraft_doc::Selection::text(designcraft_doc::TextSel { story: sid, anchor: 0, focus: c.len_utf8(), frame: None, cell: Some(cell) });
+    let cell = patronusdesign_doc::CellAddr { table, row: 0, col: 0 };
+    s.doc_mut().unwrap().selection = patronusdesign_doc::Selection::text(patronusdesign_doc::TextSel {
+        story: sid,
+        anchor: 0,
+        focus: c.len_utf8(),
+        frame: None,
+        cell: Some(cell),
+    });
     s.execute("variables.convertToText", &json!({})).unwrap();
     let d = &s.doc().unwrap().doc;
     assert_eq!(d.text_story(sid, Some(cell)).unwrap().text, "Epsilon");
@@ -196,9 +201,9 @@ fn convert_variable_to_text_in_a_footnote() {
     let sid = threaded(&mut s);
     s.execute("footnote.insert", &json!({"text": c.to_string()})).unwrap();
     let id = s.doc().unwrap().doc.story(sid).unwrap().notes[0].id;
-    let note = designcraft_doc::CellAddr::footnote(id);
+    let note = patronusdesign_doc::CellAddr::footnote(id);
     let at = s.doc().unwrap().doc.text_story(sid, Some(note)).unwrap().text.find(c).unwrap();
-    s.doc_mut().unwrap().selection = designcraft_doc::Selection::text(designcraft_doc::TextSel {
+    s.doc_mut().unwrap().selection = patronusdesign_doc::Selection::text(patronusdesign_doc::TextSel {
         story: sid,
         anchor: at,
         focus: at + c.len_utf8(),
@@ -251,16 +256,16 @@ fn convert_all_keeps_the_caret_in_a_cell_or_a_footnote() {
         let text = format!("{c}|");
         let at = if footnote {
             s.execute("footnote.insert", &json!({"text": text})).unwrap();
-            designcraft_doc::CellAddr::footnote(s.doc().unwrap().doc.story(sid).unwrap().notes[0].id)
+            patronusdesign_doc::CellAddr::footnote(s.doc().unwrap().doc.story(sid).unwrap().notes[0].id)
         } else {
             s.execute("table.insert", &json!({"rows": 1, "cols": 1})).unwrap();
             s.execute("table.setCell", &json!({"row": 0, "col": 0, "text": text})).unwrap();
             let table = *s.doc().unwrap().doc.story(sid).unwrap().tables.keys().next().unwrap();
-            designcraft_doc::CellAddr { table, row: 0, col: 0 }
+            patronusdesign_doc::CellAddr { table, row: 0, col: 0 }
         };
         let n = s.doc().unwrap().doc.text_story(sid, Some(at)).unwrap().text.len();
         s.doc_mut().unwrap().selection =
-            designcraft_doc::Selection::text(designcraft_doc::TextSel { story: sid, anchor: n, focus: n, frame: None, cell: Some(at) });
+            patronusdesign_doc::Selection::text(patronusdesign_doc::TextSel { story: sid, anchor: n, focus: n, frame: None, cell: Some(at) });
         s.execute("variables.convertAllToText", &json!({"name": "Chapter Head"})).unwrap();
         s.execute("text.insert", &json!({"text": "x"})).unwrap();
         let text = &s.doc().unwrap().doc.text_story(sid, Some(at)).unwrap().text;
@@ -278,7 +283,7 @@ fn delete_variable_reaches_table_cells() {
     let b = s.execute("variables.define", &json!({"name": "B", "type": "custom", "text": "Beta"})).unwrap()["index"].as_u64().unwrap() as usize;
     let a = s.doc().unwrap().doc.variable("A").unwrap();
     let r = s.execute("frame.create", &json!({"rect": [72, 72, 400, 300], "content": "text", "text": ""})).unwrap();
-    let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+    let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
     s.execute("text.select", &json!({"story": sid.0, "anchor": 0, "focus": 0})).unwrap();
     s.execute("table.insert", &json!({"rows": 1, "cols": 2})).unwrap();
     let text = format!("{}|{}", var_char(a).unwrap(), var_char(b).unwrap());
@@ -302,7 +307,7 @@ fn delete_variable_whose_value_holds_its_marker_ends() {
     let marker = var_char(a).unwrap();
     s.execute("variables.define", &json!({"name": "A", "type": "custom", "text": format!("<{marker}>")})).unwrap();
     let r = s.execute("frame.create", &json!({"rect": [72, 72, 400, 300], "content": "text", "text": format!("x{marker}y{marker}z")})).unwrap();
-    let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+    let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
     // A link on the last "z": its range follows the text put in (without the marker).
     let z = format!("x{marker}y{marker}").len();
     s.execute("text.select", &json!({"story": sid.0, "anchor": z, "focus": z + 1})).unwrap();
@@ -310,7 +315,7 @@ fn delete_variable_whose_value_holds_its_marker_ends() {
     s.execute("variables.delete", &json!({"name": "A"})).unwrap();
     let d = &s.doc().unwrap().doc;
     assert_eq!(d.stories.values().next().unwrap().text, "x<>y<>z");
-    let designcraft_doc::HyperlinkSource::Text { start, end, .. } = &d.hyperlinks[0].source else { panic!("a text link") };
+    let patronusdesign_doc::HyperlinkSource::Text { start, end, .. } = &d.hyperlinks[0].source else { panic!("a text link") };
     assert_eq!((*start, *end), (6, 7));
 }
 
@@ -324,7 +329,7 @@ fn delete_variable_reaches_notes() {
     let b = s.execute("variables.define", &json!({"name": "B", "type": "custom", "text": "Beta"})).unwrap()["index"].as_u64().unwrap() as usize;
     let a = s.doc().unwrap().doc.variable("A").unwrap();
     let r = s.execute("frame.create", &json!({"rect": [72, 72, 400, 300], "content": "text", "text": "x"})).unwrap();
-    let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+    let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
     let text = format!("{}|{}", var_char(a).unwrap(), var_char(b).unwrap());
     s.execute("text.select", &json!({"story": sid.0, "anchor": 1, "focus": 1})).unwrap();
     s.execute("footnote.insert", &json!({"text": text})).unwrap();
@@ -347,7 +352,7 @@ fn running_header_on_parent_page_follows_headings() {
     for (page, text) in [(0, "Alpha"), (2, "Epsilon")] {
         let sp = s.doc().unwrap().doc.page_loc(page).unwrap().0;
         let r = s.execute("frame.create", &json!({"spread": sp, "rect": [72, 200, 400, 260], "content": "text", "text": text})).unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
         s.execute("text.select", &json!({"story": sid.0, "anchor": 0, "focus": 1})).unwrap();
         s.execute("style.paragraph.apply", &json!({"name": "Heading"})).unwrap();
     }
@@ -357,14 +362,14 @@ fn running_header_on_parent_page_follows_headings() {
     let r = s
         .execute("frame.create", &json!({"spread": {"kind": "parent", "index": 0}, "rect": [72, 30, 500, 60], "content": "text", "text": ""}))
         .unwrap();
-    let fid = designcraft_doc::ItemId(r["id"].as_u64().unwrap());
+    let fid = patronusdesign_doc::ItemId(r["id"].as_u64().unwrap());
     let sid = s.doc().unwrap().doc.item(fid).unwrap().text_frame().unwrap().story;
     s.execute("text.select", &json!({"story": sid.0, "anchor": 0, "focus": 0})).unwrap();
     s.execute("variables.insert", &json!({"name": "Chapter Head"})).unwrap();
     s.execute("text.insert", &json!({"text": " · "})).unwrap();
     s.execute("variables.insert", &json!({"name": "Last Page Number"})).unwrap();
     let d = s.doc().unwrap().doc.clone();
-    assert!(matches!(d.find(fid).unwrap().spread, designcraft_doc::SpreadRef::Parent(0)));
+    assert!(matches!(d.find(fid).unwrap().spread, patronusdesign_doc::SpreadRef::Parent(0)));
     // Visible glyphs of the header composed for each page: "Alpha · 3" vs "Epsilon · 3".
     let shown = |page: usize| -> usize {
         let cs = s.cache.get(&d, sid, Some(page));
@@ -398,7 +403,7 @@ fn running_header_on_parent_page_follows_headings() {
 /// entry, which sits lowest, instead of the right column's.)
 #[test]
 fn running_header_reads_columns_in_text_order() {
-    use designcraft_doc::story::COLUMN_BREAK;
+    use patronusdesign_doc::story::COLUMN_BREAK;
     let mut s = Session::new();
     s.execute("file.new", &json!({"pages": 1, "facingPages": false})).unwrap();
     s.execute("style.paragraph.create", &json!({"name": "Heading"})).ok();
@@ -406,7 +411,7 @@ fn running_header_reads_columns_in_text_order() {
     let text = format!("x\nAlpha\nx\nBeta{COLUMN_BREAK}\nGamma\ny");
     let r = s.execute("frame.create", &json!({"rect": [72, 72, 472, 400], "content": "text", "text": text})).unwrap();
     s.execute("object.textFrameOptions", &json!({"ids": [r["id"]], "columns": 2, "gutter": 20})).unwrap();
-    let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+    let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
     for word in ["Alpha", "Beta", "Gamma"] {
         let at = text.find(word).unwrap();
         s.execute("text.select", &json!({"story": sid.0, "anchor": at, "focus": at + word.len()})).unwrap();
@@ -418,15 +423,15 @@ fn running_header_reads_columns_in_text_order() {
     let y = |word: &str| crate::compose::caret(&cs, text.find(word).unwrap()).unwrap().2;
     assert!(y("Gamma") < y("Beta") && y("Gamma") < y("Alpha"), "Gamma heads the right column, above the left column's headings");
     let idx = s.cache.running_index(&d);
-    assert_eq!(idx.value("Heading", false, designcraft_doc::vars::Use::FirstOnPage, 0), "Alpha");
-    assert_eq!(idx.value("Heading", false, designcraft_doc::vars::Use::LastOnPage, 0), "Gamma");
+    assert_eq!(idx.value("Heading", false, patronusdesign_doc::vars::Use::FirstOnPage, 0), "Alpha");
+    assert_eq!(idx.value("Heading", false, patronusdesign_doc::vars::Use::LastOnPage, 0), "Gamma");
 }
 /// Stories on one page are ordered by where each one's text starts there: a story whose first
 /// heading sits low in its first column comes after another story's heading above it, even
 /// though its later column starts higher still.
 #[test]
 fn running_header_orders_stories_by_their_first_heading() {
-    use designcraft_doc::story::COLUMN_BREAK;
+    use patronusdesign_doc::story::COLUMN_BREAK;
     let mut s = Session::new();
     s.execute("file.new", &json!({"pages": 1, "facingPages": false})).unwrap();
     s.execute("style.paragraph.create", &json!({"name": "Heading"})).ok();
@@ -438,7 +443,7 @@ fn running_header_orders_stories_by_their_first_heading() {
     let b_text = "Beta".to_string();
     let b = s.execute("frame.create", &json!({"rect": [320, 120, 560, 160], "content": "text", "text": b_text})).unwrap();
     let story =
-        |s: &Session, id: &Value| s.doc().unwrap().doc.item(designcraft_doc::ItemId(id.as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+        |s: &Session, id: &Value| s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(id.as_u64().unwrap())).unwrap().text_frame().unwrap().story;
     let (sa, sb) = (story(&s, &a["id"]), story(&s, &b["id"]));
     for (sid, text, word) in [(sa, &a_text, "Alpha"), (sa, &a_text, "Gamma"), (sb, &b_text, "Beta")] {
         let at = text.find(word).unwrap();
@@ -455,8 +460,8 @@ fn running_header_orders_stories_by_their_first_heading() {
     let (ya, yg, yb) = (y(sa, &a_text, "Alpha"), y(sa, &a_text, "Gamma"), y(sb, &b_text, "Beta"));
     assert!(yg < yb && yb < ya, "Gamma {yg} above Beta {yb} above Alpha {ya}");
     let idx = s.cache.running_index(&d);
-    assert_eq!(idx.value("Heading", false, designcraft_doc::vars::Use::FirstOnPage, 0), "Beta");
-    assert_eq!(idx.value("Heading", false, designcraft_doc::vars::Use::LastOnPage, 0), "Gamma");
+    assert_eq!(idx.value("Heading", false, patronusdesign_doc::vars::Use::FirstOnPage, 0), "Beta");
+    assert_eq!(idx.value("Heading", false, patronusdesign_doc::vars::Use::LastOnPage, 0), "Gamma");
 }
 
 /// #2093: a Custom variable whose text arrives as a number (the dialog types a typed `2026` as
@@ -479,7 +484,7 @@ fn a_custom_variable_defined_with_a_number_shows_its_digits() {
     assert_eq!((value("Flag"), value("Blank")), ("true".to_string(), String::new()));
     // Inserted into a story, the instance composes as four digits.
     let r = s.execute("frame.create", &json!({"rect": [72, 72, 400, 300], "content": "text", "text": ""})).unwrap();
-    let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
+    let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap().text_frame().unwrap().story;
     s.execute("text.select", &json!({"story": sid.0, "anchor": 0, "focus": 0})).unwrap();
     s.execute("variables.insert", &json!({"name": "Year"})).unwrap();
     let d = s.doc().unwrap().doc.clone();

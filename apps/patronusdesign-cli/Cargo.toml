@@ -1,0 +1,28 @@
+[package]
+name = "patronusdesign-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "patronusdesign-cli"
+path = "src/main.rs"
+
+[dependencies]
+patronusdesign-engine = { workspace = true }
+patronusdesign-render = { workspace = true }
+patronusdesign-doc = { workspace = true }
+patronusdesign-geom = { workspace = true }
+patronusdesign-color = { workspace = true }
+patronusdesign-compose = { workspace = true }
+patronusdesign-format = { workspace = true }
+patronusdesign-pdf = { workspace = true }
+patronusdesign-mcp = { workspace = true }
+craft-file-formats = { workspace = true }
+craft-image-codecs = { workspace = true }
+image = { workspace = true }
+serde_json = { workspace = true }

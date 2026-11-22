@@ -1,9 +1,9 @@
 //! Text editing (Type tool) and character/paragraph formatting.
 
-use designcraft_compose as compose;
-use designcraft_doc::story::floor_char_boundary;
-use designcraft_doc::{Align, CellAddr, CharAttrs, Content, ItemId, ParaAttrs, Selection, StoryId, TextSel};
-use designcraft_geom::Point;
+use patronusdesign_compose as compose;
+use patronusdesign_doc::story::floor_char_boundary;
+use patronusdesign_doc::{Align, CellAddr, CharAttrs, Content, ItemId, ParaAttrs, Selection, StoryId, TextSel};
+use patronusdesign_geom::Point;
 use serde_json::{Value, json};
 
 use super::{CommandSpec, bad, bool_or, cmd, has_doc, has_text, has_text_or_frames, id_param, ok, point_param, str_param};
@@ -127,11 +127,11 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             |s, p| {
                 let sid = story_of(s, p).ok_or_else(|| bad("story.setDirection", "no story"))?;
-                let direction: designcraft_doc::TextDirection =
+                let direction: patronusdesign_doc::TextDirection =
                     serde_json::from_value(p.get("direction").cloned().ok_or_else(|| bad("story.setDirection", "missing direction"))?)
                         .map_err(|e| bad("story.setDirection", e.to_string()))?;
                 s.edit(|d, _| {
-                    let st = d.story_mut(sid).ok_or(designcraft_doc::DocError::NoStory(sid))?;
+                    let st = d.story_mut(sid).ok_or(patronusdesign_doc::DocError::NoStory(sid))?;
                     st.direction = direction;
                     st.rev = st.rev.wrapping_add(1);
                     ok()
@@ -177,7 +177,7 @@ pub fn specs() -> Vec<CommandSpec> {
                 let text = super::text_param(p, "text");
                 s.edit(|d, sel| {
                     let len = {
-                        let st = d.story_mut(sid).ok_or(designcraft_doc::DocError::NoStory(sid))?;
+                        let st = d.story_mut(sid).ok_or(patronusdesign_doc::DocError::NoStory(sid))?;
                         let n = st.len();
                         if a > b || b > n || !st.text.is_char_boundary(a) || !st.text.is_char_boundary(b) {
                             let msg =
@@ -200,7 +200,7 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!(query "story.get", "Get Story", [], None, "{story? | frame?} → text, frames, paragraphs, vertical, lines, overset (the UTF-8 byte offset into `text` where it stops fitting its frames, not a character index, null when it all fits) and oversetChars (how many characters that leaves, as preflight reports them)", has_doc, |s, p| {
             let st = s.doc()?;
             let sid = story_of(s, p).ok_or_else(|| bad("story.get", "no story"))?;
-            let mut v = st.doc.story_summary(sid).ok_or(designcraft_doc::DocError::NoStory(sid))?;
+            let mut v = st.doc.story_summary(sid).ok_or(patronusdesign_doc::DocError::NoStory(sid))?;
             let cs = s.cache.get(&st.doc, sid, None);
             // `overset` is where the text stops fitting, not how much is left over: the two were
             // read as the same number and disagreed with preflight's count (#1465).
@@ -468,7 +468,7 @@ fn align_paras(s: &mut Session, align: Option<Align>) -> Result<Value> {
 
 #[cfg(test)]
 mod alignment_shortcut_tests {
-    use designcraft_doc::{Align, Document};
+    use patronusdesign_doc::{Align, Document};
     use serde_json::{Value, json};
 
     use crate::Session;
@@ -603,7 +603,7 @@ mod alignment_shortcut_tests {
         let r = s.execute("frame.create", &json!({"rect": [36, 36, 300, 200], "content": "text", "text": "Spring\nissue"})).unwrap();
         s.execute("text.select", &json!({"story": r["story"], "anchor": 0, "focus": 0})).unwrap();
         s.execute("type.justifyAll", &json!({})).unwrap();
-        let bytes = designcraft_idml::export_idml(&s.doc().unwrap().doc);
+        let bytes = patronusdesign_idml::export_idml(&s.doc().unwrap().doc);
         s.execute("file.openIdml", &json!({"base64": crate::cmd::base64_encode(&bytes), "name": "in.idml"})).unwrap();
         assert_eq!(story_aligns(&s.doc().unwrap().doc, "Spring"), [Align::FullyJustified, Align::Left]);
     }

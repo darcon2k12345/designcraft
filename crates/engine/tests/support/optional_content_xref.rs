@@ -1,7 +1,7 @@
 use super::support::{catalog, document, fixture, nameless_fixture, painted};
-use designcraft_compose::Cache;
-use designcraft_doc::{AssetId, Content};
-use designcraft_pdf::{BookletKind, BookletOptions, PdfOptions, Standard, export_booklet, export_pdf, export_pdf_with_report, merge_pdfs};
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::{AssetId, Content};
+use patronusdesign_pdf::{BookletKind, BookletOptions, PdfOptions, Standard, export_booklet, export_pdf, export_pdf_with_report, merge_pdfs};
 use std::sync::Arc;
 
 fn broken_xref(bytes: Vec<u8>) -> Vec<u8> {
@@ -27,7 +27,7 @@ fn all_visible(standard: Standard) {
     super::assert_vector(&report.bytes);
     painted(&report.bytes, &[true, true]);
     if standard == Standard::PdfX4 {
-        assert!(designcraft_pdf::check_pdfx4(&report.bytes).is_empty());
+        assert!(patronusdesign_pdf::check_pdfx4(&report.bytes).is_empty());
     }
 }
 
@@ -95,7 +95,7 @@ fn repaired_xref_needing_generated_name_fails_with_named_damage_error() {
     assert!(error.contains("layers.pdf") && error.contains("cross-reference table is damaged"), "{error}");
 }
 
-fn two_assets(first: Vec<u8>, second: Vec<u8>) -> designcraft_doc::Document {
+fn two_assets(first: Vec<u8>, second: Vec<u8>) -> patronusdesign_doc::Document {
     let mut doc = document(first, &[&[], &[]]);
     let original = doc.assets.values().next().unwrap().as_ref().clone();
     Arc::make_mut(doc.assets.values_mut().next().unwrap()).name = "first.pdf".into();
@@ -103,7 +103,7 @@ fn two_assets(first: Vec<u8>, second: Vec<u8>) -> designcraft_doc::Document {
     let mut other = original;
     other.id = id;
     other.name = "second.pdf".into();
-    other.data = designcraft_doc::AssetData::embedded(second);
+    other.data = patronusdesign_doc::AssetData::embedded(second);
     doc.add_asset(other);
     let spread = Arc::make_mut(doc.spreads.first_mut().unwrap());
     let item = Arc::make_mut(spread.items.last_mut().unwrap());

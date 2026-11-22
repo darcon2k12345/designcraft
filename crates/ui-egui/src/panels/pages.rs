@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use designcraft_doc::{SpreadId, SpreadRef};
 use egui::{Color32, Sense, Stroke, StrokeKind, vec2};
+use patronusdesign_doc::{SpreadId, SpreadRef};
 use serde_json::json;
 
 use crate::theme::Tokens;
@@ -92,7 +92,8 @@ fn thumb(app: &mut DesignApp, ctx: &egui::Context, of: ThumbOf, h: f32) -> Optio
     if let Some((rev, pending, t)) = map.get(&key) {
         if *rev == st.revision {
             // Images it drew as decoding have finished since: draw it again, in batches.
-            let stale = pending.and_then(|(images, at)| (images != designcraft_render::images::generation()).then_some(at + THUMB_IMAGES_SECS - now));
+            let stale =
+                pending.and_then(|(images, at)| (images != patronusdesign_render::images::generation()).then_some(at + THUMB_IMAGES_SECS - now));
             match stale {
                 Some(wait) if wait <= 0.0 && clock.refreshed < THUMB_REFRESHES_PER_FRAME => {}
                 _ => {
@@ -116,11 +117,11 @@ fn thumb(app: &mut DesignApp, ctx: &egui::Context, of: ThumbOf, h: f32) -> Optio
     #[cfg(test)]
     THUMB_RENDERS.with(|n| n.set(n.get() + 1));
     let px = h as f64 * ctx.pixels_per_point() as f64;
-    let mut r = designcraft_render::Renderer::new();
+    let mut r = patronusdesign_render::Renderer::new();
     r.threads = 0;
     // Thumbnails don't wait for decodes: images still decoding are drawn when they finish.
-    let opts = designcraft_render::RenderOptions { printing_only: true, defer_images: true, ..Default::default() };
-    let images = designcraft_render::images::generation();
+    let opts = patronusdesign_render::RenderOptions { printing_only: true, defer_images: true, ..Default::default() };
+    let images = patronusdesign_render::images::generation();
     let (img, name) = match of {
         ThumbOf::Page(abs) => {
             let page = st.doc.page(abs)?;
@@ -135,9 +136,9 @@ fn thumb(app: &mut DesignApp, ctx: &egui::Context, of: ThumbOf, h: f32) -> Optio
             }
             let scale = (px / b.height()).min(MAX_THUMB_W / b.width());
             let (w, h) = ((b.width() * scale).round().max(1.0) as u32, (b.height() * scale).round().max(1.0) as u32);
-            let view = designcraft_geom::Affine::scale(scale) * designcraft_geom::Affine::translate(-b.origin().to_vec2());
-            let o = designcraft_render::RenderOptions { background: Some([255, 255, 255, 255]), ..opts };
-            let placed = [designcraft_render::Placed { spread: SpreadRef::Parent(i), xf: designcraft_geom::Affine::IDENTITY }];
+            let view = patronusdesign_geom::Affine::scale(scale) * patronusdesign_geom::Affine::translate(-b.origin().to_vec2());
+            let o = patronusdesign_render::RenderOptions { background: Some([255, 255, 255, 255]), ..opts };
+            let placed = [patronusdesign_render::Placed { spread: SpreadRef::Parent(i), xf: patronusdesign_geom::Affine::IDENTITY }];
             (r.render(&st.doc, &app.session.cache, &placed, (w, h), view, &o), format!("thumbp{}", id.0))
         }
     };
@@ -295,7 +296,7 @@ const LAYOUT_COL_MIN: f32 = 96.0;
 /// inside the spread.
 /// The names read left to right as the thumbnails are drawn, so a spread bound right to left
 /// lists its second page first.
-pub(crate) fn spread_label(app: &DesignApp, doc: &designcraft_doc::Document, first: usize, n: usize) -> String {
+pub(crate) fn spread_label(app: &DesignApp, doc: &patronusdesign_doc::Document, first: usize, n: usize) -> String {
     let mut order: Vec<usize> = (first..first + n).collect();
     // In the order the thumbnails are drawn: by each page's x (a right-to-left pair shows its second page on the left).
     if let Some(sp) = doc.page_loc(first).and_then(|(si, _)| doc.spreads.get(si)) {
@@ -330,7 +331,7 @@ struct ParentRow {
 
 impl ParentRow {
     /// A parent's row, from the spread's own pages; blank pages of `aspect` when it has no size.
-    fn new(i: usize, sp: &designcraft_doc::Spread, aspect: f32) -> ParentRow {
+    fn new(i: usize, sp: &patronusdesign_doc::Spread, aspect: f32) -> ParentRow {
         let b = sp.bounds();
         let (pages, unit_w) = if b.width() > 0.0 && b.height() > 0.0 && b.width().is_finite() && b.height().is_finite() {
             let k = 1.0 / b.height();
@@ -385,7 +386,7 @@ pub fn show(app: &mut DesignApp, ui: &mut egui::Ui) {
     // ---- Parents: [None] and each parent, rows with the parent's thumbnail at the right.
     // While parents are edited, the row of the parent the canvas shows is selected.
     let cur_parent = if editing_parents {
-        let layout = designcraft_tools::CanvasLayout::new(&doc, true);
+        let layout = patronusdesign_tools::CanvasLayout::new(&doc, true);
         crate::canvas::current_slot(app, &layout).and_then(|i| layout.slots.get(i)).and_then(|s| match s.spread {
             SpreadRef::Parent(i) => Some(i),
             SpreadRef::Doc(_) => None,
@@ -622,7 +623,7 @@ pub fn show(app: &mut DesignApp, ui: &mut egui::Ui) {
                         let prefix = pp.parent.as_ref().map(|i| i.prefix.clone()).unwrap_or_default();
                         let g = ui.painter().layout_no_wrap(prefix, crate::theme::semibold(9.5), Color32::BLACK);
                         let w = g.size().x + 2.0;
-                        let br = if p.side == designcraft_doc::PageSide::Left {
+                        let br = if p.side == patronusdesign_doc::PageSide::Left {
                             egui::Rect::from_min_size(pr.left_top(), vec2(w, 10.0))
                         } else {
                             egui::Rect::from_min_size(pr.right_top() - vec2(w, 0.0), vec2(w, 10.0))
@@ -858,14 +859,14 @@ pub fn open_panel_options(app: &mut DesignApp) {
 }
 
 /// The spreads holding layout `l`'s pages (every layout starts a spread of its own).
-fn spread_range(doc: &designcraft_doc::Document, l: &designcraft_doc::LayoutRange) -> std::ops::Range<usize> {
+fn spread_range(doc: &patronusdesign_doc::Document, l: &patronusdesign_doc::LayoutRange) -> std::ops::Range<usize> {
     let first = doc.page_loc(l.start).map_or(doc.spreads.len(), |(si, _)| si);
     let end = l.end.checked_sub(1).and_then(|last| doc.page_loc(last)).map_or(first, |(si, _)| si.saturating_add(1));
     first..end.max(first)
 }
 
 /// The size of layout `l`'s first page, in points.
-fn layout_size(doc: &designcraft_doc::Document, l: &designcraft_doc::LayoutRange) -> (f64, f64) {
+fn layout_size(doc: &patronusdesign_doc::Document, l: &patronusdesign_doc::LayoutRange) -> (f64, f64) {
     doc.page(l.start).map_or((doc.settings.page_width, doc.settings.page_height), |p| (p.width, p.height))
 }
 
@@ -874,8 +875,8 @@ fn layout_size(doc: &designcraft_doc::Document, l: &designcraft_doc::LayoutRange
 fn layout_header(
     app: &mut DesignApp,
     ui: &mut egui::Ui,
-    doc: &designcraft_doc::Document,
-    layouts: &[designcraft_doc::LayoutRange],
+    doc: &patronusdesign_doc::Document,
+    layouts: &[patronusdesign_doc::LayoutRange],
     k: usize,
     current: bool,
     t: &Tokens,
@@ -922,7 +923,7 @@ fn layout_header(
 }
 
 /// The layout (index into `layouts`) holding absolute page `abs`.
-pub(crate) fn layout_index(layouts: &[designcraft_doc::LayoutRange], abs: usize) -> usize {
+pub(crate) fn layout_index(layouts: &[patronusdesign_doc::LayoutRange], abs: usize) -> usize {
     layouts.iter().rposition(|l| l.start <= abs).unwrap_or(0)
 }
 
@@ -932,7 +933,7 @@ fn truncate(s: &str, n: usize) -> String {
 }
 
 /// The commands on layout `k`: in its column header's menu and in the panel menu.
-fn layout_menu(app: &mut DesignApp, ui: &mut egui::Ui, doc: &designcraft_doc::Document, layouts: &[designcraft_doc::LayoutRange], k: usize) {
+fn layout_menu(app: &mut DesignApp, ui: &mut egui::Ui, doc: &patronusdesign_doc::Document, layouts: &[patronusdesign_doc::LayoutRange], k: usize) {
     let count = layouts.len();
     let lang = app.ui.language.clone();
     let item = |ui: &mut egui::Ui, label: &str, on: bool| {
@@ -964,7 +965,7 @@ fn layout_menu(app: &mut DesignApp, ui: &mut egui::Ui, doc: &designcraft_doc::Do
 }
 
 /// Create Alternate Layout…, from layout `k`, at its pages' other orientation.
-pub(crate) fn open_create_alternate(app: &mut DesignApp, doc: &designcraft_doc::Document, layouts: &[designcraft_doc::LayoutRange], k: usize) {
+pub(crate) fn open_create_alternate(app: &mut DesignApp, doc: &patronusdesign_doc::Document, layouts: &[patronusdesign_doc::LayoutRange], k: usize) {
     let Some(l) = layouts.get(k) else { return };
     let (w, h) = layout_size(doc, l);
     let (nw, nh) = (h, w);
@@ -973,7 +974,7 @@ pub(crate) fn open_create_alternate(app: &mut DesignApp, doc: &designcraft_doc::
 }
 
 /// Alternate Layout Options… for layout `k`: its name and page size.
-pub(crate) fn open_layout_options(app: &mut DesignApp, doc: &designcraft_doc::Document, layouts: &[designcraft_doc::LayoutRange], k: usize) {
+pub(crate) fn open_layout_options(app: &mut DesignApp, doc: &patronusdesign_doc::Document, layouts: &[patronusdesign_doc::LayoutRange], k: usize) {
     let Some(l) = layouts.get(k) else { return };
     let (w, h) = layout_size(doc, l);
     app.ui.dialog = Some(crate::dialogs::Dialog::new(
@@ -983,7 +984,7 @@ pub(crate) fn open_layout_options(app: &mut DesignApp, doc: &designcraft_doc::Do
 }
 
 /// Parent Options… for parent `id`: prefix, name and Based on Parent.
-pub(crate) fn open_parent_options(app: &mut DesignApp, doc: &designcraft_doc::Document, id: SpreadId) {
+pub(crate) fn open_parent_options(app: &mut DesignApp, doc: &patronusdesign_doc::Document, id: SpreadId) {
     let Some(info) = doc.parent_index(id).and_then(|i| doc.parents.get(i)).and_then(|p| p.parent.as_ref()) else { return };
     let bases: Vec<serde_json::Value> =
         doc.parents.iter().filter(|p| p.id != id).filter_map(|p| p.parent.as_ref().map(|i| json!([p.id.0.to_string(), i.label()]))).collect();
@@ -1012,14 +1013,14 @@ pub(crate) fn select_parent(app: &mut DesignApp, id: Option<SpreadId>) {
 
 /// The parent the panel menu's parent commands act on: the one selected in the list, or the one
 /// the canvas shows while parents are edited.
-pub(crate) fn target_parent(app: &DesignApp, doc: &designcraft_doc::Document) -> Option<SpreadId> {
+pub(crate) fn target_parent(app: &DesignApp, doc: &patronusdesign_doc::Document) -> Option<SpreadId> {
     if let Some(id) = selected_parent(app).filter(|id| doc.parent_index(*id).is_some()) {
         return Some(id);
     }
     if !app.session.active().is_some_and(|st| st.editing_parents) {
         return None;
     }
-    let layout = designcraft_tools::CanvasLayout::new(doc, true);
+    let layout = patronusdesign_tools::CanvasLayout::new(doc, true);
     let i = crate::canvas::current_slot(app, &layout).and_then(|i| layout.slots.get(i)).and_then(|s| match s.spread {
         SpreadRef::Parent(i) => Some(i),
         SpreadRef::Doc(_) => None,
@@ -1046,7 +1047,7 @@ impl ParentAction {
         }
     }
 
-    fn run(self, app: &mut DesignApp, doc: &designcraft_doc::Document, id: SpreadId) {
+    fn run(self, app: &mut DesignApp, doc: &patronusdesign_doc::Document, id: SpreadId) {
         match self {
             ParentAction::Duplicate => {
                 if let Ok(r) = app.run("layout.parents.duplicate", json!({"parent": id.0})) {
@@ -1068,7 +1069,7 @@ impl ParentAction {
 
 /// The parent commands. `target` set: each acts on that parent (named in the item when `named`);
 /// unset: each is a submenu of the parents.
-fn parent_menu(app: &mut DesignApp, ui: &mut egui::Ui, doc: &designcraft_doc::Document, target: Option<SpreadId>, named: bool) {
+fn parent_menu(app: &mut DesignApp, ui: &mut egui::Ui, doc: &patronusdesign_doc::Document, target: Option<SpreadId>, named: bool) {
     let lang = app.ui.language.clone();
     if ui.button(crate::rtl::widget(ui, crate::i18n::tr(&lang, "New Parent…"))).clicked() {
         crate::menus::activate(app, "layout.parents.new", &serde_json::Value::Null);
@@ -1108,8 +1109,8 @@ fn parent_menu(app: &mut DesignApp, ui: &mut egui::Ui, doc: &designcraft_doc::Do
 fn page_menu(
     app: &mut DesignApp,
     ui: &mut egui::Ui,
-    doc: &designcraft_doc::Document,
-    layouts: &[designcraft_doc::LayoutRange],
+    doc: &patronusdesign_doc::Document,
+    layouts: &[patronusdesign_doc::LayoutRange],
     abs: usize,
     si: usize,
 ) {
@@ -1288,7 +1289,7 @@ mod spread_label_tests {
 
     /// Create a facing-page document for section navigation tests.
     fn app() -> DesignApp {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"facingPages": true, "pages": 9})).unwrap();
         app
     }

@@ -41,26 +41,26 @@ impl<'a> Ex<'a> {
             let mut el =
                 El::new("ParagraphStyle").attr("Self", &id).attr("Name", names::style_name_out(PARA_BUILTINS, &ps.name)).attr("Imported", "false");
             let mut props = Vec::new();
-            let (pa, ca) = if ps.name == designcraft_doc::NO_PARA_STYLE {
+            let (pa, ca) = if ps.name == patronusdesign_doc::NO_PARA_STYLE {
                 // The root style carries the complete attribute set.
-                let mut pa = designcraft_doc::ParaProps::common([&designcraft_doc::ParaProps::default()]);
+                let mut pa = patronusdesign_doc::ParaProps::common([&patronusdesign_doc::ParaProps::default()]);
                 pa.merge(&ps.para);
-                let mut ca = designcraft_doc::CharProps::common([&designcraft_doc::CharProps::default()]);
+                let mut ca = patronusdesign_doc::CharProps::common([&patronusdesign_doc::CharProps::default()]);
                 ca.merge(&ps.chars);
                 (pa, ca)
             } else {
                 let next = ps.next_style.as_deref().unwrap_or(&ps.name);
                 el.set("NextStyle", names::style_self("ParagraphStyle", PARA_BUILTINS, next));
-                match ps.based_on.as_deref().filter(|b| *b != designcraft_doc::NO_PARA_STYLE) {
+                match ps.based_on.as_deref().filter(|b| *b != patronusdesign_doc::NO_PARA_STYLE) {
                     Some(b) => props.push(p("BasedOn", "object", names::style_self("ParagraphStyle", PARA_BUILTINS, b))),
                     None => props.push(p("BasedOn", "string", "$ID/[No paragraph style]")),
                 }
                 (ps.para.clone(), ps.chars.clone())
             };
-            let parent = (ps.name != designcraft_doc::NO_PARA_STYLE).then(|| ps.based_on.as_deref().unwrap_or(designcraft_doc::NO_PARA_STYLE));
+            let parent = (ps.name != patronusdesign_doc::NO_PARA_STYLE).then(|| ps.based_on.as_deref().unwrap_or(patronusdesign_doc::NO_PARA_STYLE));
             let parent_props = match ps.based_on.as_deref() {
-                Some(b) if ps.name != designcraft_doc::NO_PARA_STYLE => styles.resolve_para_style(b).0,
-                _ => designcraft_doc::ParaProps::default(),
+                Some(b) if ps.name != patronusdesign_doc::NO_PARA_STYLE => styles.resolve_para_style(b).0,
+                _ => patronusdesign_doc::ParaProps::default(),
             };
             let pa = with_list_tab(pa, || (styles.resolve_para_style(&ps.name).0, parent_props));
             self.para_attrs(&mut el, &mut props, &pa, parent);
@@ -89,8 +89,8 @@ impl<'a> Ex<'a> {
         // Object styles.
         let mut og = craft_idml::model::StyleGroupWriter::new(craft_idml::model::StyleKind::Object, self.fresh());
         let mut have: Vec<&str> = styles.object.iter().map(|o| o.name.as_str()).collect();
-        let defaults = designcraft_doc::Styles::default();
-        let mut all: Vec<designcraft_doc::ObjectStyle> = styles.object.clone();
+        let defaults = patronusdesign_doc::Styles::default();
+        let mut all: Vec<patronusdesign_doc::ObjectStyle> = styles.object.clone();
         for b in &defaults.object {
             if !have.contains(&b.name.as_str()) {
                 all.push(b.clone());
@@ -101,8 +101,8 @@ impl<'a> Ex<'a> {
             let id = names::style_self("ObjectStyle", OBJECT_BUILTINS, &os.name);
             let mut el = El::new("ObjectStyle").attr("Self", &id).attr("Name", names::style_name_out(OBJECT_BUILTINS, &os.name));
             let mut props = Vec::new();
-            if os.name != designcraft_doc::NO_OBJECT_STYLE {
-                match os.based_on.as_deref().filter(|b| *b != designcraft_doc::NO_OBJECT_STYLE) {
+            if os.name != patronusdesign_doc::NO_OBJECT_STYLE {
+                match os.based_on.as_deref().filter(|b| *b != patronusdesign_doc::NO_OBJECT_STYLE) {
                     Some(b) => props.push(p("BasedOn", "object", names::style_self("ObjectStyle", OBJECT_BUILTINS, b))),
                     None => props.push(p("BasedOn", "string", "$ID/[None]")),
                 }
@@ -153,12 +153,12 @@ impl<'a> Ex<'a> {
     }
 
     /// A style's Export Tagging as its EPUB export tag map.
-    fn export_tag_map(&mut self, t: &designcraft_doc::ExportTag) -> El {
+    fn export_tag_map(&mut self, t: &patronusdesign_doc::ExportTag) -> El {
         let model = craft_idml::model::EpubExportTagMap { tag: t.tag.clone(), class: t.class.clone(), split_document: t.split };
         crate::xml::from_craft(model.to_el(&self.fresh()))
     }
 
-    fn cell_stroke_values(&self, s: &designcraft_doc::CellStroke) -> craft_idml::model::StrokeValues {
+    fn cell_stroke_values(&self, s: &patronusdesign_doc::CellStroke) -> craft_idml::model::StrokeValues {
         let mut out = craft_idml::model::StrokeValues {
             weight: Some(s.weight),
             color: Some(self.sw(&s.color)),
@@ -166,14 +166,14 @@ impl<'a> Ex<'a> {
             kind: Some(names::stroke_type_out(&s.kind)),
             ..craft_idml::model::StrokeValues::default()
         };
-        if s.gap_color != designcraft_color::swatch::NONE || s.gap_tint != 1.0 {
+        if s.gap_color != patronusdesign_color::swatch::NONE || s.gap_tint != 1.0 {
             out.gap_color = Some(self.sw(&s.gap_color));
             out.gap_tint = Some(f64::from(s.gap_tint) * 100.0);
         }
         out
     }
 
-    fn apply_partial_cell_stroke(&self, out: &mut craft_idml::model::StrokeValues, attrs: &designcraft_doc::CellStrokeAttrs) {
+    fn apply_partial_cell_stroke(&self, out: &mut craft_idml::model::StrokeValues, attrs: &patronusdesign_doc::CellStrokeAttrs) {
         if let Some(value) = attrs.weight {
             out.weight = Some(value);
         }
@@ -194,7 +194,7 @@ impl<'a> Ex<'a> {
         }
     }
 
-    fn map_alt_fill_attrs(&self, attrs: &designcraft_doc::AltFillsAttrs) -> craft_idml::model::AlternatingFillValues {
+    fn map_alt_fill_attrs(&self, attrs: &patronusdesign_doc::AltFillsAttrs) -> craft_idml::model::AlternatingFillValues {
         craft_idml::model::AlternatingFillValues {
             first_count: attrs.first.map(f64::from),
             first_color: attrs.first_color.as_deref().map(|c| self.sw(c)),
@@ -207,7 +207,7 @@ impl<'a> Ex<'a> {
         }
     }
 
-    fn map_alt_stroke_attrs(&self, attrs: &designcraft_doc::AltStrokesAttrs) -> craft_idml::model::AlternatingStrokeValues {
+    fn map_alt_stroke_attrs(&self, attrs: &patronusdesign_doc::AltStrokesAttrs) -> craft_idml::model::AlternatingStrokeValues {
         let mut first = craft_idml::model::StrokeValues::default();
         self.apply_partial_cell_stroke(&mut first, &attrs.first_stroke);
         let mut next = craft_idml::model::StrokeValues::default();
@@ -222,11 +222,11 @@ impl<'a> Ex<'a> {
         }
     }
 
-    fn append_cell_styles(&mut self, root: &mut El, styles: &designcraft_doc::Styles) {
+    fn append_cell_styles(&mut self, root: &mut El, styles: &patronusdesign_doc::Styles) {
         let mut cells = El::new("RootCellStyleGroup")
             .attr("Self", self.fresh())
             .child(El::new("CellStyle").attr("Self", "CellStyle/$ID/[None]").attr("AppliedParagraphStyle", NO_PARA_ID).attr("Name", "$ID/[None]"));
-        for cs in styles.cell.iter().filter(|c| c.name != designcraft_doc::NO_CELL_STYLE) {
+        for cs in styles.cell.iter().filter(|c| c.name != patronusdesign_doc::NO_CELL_STYLE) {
             let mut insets = cs.insets.map_or([None; 4], |i| i.map(Some));
             for (slot, value) in insets.iter_mut().zip(cs.inset_overrides) {
                 if let Some(value) = value {
@@ -247,11 +247,11 @@ impl<'a> Ex<'a> {
             for (slot, attrs) in edge_strokes.iter_mut().zip(&cs.strokes) {
                 self.apply_partial_cell_stroke(slot, attrs);
             }
-            let base = cs.based_on.as_deref().unwrap_or(designcraft_doc::NO_CELL_STYLE);
+            let base = cs.based_on.as_deref().unwrap_or(patronusdesign_doc::NO_CELL_STYLE);
             let model = craft_idml::model::CellStyleValues {
                 self_id: Some(names::style_self("CellStyle", names::CELL_BUILTINS, &cs.name)),
                 name: Some(names::style_name_out(names::CELL_BUILTINS, &cs.name)),
-                based_on: (base != designcraft_doc::NO_CELL_STYLE).then(|| names::style_self("CellStyle", names::CELL_BUILTINS, base)),
+                based_on: (base != patronusdesign_doc::NO_CELL_STYLE).then(|| names::style_self("CellStyle", names::CELL_BUILTINS, base)),
                 fill: cs.fill.as_deref().map(|f| self.sw(f)),
                 fill_tint: cs.fill_tint.map(|t| f64::from(t) * 100.0),
                 insets,
@@ -266,12 +266,12 @@ impl<'a> Ex<'a> {
         root.push(cells);
     }
 
-    fn append_table_styles(&mut self, root: &mut El, styles: &designcraft_doc::Styles) {
+    fn append_table_styles(&mut self, root: &mut El, styles: &patronusdesign_doc::Styles) {
         let mut tables = El::new("RootTableStyleGroup").attr("Self", self.fresh());
-        if !styles.table.iter().any(|s| s.name == designcraft_doc::NO_TABLE_STYLE) {
+        if !styles.table.iter().any(|s| s.name == patronusdesign_doc::NO_TABLE_STYLE) {
             tables.push(El::new("TableStyle").attr("Self", "TableStyle/$ID/[No table style]").attr("Name", "$ID/[No table style]"));
         }
-        if !styles.table.iter().any(|s| s.name == designcraft_doc::BASIC_TABLE) {
+        if !styles.table.iter().any(|s| s.name == patronusdesign_doc::BASIC_TABLE) {
             tables.push(with_props(
                 El::new("TableStyle").attr("Self", "TableStyle/$ID/[Basic Table]").attr("Name", "$ID/[Basic Table]"),
                 vec![p("BasedOn", "string", "$ID/[No table style]")],
@@ -311,9 +311,9 @@ impl<'a> Ex<'a> {
             row_fills.next_tint = overlay.next_tint.or(row_fills.next_tint);
             row_fills.skip_first = overlay.skip_first.or(row_fills.skip_first);
             row_fills.skip_last = overlay.skip_last.or(row_fills.skip_last);
-            let based_on = (ts.name != designcraft_doc::NO_TABLE_STYLE).then(|| {
-                let base = ts.based_on.as_deref().unwrap_or(designcraft_doc::NO_TABLE_STYLE);
-                if base == designcraft_doc::NO_TABLE_STYLE {
+            let based_on = (ts.name != patronusdesign_doc::NO_TABLE_STYLE).then(|| {
+                let base = ts.based_on.as_deref().unwrap_or(patronusdesign_doc::NO_TABLE_STYLE);
+                if base == patronusdesign_doc::NO_TABLE_STYLE {
                     "$ID/[No table style]".to_string()
                 } else {
                     names::style_self("TableStyle", names::TABLE_BUILTINS, base)
@@ -346,9 +346,9 @@ impl<'a> Ex<'a> {
     }
 
     /// The document's table of contents as a TOC style; its story names it in `AppliedTOCStyle`.
-    fn toc_style_el(&mut self, toc: &designcraft_doc::Toc) -> El {
+    fn toc_style_el(&mut self, toc: &patronusdesign_doc::Toc) -> El {
         let para = |n: &str| names::style_self("ParagraphStyle", PARA_BUILTINS, n);
-        let chars = |n: Option<&str>| names::style_self("CharacterStyle", CHAR_BUILTINS, n.unwrap_or(designcraft_doc::NO_CHAR_STYLE));
+        let chars = |n: Option<&str>| names::style_self("CharacterStyle", CHAR_BUILTINS, n.unwrap_or(patronusdesign_doc::NO_CHAR_STYLE));
         let entries = toc
             .entries
             .iter()
@@ -356,9 +356,9 @@ impl<'a> Ex<'a> {
                 let format = e.entry_style.clone().unwrap_or_else(|| format!("TOC Level {}", e.level));
                 let position = match e.page_number {
                     _ if !toc.page_numbers => "NoPageNumber",
-                    designcraft_doc::TocPageNumber::After => "AfterEntry",
-                    designcraft_doc::TocPageNumber::Before => "BeforeEntry",
-                    designcraft_doc::TocPageNumber::None => "NoPageNumber",
+                    patronusdesign_doc::TocPageNumber::After => "AfterEntry",
+                    patronusdesign_doc::TocPageNumber::Before => "BeforeEntry",
+                    patronusdesign_doc::TocPageNumber::None => "NoPageNumber",
                 };
                 craft_idml::model::TocStyleEntryValues {
                     style: Some(names::style_name_out(PARA_BUILTINS, &e.style)),
@@ -392,8 +392,8 @@ impl<'a> Ex<'a> {
         el.set(&format!("{k}RightIndent"), num(r.right_indent));
         el.set(&format!("{k}Type"), names::stroke_type_out(&r.kind));
         // A gap in Text Color is a string property, as the rule's own colour is.
-        if r.gap_color == designcraft_doc::TEXT_COLOR {
-            props.push(p(&format!("{k}GapColor"), "string", designcraft_doc::TEXT_COLOR));
+        if r.gap_color == patronusdesign_doc::TEXT_COLOR {
+            props.push(p(&format!("{k}GapColor"), "string", patronusdesign_doc::TEXT_COLOR));
         } else {
             el.set(&format!("{k}GapColor"), self.sw(&r.gap_color));
         }
@@ -401,14 +401,14 @@ impl<'a> Ex<'a> {
         if k == "RuleAbove" {
             el.set("KeepRuleAboveInFrame", bool_s(r.keep_in_frame));
         }
-        props.push(if r.color == designcraft_doc::TEXT_COLOR {
-            p(&format!("{k}Color"), "string", designcraft_doc::TEXT_COLOR)
+        props.push(if r.color == patronusdesign_doc::TEXT_COLOR {
+            p(&format!("{k}Color"), "string", patronusdesign_doc::TEXT_COLOR)
         } else {
             p(&format!("{k}Color"), "object", self.sw(&r.color))
         });
     }
 
-    pub(super) fn stroke_attrs(&self, el: &mut El, s: &designcraft_doc::Stroke) {
+    pub(super) fn stroke_attrs(&self, el: &mut El, s: &patronusdesign_doc::Stroke) {
         el.set("StrokeColor", self.sw(&s.swatch));
         el.set("StrokeWeight", num(if s.is_none() { 0.0 } else { s.weight }));
         el.set("StrokeTint", pct(s.tint as f64));

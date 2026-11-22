@@ -1,9 +1,9 @@
 use std::io::Write;
 
-use designcraft_color::{Color, Swatch, SwatchValue};
-use designcraft_doc::build::NewDocument;
-use designcraft_doc::{CharAttrs, Document, Fill, ParaFormat, Shape, SpreadRef, story as st};
-use designcraft_geom::{Rect, shapes};
+use patronusdesign_color::{Color, Swatch, SwatchValue};
+use patronusdesign_doc::build::NewDocument;
+use patronusdesign_doc::{CharAttrs, Document, Fill, ParaFormat, Shape, SpreadRef, story as st};
+use patronusdesign_geom::{Rect, shapes};
 
 use super::*;
 
@@ -263,7 +263,7 @@ fn keep_lines_mode_defaults_to_start_and_end() {
     }
 }
 
-type Resolved = (designcraft_doc::ParaProps, designcraft_doc::CharProps);
+type Resolved = (patronusdesign_doc::ParaProps, patronusdesign_doc::CharProps);
 
 /// (IDML attribute, InDesign's default as IDML writes it, another value, the resolved field,
 /// its value for InDesign's default, its value for the other value).
@@ -278,7 +278,7 @@ macro_rules! attr_rows {
 /// InDesign's defaults for a new document's [No Paragraph Style], for every paragraph and
 /// character attribute the importer reads (except the font family: see below).
 fn indesign_text_defaults() -> Vec<AttrRow> {
-    use designcraft_doc::{Align, Capitalization, Composer, Digits, GridAlign, Leading, ListType, Position, StartParagraph, TextDirection};
+    use patronusdesign_doc::{Align, Capitalization, Composer, Digits, GridAlign, Leading, ListType, Position, StartParagraph, TextDirection};
     attr_rows! {
         "Justification": "LeftAlign" => Align::Left, "CenterAlign" => Align::Center, |r| r.0.align;
         "ParagraphDirection": "LeftToRightDirection" => TextDirection::LeftToRight, "RightToLeftDirection" => TextDirection::RightToLeft, |r| r.0.direction;
@@ -325,12 +325,12 @@ fn indesign_text_defaults() -> Vec<AttrRow> {
         "BalanceRaggedLines": "NoBalancing" => false, "FullyBalanced" => true, |r| r.0.balance_ragged;
         "Kashidas": "DefaultKashidas" => true, "KashidasOff" => false, |r| r.0.kashidas;
         "RuleAbove": "false" => false, "true" => true, |r| r.0.rule_above.on;
-        "RuleAboveColor": "Text Color" => designcraft_doc::TEXT_COLOR, "Color/Black" => "[Black]", |r| r.0.rule_above.color;
+        "RuleAboveColor": "Text Color" => patronusdesign_doc::TEXT_COLOR, "Color/Black" => "[Black]", |r| r.0.rule_above.color;
         "RuleAboveTint": "-1" => 1.0f32, "50" => 0.5f32, |r| r.0.rule_above.tint;
         "RuleBelow": "false" => false, "true" => true, |r| r.0.rule_below.on;
-        "RuleBelowColor": "Text Color" => designcraft_doc::TEXT_COLOR, "Color/Black" => "[Black]", |r| r.0.rule_below.color;
+        "RuleBelowColor": "Text Color" => patronusdesign_doc::TEXT_COLOR, "Color/Black" => "[Black]", |r| r.0.rule_below.color;
         "RuleBelowTint": "-1" => 1.0f32, "50" => 0.5f32, |r| r.0.rule_below.tint;
-        "RuleBelowType": "StrokeStyle/$ID/Solid" => designcraft_doc::StrokeType::Solid, "StrokeStyle/$ID/Wavy" => designcraft_doc::StrokeType::Wavy, |r| r.0.rule_below.kind;
+        "RuleBelowType": "StrokeStyle/$ID/Solid" => patronusdesign_doc::StrokeType::Solid, "StrokeStyle/$ID/Wavy" => patronusdesign_doc::StrokeType::Wavy, |r| r.0.rule_below.kind;
         "RuleBelowGapColor": "Swatch/None" => "[None]", "Color/Black" => "[Black]", |r| r.0.rule_below.gap_color;
         "RuleBelowGapTint": "-1" => 1.0f32, "50" => 0.5f32, |r| r.0.rule_below.gap_tint;
         "KeepRuleAboveInFrame": "false" => false, "true" => true, |r| r.0.rule_above.keep_in_frame;
@@ -346,7 +346,7 @@ fn indesign_text_defaults() -> Vec<AttrRow> {
         "FontStyle": "Regular" => "Regular", "Bold" => "Bold", |r| r.1.font_style;
         "PointSize": "12" => 12.0, "9" => 9.0, |r| r.1.size;
         "Leading": "Auto" => Leading::Auto, "14" => Leading::Points(14.0), |r| r.1.leading;
-        "KerningMethod": "$ID/Metrics" => designcraft_doc::Kerning::Metrics, "$ID/Optical" => designcraft_doc::Kerning::Optical, |r| r.1.kerning;
+        "KerningMethod": "$ID/Metrics" => patronusdesign_doc::Kerning::Metrics, "$ID/Optical" => patronusdesign_doc::Kerning::Optical, |r| r.1.kerning;
         "Tracking": "0" => 0.0, "20" => 20.0, |r| r.1.tracking;
         "HorizontalScale": "100" => 1.0, "90" => 0.9, |r| r.1.h_scale;
         "VerticalScale": "100" => 1.0, "90" => 0.9, |r| r.1.v_scale;
@@ -365,7 +365,7 @@ fn indesign_text_defaults() -> Vec<AttrRow> {
         "StrikeThruTint": "-1" => 1.0f32, "50" => 0.5f32, |r| r.1.strikethrough_tint;
         "Ligatures": "true" => true, "false" => false, |r| r.1.ligatures;
         "NoBreak": "false" => false, "true" => true, |r| r.1.no_break;
-        "OTFContextualAlternate": "true" => true, "false" => false, |r| designcraft_doc::otf::is_on(&r.1.otf_features, "calt");
+        "OTFContextualAlternate": "true" => true, "false" => false, |r| patronusdesign_doc::otf::is_on(&r.1.otf_features, "calt");
         "DigitsType": "DefaultDigits" => Digits::Default, "ArabicDigits" => Digits::Arabic, |r| r.1.digits;
         "AppliedLanguage": "$ID/English: USA" => "English: USA", "$ID/German: 2006 Reform" => "German: 2006 Reform", |r| r.1.language;
     }
@@ -411,8 +411,8 @@ fn absent_text_attributes_take_indesign_defaults() {
             assert_eq!(field(&r), *want, "{attr} written on the {}", if root.is_empty() { "style" } else { "root" });
         }
     }
-    // Product difference: InDesign's default face isn't available, so unset fonts are DesignCraft's.
-    assert_eq!(omitted.1.font_family, designcraft_doc::CharProps::default().font_family);
+    // Product difference: InDesign's default face isn't available, so unset fonts are Patronus Design's.
+    assert_eq!(omitted.1.font_family, patronusdesign_doc::CharProps::default().font_family);
 }
 
 /// A tint of -1 is the colour's own tint (100 %): written on a style, it replaces its parent's.
@@ -472,11 +472,11 @@ fn minus_one_tint_is_the_colours_own() {
 fn text_color_rules_round_trip() {
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
-    let rule = designcraft_doc::Rule { on: true, ..Default::default() };
-    assert_eq!(rule.color, designcraft_doc::TEXT_COLOR);
-    let para = designcraft_doc::ParaAttrs {
+    let rule = patronusdesign_doc::Rule { on: true, ..Default::default() };
+    assert_eq!(rule.color, patronusdesign_doc::TEXT_COLOR);
+    let para = patronusdesign_doc::ParaAttrs {
         rule_above: Some(rule.clone()),
-        rule_below: Some(designcraft_doc::Rule { color: "[Black]".into(), ..rule }),
+        rule_below: Some(patronusdesign_doc::Rule { color: "[Black]".into(), ..rule }),
         kashidas: Some(false),
         ..Default::default()
     };
@@ -516,7 +516,7 @@ fn story_optical_margin_round_trips() {
     let story = |d: &Document| d.stories.values().find(|s| s.text.starts_with("“Hung”")).cloned().unwrap();
     let d = import_idml_with(&fixture_with_story(&optical_story(r#"OpticalMarginAlignment="true" OpticalMarginSize="18""#)), &|_| None).unwrap();
     let s = story(&d);
-    assert_eq!(s.optical_margin, designcraft_doc::OpticalMargin { on: true, size: 18.0 });
+    assert_eq!(s.optical_margin, patronusdesign_doc::OpticalMargin { on: true, size: 18.0 });
     assert_eq!((s.paras[0].para.ignore_optical_margin, s.paras[1].para.ignore_optical_margin), (None, Some(true)));
     let bytes = export_idml(&d);
     let text = zip_text(&bytes, "Stories/");
@@ -548,7 +548,7 @@ fn story_optical_margin_round_trips() {
 fn basic_paragraph_is_normal_paragraph_style() {
     let d = import_idml_with(&fixture(), &|_| None).unwrap();
     let basic = d.styles.para(st::BASIC_PARAGRAPH).unwrap();
-    assert_eq!(basic.based_on.as_deref(), Some(designcraft_doc::NO_PARA_STYLE));
+    assert_eq!(basic.based_on.as_deref(), Some(patronusdesign_doc::NO_PARA_STYLE));
     assert_eq!(d.styles.para("Text/Body").unwrap().based_on.as_deref(), Some(st::BASIC_PARAGRAPH));
     let s = d.stories.values().find(|s| s.text.starts_with("Hello")).unwrap();
     assert_eq!(s.paras[1].style, st::BASIC_PARAGRAPH);
@@ -573,8 +573,8 @@ fn export_writes_the_document_story_preference() {
 /// for a new document.
 #[test]
 fn absent_item_and_document_attributes_take_indesign_defaults() {
-    use designcraft_doc::{Cap, FirstBaseline, Join, StrokeAlign, VerticalJustification};
-    use designcraft_geom::corners::CornerShape;
+    use patronusdesign_doc::{Cap, FirstBaseline, Join, StrokeAlign, VerticalJustification};
+    use patronusdesign_geom::corners::CornerShape;
     let path = |x: f64| {
         let pts: String = [(x, 0.0), (x, 50.0), (x + 50.0, 50.0), (x + 50.0, 0.0)]
             .iter()
@@ -607,7 +607,7 @@ fn absent_item_and_document_attributes_take_indesign_defaults() {
     let d = import_idml_with(&zip_files(&[("designmap.xml", &designmap)]), &|_| None).unwrap();
     // Document Setup, margins and columns, grids, Advanced Type, transparency, black.
     let s = &d.settings;
-    assert_eq!((s.page_width, s.page_height, s.facing_pages, s.intent), (612.0, 792.0, true, designcraft_doc::Intent::Print));
+    assert_eq!((s.page_width, s.page_height, s.facing_pages, s.intent), (612.0, 792.0, true, patronusdesign_doc::Intent::Print));
     assert_eq!((s.bleed, s.slug), ([0.0; 4], [0.0; 4]));
     let page = &d.spreads[0].pages[0];
     assert_eq!((page.margins.top, page.margins.bottom, page.margins.inside, page.margins.outside), (36.0, 36.0, 36.0, 36.0));
@@ -616,14 +616,14 @@ fn absent_item_and_document_attributes_take_indesign_defaults() {
     assert_eq!((s.grid.horizontal, s.grid.vertical, s.grid.subdivisions, s.grid.in_back), (72.0, 72.0, 8, true));
     let a = &s.advanced_type;
     assert_eq!((a.superscript_size, a.superscript_position, a.subscript_size, a.subscript_position), (58.3, 33.3, 58.3, 33.3));
-    assert_eq!((s.blend_space, s.overprint_black, s.keyboard_increment), (designcraft_doc::BlendSpace::Cmyk, true, 1.0));
+    assert_eq!((s.blend_space, s.overprint_black, s.keyboard_increment), (patronusdesign_doc::BlendSpace::Cmyk, true, 1.0));
     // Fill, stroke, transparency, wrap and corners of a frame with no attributes.
     let item = |n: usize| d.spreads[0].items[n].clone();
     let plain = item(0);
     assert!(plain.fill.is_none() && plain.stroke.is_none());
     let st = &plain.stroke;
     assert_eq!((st.weight, st.miter_limit, st.cap, st.join, st.align), (1.0, 4.0, Cap::Butt, Join::Miter, StrokeAlign::Center));
-    assert_eq!((plain.opacity, plain.blend, plain.wrap.mode), (1.0, designcraft_color::BlendMode::Normal, designcraft_doc::WrapMode::None));
+    assert_eq!((plain.opacity, plain.blend, plain.wrap.mode), (1.0, patronusdesign_color::BlendMode::Normal, patronusdesign_doc::WrapMode::None));
     assert!(plain.corners.is_none());
     // A corner shape without a size: 12 pt.
     for n in [1, 2] {
@@ -635,28 +635,28 @@ fn absent_item_and_document_attributes_take_indesign_defaults() {
     let o = &tf.text_frame().unwrap().options;
     assert_eq!((o.columns, o.gutter, o.inset, o.balance_columns, o.ignore_wrap), (1, 12.0, [0.0; 4], false, false));
     assert_eq!((o.vertical_justification, o.first_baseline, o.first_baseline_min), (VerticalJustification::Top, FirstBaseline::Ascent, 0.0));
-    assert_eq!((o.auto_size, o.auto_size_ref), (designcraft_doc::AutoSize::Off, 4), "auto-size from the centre");
+    assert_eq!((o.auto_size, o.auto_size_ref), (patronusdesign_doc::AutoSize::Off, 4), "auto-size from the centre");
     // Numbered lists don't continue across stories.
-    assert_eq!(d.settings.lists, vec![designcraft_doc::NumberedList { name: "Steps".into(), continue_across_stories: false }]);
+    assert_eq!(d.settings.lists, vec![patronusdesign_doc::NumberedList { name: "Steps".into(), continue_across_stories: false }]);
     // Table and cell options.
     let t = d.stories.values().flat_map(|s| s.tables.values()).next().unwrap();
     assert_eq!((t.options.space_before, t.options.space_after, t.options.repeat_header), (4.0, -4.0, true));
     assert_eq!((t.options.border.weight, t.options.border.color.as_str()), (1.0, "[Black]"));
-    assert_eq!((t.rows[0].mode, t.rows[0].height), (designcraft_doc::RowHeightMode::AtLeast, 3.0));
+    assert_eq!((t.rows[0].mode, t.rows[0].height), (patronusdesign_doc::RowHeightMode::AtLeast, 3.0));
     // Alternating fills: the first rows or columns Black 20 %, the next None.
-    let fills = |a: &designcraft_doc::AltFills| (a.first_color.clone(), a.first_tint, a.next_color.clone(), a.next_tint, a.next);
+    let fills = |a: &patronusdesign_doc::AltFills| (a.first_color.clone(), a.first_tint, a.next_color.clone(), a.next_tint, a.next);
     let want = ("[Black]".to_string(), 0.2f32, "[None]".to_string(), 1.0f32, 1);
     assert_eq!(fills(t.options.alt_rows.as_ref().unwrap()), want);
     let cols = t.options.alt_cols.as_ref().unwrap();
     assert_eq!((fills(cols), cols.first), (want.clone(), 2));
     let banded = d.styles.table.iter().find(|s| s.name == "Banded").unwrap();
-    let mut bt = designcraft_doc::Table::new(0, 1, 1, 0, 0, 100.0);
+    let mut bt = patronusdesign_doc::Table::new(0, 1, 1, 0, 0, 100.0);
     d.styles.resolve_table_style(&banded.name).apply_to(&mut bt, &d.styles.cell);
     assert_eq!(fills(bt.options.alt_rows.as_ref().unwrap()), want);
     let c = t.cell(0, 0).unwrap();
     assert_eq!((c.insets, c.vj, c.fill.as_str()), ([4.0; 4], VerticalJustification::Top, "[None]"));
     for e in &c.strokes {
-        assert_eq!((e.weight, e.color.as_str(), e.tint, &e.kind), (1.0, "[Black]", 1.0, &designcraft_doc::StrokeType::Solid));
+        assert_eq!((e.weight, e.color.as_str(), e.tint, &e.kind), (1.0, "[Black]", 1.0, &patronusdesign_doc::StrokeType::Solid));
     }
 }
 
@@ -685,20 +685,20 @@ fn odd_page_break_ends_its_paragraph_and_keeps_its_parity() {
     assert_eq!(story.paras.len(), 2);
     assert_eq!(story.paras[0].style, "Text/Body");
     assert_eq!(story.paras[1].style, st::BASIC_PARAGRAPH);
-    assert_eq!(story.paras[1].para.align, Some(designcraft_doc::Align::Center));
+    assert_eq!(story.paras[1].para.align, Some(patronusdesign_doc::Align::Center));
     // Export writes the break as the paragraph's one `Br`; importing that gives the same story.
     let back = import_idml(&export_idml(&d)).unwrap();
     let again = back.stories.values().next().unwrap();
     assert_eq!(again.text, story.text);
     assert_eq!(again.paras, story.paras);
     // The fixture's frames are on pages v and vi: the next odd page after v has no frame.
-    let cs = designcraft_compose::compose_story(&d, sid, &Default::default());
+    let cs = patronusdesign_compose::compose_story(&d, sid, &Default::default());
     assert_eq!(cs.frames[0].lines.len(), 1, "no empty line after the break");
     assert!(cs.frames[1].lines.is_empty());
     assert_eq!(cs.overset_at, Some(story.text.len() - 1));
     // Numbered from 4, the second frame is on page 5: "1" starts there.
     d.sections[0].start_number = Some(4);
-    let cs = designcraft_compose::compose_story(&d, sid, &Default::default());
+    let cs = patronusdesign_compose::compose_story(&d, sid, &Default::default());
     assert_eq!(cs.overset_at, None);
     assert_eq!(cs.frames[1].lines.iter().map(|l| l.para).collect::<Vec<_>>(), vec![1]);
 }
@@ -717,17 +717,17 @@ fn kanji_page_numbers() {
         ("Stories/Story_s1.xml", STORY),
     ]);
     let mut d = import_idml(&bytes).unwrap();
-    assert_eq!(d.sections[0].style, designcraft_doc::NumberStyle::Kanji);
+    assert_eq!(d.sections[0].style, patronusdesign_doc::NumberStyle::Kanji);
     assert_eq!((d.page_name(0), d.page_name(1)), ("五".to_string(), "六".to_string()));
     let back = import_idml(&export_idml(&d)).unwrap();
-    assert_eq!(back.sections[0].style, designcraft_doc::NumberStyle::Kanji);
+    assert_eq!(back.sections[0].style, patronusdesign_doc::NumberStyle::Kanji);
     assert_eq!(back.page_name(1), "六");
 
     // The marker draws the same glyphs as the page name typed in its place.
     let sid = *d.stories.keys().next().unwrap();
     let at = d.story(sid).unwrap().text.find(st::PAGE_NUMBER).unwrap();
     let marker = |d: &Document| {
-        let cs = designcraft_compose::compose_story(d, sid, &Default::default());
+        let cs = patronusdesign_compose::compose_story(d, sid, &Default::default());
         cs.frames
             .iter()
             .enumerate()
@@ -763,8 +763,8 @@ fn assert_fixture_settings_and_pages(d: &Document) {
     assert_eq!(d.settings.bleed[0], 9.0);
     assert_eq!(d.page_count(), 2);
     let sp = &d.spreads[0];
-    assert_eq!(sp.pages[0].side, designcraft_doc::PageSide::Left);
-    assert_eq!(sp.pages[1].side, designcraft_doc::PageSide::Right);
+    assert_eq!(sp.pages[0].side, patronusdesign_doc::PageSide::Left);
+    assert_eq!(sp.pages[1].side, patronusdesign_doc::PageSide::Right);
     assert_eq!(sp.pages[1].x, 500.0);
     assert_eq!(sp.pages[0].margins.inside, 20.0);
     assert_eq!(sp.pages[0].columns.count, 3);
@@ -785,10 +785,10 @@ fn assert_fixture_sections_and_layers(d: &Document) {
 
 fn assert_fixture_swatches(d: &Document) {
     // Swatches.
-    assert!(matches!(d.swatch("Brand").unwrap().value, SwatchValue::Color { color_type: designcraft_color::ColorType::Spot, .. }));
+    assert!(matches!(d.swatch("Brand").unwrap().value, SwatchValue::Color { color_type: patronusdesign_color::ColorType::Spot, .. }));
     assert!(matches!(&d.swatch("Brand 50%").unwrap().value, SwatchValue::Tint { base, tint } if base == "Brand" && *tint == 0.5));
     let SwatchValue::Gradient { gradient } = &d.swatch("Fade").unwrap().value else { panic!("gradient") };
-    assert_eq!(gradient.kind, designcraft_color::GradientKind::Radial);
+    assert_eq!(gradient.kind, patronusdesign_color::GradientKind::Radial);
     assert_eq!(gradient.stops[1].color, Color::cmyk(0.1, 0.2, 0.3, 0.4));
     assert!((gradient.stops[0].midpoint - 0.3).abs() < 1e-6);
     assert_eq!(gradient.stops[0].swatch.as_deref(), Some("Brand"), "a stop on a swatch keeps it");
@@ -804,8 +804,8 @@ fn assert_fixture_styles(d: &Document) {
     let body = d.styles.para("Text/Body").expect("grouped style");
     assert_eq!(body.based_on.as_deref(), Some(st::BASIC_PARAGRAPH));
     assert_eq!(body.chars.size, Some(10.0));
-    assert_eq!(body.chars.leading, Some(designcraft_doc::Leading::Points(13.0)));
-    assert_eq!(body.para.align, Some(designcraft_doc::Align::LeftJustified));
+    assert_eq!(body.chars.leading, Some(patronusdesign_doc::Leading::Points(13.0)));
+    assert_eq!(body.para.align, Some(patronusdesign_doc::Align::LeftJustified));
     assert_eq!(d.styles.char_style("Strong").unwrap().chars.font_style.as_deref(), Some("Bold"));
 }
 
@@ -816,7 +816,7 @@ fn assert_fixture_text(d: &Document) {
     assert_eq!(story.paras.len(), 3);
     assert_eq!(story.paras[0].style, "Text/Body");
     assert_eq!(story.paras[1].style, st::BASIC_PARAGRAPH);
-    assert_eq!(story.paras[1].para.align, Some(designcraft_doc::Align::Center));
+    assert_eq!(story.paras[1].para.align, Some(patronusdesign_doc::Align::Center));
     let bold = story.runs().find(|(r, _)| story.text[r.clone()].starts_with("bold")).unwrap().1;
     assert_eq!(bold.style, "Strong");
     assert_eq!(bold.over.size, Some(14.0));
@@ -1040,10 +1040,10 @@ fn small_doc() -> Document {
         let end = s.len();
         s.insert(end, &format!(" {}\n", st::COLUMN_BREAK));
     }
-    let id = designcraft_doc::ItemId(d.alloc());
-    let mut it = designcraft_doc::Item::new(id, lid, Shape::Oval, shapes::ellipse(Rect::new(650.0, 300.0, 750.0, 380.0)));
+    let id = patronusdesign_doc::ItemId(d.alloc());
+    let mut it = patronusdesign_doc::Item::new(id, lid, Shape::Oval, shapes::ellipse(Rect::new(650.0, 300.0, 750.0, 380.0)));
     it.fill = Fill::swatch("Brand 30");
-    it.xf = designcraft_geom::Affine::rotate_about(0.3, designcraft_geom::Point::new(700.0, 340.0));
+    it.xf = patronusdesign_geom::Affine::rotate_about(0.3, patronusdesign_geom::Point::new(700.0, 340.0));
     it.opacity = 0.5;
     d.insert_item(SpreadRef::Doc(1), it, None).unwrap();
     d
@@ -1086,14 +1086,14 @@ fn round_trips_small_document() {
 
 #[test]
 fn gradient_stops_keep_their_swatches_through_a_round_trip() {
-    use designcraft_color::{ColorType, Gradient, GradientKind, GradientStop};
+    use patronusdesign_color::{ColorType, Gradient, GradientKind, GradientStop};
     let mut d = Document::new(&NewDocument::default());
     let gold = Color::cmyk(0.0, 0.3, 0.9, 0.1);
     d.swatches.push(Swatch { value: SwatchValue::Color { color: gold, color_type: ColorType::Spot }, ..Swatch::color("Gold", gold) });
     d.swatches.push(Swatch { value: SwatchValue::Tint { base: "Gold".into(), tint: 0.4 }, ..Swatch::color("Gold 40%", gold) });
     let on = |offset: f32, name: &str| GradientStop {
         swatch: Some(name.into()),
-        ..GradientStop::new(offset, designcraft_color::swatch::resolve(&d.swatches, name, 1.0).unwrap())
+        ..GradientStop::new(offset, patronusdesign_color::swatch::resolve(&d.swatches, name, 1.0).unwrap())
     };
     let stops = vec![on(0.0, "Gold"), on(0.3, "Gold 40%"), GradientStop::new(0.6, Color::cmyk(0.5, 0.0, 0.0, 0.0)), on(1.0, "[Paper]")];
     d.swatches.push(Swatch {
@@ -1113,13 +1113,13 @@ fn round_trips_overridden_parent_items() {
     let lid = d.default_layer();
     let (ppi, ppage) = d.parent_page_for(0).unwrap();
     let px = d.parents[ppi].pages[ppage].x;
-    let pid = designcraft_doc::ItemId(d.alloc());
-    let frame = designcraft_doc::Item::new(pid, lid, Shape::Rectangle, shapes::rectangle(Rect::new(px + 40.0, 40.0, px + 200.0, 120.0)));
+    let pid = patronusdesign_doc::ItemId(d.alloc());
+    let frame = patronusdesign_doc::Item::new(pid, lid, Shape::Rectangle, shapes::rectangle(Rect::new(px + 40.0, 40.0, px + 200.0, 120.0)));
     d.insert_item(SpreadRef::Parent(ppi), frame.clone(), None).unwrap();
     // What layout.overrideParentItems leaves behind: a linked local copy, and the parent item listed on the page.
     let mut copy = frame;
-    copy.id = designcraft_doc::ItemId(d.alloc());
-    copy.xf = designcraft_geom::Affine::translate((d.spreads[0].pages[0].x - px, 0.0)) * copy.xf;
+    copy.id = patronusdesign_doc::ItemId(d.alloc());
+    copy.xf = patronusdesign_geom::Affine::translate((d.spreads[0].pages[0].x - px, 0.0)) * copy.xf;
     copy.overrides = Some(pid);
     d.insert_item(SpreadRef::Doc(0), copy, None).unwrap();
     std::sync::Arc::make_mut(&mut d.spreads[0]).pages[0].overridden.push(pid);
@@ -1156,16 +1156,16 @@ fn round_trips_tables() {
     d.swatches.push(Swatch::color("Brand", Color::rgb(1.0, 0.0, 0.0)));
     let lid = d.default_layer();
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(40.0, 40.0, 400.0, 400.0), lid, "Intro\nOutro", ParaFormat::default()).unwrap();
-    let mut t = designcraft_doc::Table::new(d.alloc(), 3, 3, 1, 0, 300.0);
+    let mut t = patronusdesign_doc::Table::new(d.alloc(), 3, 3, 1, 0, 300.0);
     t.cell_mut(0, 0).unwrap().text.insert(0, "Head");
     t.cell_mut(0, 0).unwrap().fill = "Brand".into();
     t.cell_mut(1, 2).unwrap().text.insert(0, "Body\nTwo");
-    t.cell_mut(2, 1).unwrap().vj = designcraft_doc::VerticalJustification::Center;
-    t.rows[2].mode = designcraft_doc::RowHeightMode::Exactly;
+    t.cell_mut(2, 1).unwrap().vj = patronusdesign_doc::VerticalJustification::Center;
+    t.rows[2].mode = patronusdesign_doc::RowHeightMode::Exactly;
     t.rows[2].height = 30.0;
     t.columns[0].width = 50.0;
-    t.merge(designcraft_doc::CellRange::new(2, 1, 3, 2)).unwrap();
-    t.options.alt_rows = Some(designcraft_doc::AltFills { first: 1, first_color: "Brand".into(), first_tint: 0.2, ..Default::default() });
+    t.merge(patronusdesign_doc::CellRange::new(2, 1, 3, 2)).unwrap();
+    t.options.alt_rows = Some(patronusdesign_doc::AltFills { first: 1, first_color: "Brand".into(), first_tint: 0.2, ..Default::default() });
     d.story_mut(sid).unwrap().insert_table(5, t.clone());
     d.check().unwrap();
     let back = import_idml(&export_idml(&d)).unwrap();
@@ -1177,9 +1177,9 @@ fn round_trips_tables() {
     assert_eq!(bt.cell(0, 0).unwrap().text.text, "Head");
     assert_eq!(bt.cell(0, 0).unwrap().fill, "Brand");
     assert_eq!(bt.cell(1, 2).unwrap().text.text, "Body\nTwo");
-    assert_eq!(bt.cell(2, 1).unwrap().vj, designcraft_doc::VerticalJustification::Center);
+    assert_eq!(bt.cell(2, 1).unwrap().vj, patronusdesign_doc::VerticalJustification::Center);
     assert_eq!((bt.cell(2, 1).unwrap().row_span, bt.cell(2, 1).unwrap().col_span), (2, 2));
-    assert_eq!(bt.rows[2].mode, designcraft_doc::RowHeightMode::Exactly);
+    assert_eq!(bt.rows[2].mode, patronusdesign_doc::RowHeightMode::Exactly);
     assert!((bt.rows[2].height - 30.0).abs() < 1e-6);
     assert!((bt.columns[0].width - 50.0).abs() < 1e-6);
     assert_eq!(bt.options.alt_rows.as_ref().map(|a| a.first_color.as_str()), Some("Brand"));
@@ -1258,9 +1258,9 @@ fn round_trips_footnotes_and_options() {
         s.insert_note(4, "First note.", ParaFormat::default());
         s.insert_note(9, "Second\nnote.", ParaFormat::default());
     }
-    d.footnote_options.style = designcraft_doc::NumberStyle::LowerRoman;
-    d.footnote_options.restart = designcraft_doc::notes::NoteRestart::Page;
-    d.footnote_options.affix_in = designcraft_doc::notes::AffixIn::Both;
+    d.footnote_options.style = patronusdesign_doc::NumberStyle::LowerRoman;
+    d.footnote_options.restart = patronusdesign_doc::notes::NoteRestart::Page;
+    d.footnote_options.affix_in = patronusdesign_doc::notes::AffixIn::Both;
     d.footnote_options.prefix = "[".into();
     d.footnote_options.rule.width = 100.0;
     d.footnote_options.space_before = 4.0;
@@ -1303,7 +1303,7 @@ fn exports_endnote_reference_numbers() {
     let s = back.stories.values().find(|s| s.text.contains("One here")).unwrap();
     assert_eq!(s.text, "One here[4], two there[5].");
     let at = s.text.find("[4]").unwrap();
-    assert_eq!(s.char_format_at(at + 1).over.position, Some(designcraft_doc::Position::Superscript));
+    assert_eq!(s.char_format_at(at + 1).over.position, Some(patronusdesign_doc::Position::Superscript));
     assert_eq!(s.char_format_at(0).over.position, None);
 }
 
@@ -1323,7 +1323,7 @@ fn imports_indesign_style_footnote() {
     let d = import_idml(&fixture_with_story(story)).unwrap();
     d.check().unwrap();
     let s = d.stories.values().find(|s| !s.notes.is_empty()).expect("story with a footnote");
-    assert_eq!(s.text, format!("Body text with a{} note here.", designcraft_doc::FOOTNOTE_REF));
+    assert_eq!(s.text, format!("Body text with a{} note here.", patronusdesign_doc::FOOTNOTE_REF));
     assert_eq!(s.notes[0].text.text, "A source note.");
     // One run: the reference takes its position from the options, not an override.
     assert_eq!(s.chars.len(), 1);
@@ -1337,8 +1337,8 @@ fn round_trips_cross_references() {
         d.add_text_frame(SpreadRef::Doc(0), Rect::new(40.0, 40.0, 400.0, 400.0), lid, "Results: found\nSee .", ParaFormat::default()).unwrap();
     let target = d.paragraph_anchor(sid, 0).unwrap();
     let at = d.story(sid).unwrap().text.find(" .").unwrap() + 1;
-    d.story_mut(sid).unwrap().insert_xref(at, designcraft_doc::CrossRef { target, format: "Paragraph Text".into(), ..Default::default() });
-    d.xref_formats.push(designcraft_doc::XrefFormat {
+    d.story_mut(sid).unwrap().insert_xref(at, patronusdesign_doc::CrossRef { target, format: "Paragraph Text".into(), ..Default::default() });
+    d.xref_formats.push(patronusdesign_doc::XrefFormat {
         name: "Mine".into(),
         definition: "(<partialPara delim=\":\" includeDelim=\"true\" />, p. <pageNum />)".into(),
     });
@@ -1380,7 +1380,7 @@ fn cross_reference_source_nesting_keeps_formatting() {
         let d = import_idml(&fixture_with_story(xml)).unwrap();
         d.check().unwrap();
         let s = d.stories.values().find(|s| !s.xrefs.is_empty()).expect("story with a cross-reference").clone();
-        let cs = designcraft_compose::compose_story(&d, s.id, &Default::default());
+        let cs = patronusdesign_compose::compose_story(&d, s.id, &Default::default());
         let glyphs: Vec<_> = cs.frames.iter().flat_map(|f| &f.lines).flat_map(|l| l.glyphs.iter().map(move |g| (g.byte, g.x, l.baseline))).collect();
         (s, glyphs)
     };
@@ -1484,7 +1484,7 @@ fn links_whose_text_is_not_in_a_document_story_are_dropped_and_the_rest_still_fi
     let d = r.document;
     d.check().unwrap();
 
-    use designcraft_doc::HyperlinkSource as S;
+    use patronusdesign_doc::HyperlinkSource as S;
     // Only the link whose text is in a story of the document survives.
     assert_eq!(d.hyperlinks.len(), 1, "{:?}", d.hyperlinks);
     let S::Text { story, start, end } = d.hyperlinks[0].source else { panic!("{:?}", d.hyperlinks[0].source) };
@@ -1570,7 +1570,7 @@ fn page_item_and_text_hyperlinks_survive_import() {
     let d = r.document;
     d.check().unwrap();
 
-    use designcraft_doc::{HyperlinkDest as D, HyperlinkSource as S};
+    use patronusdesign_doc::{HyperlinkDest as D, HyperlinkSource as S};
     assert_eq!(d.hyperlinks.len(), 4, "three page items and one text run: {:?}", d.hyperlinks);
 
     // The image frame links to a URL. Its source is the item the IDML named, not any item.
@@ -1621,14 +1621,14 @@ fn page_item_and_text_hyperlinks_survive_import() {
 /// the moment the document went out as IDML.
 #[test]
 fn round_trips_page_item_and_text_hyperlinks() {
-    use designcraft_doc::{Hyperlink, HyperlinkDest as D, HyperlinkSource as S};
+    use patronusdesign_doc::{Hyperlink, HyperlinkDest as D, HyperlinkSource as S};
 
     let mut d = Document::new(&NewDocument { pages: 2, ..NewDocument::default() });
     let lid = d.default_layer();
     let (_, sid) =
         d.add_text_frame(SpreadRef::Doc(0), Rect::new(40.0, 40.0, 400.0, 400.0), lid, "See the plate overleaf.", ParaFormat::default()).unwrap();
-    let photo = designcraft_doc::ItemId(d.alloc());
-    let frame = designcraft_doc::Item::new(photo, lid, Shape::Rectangle, shapes::rectangle(Rect::new(40.0, 420.0, 200.0, 500.0)));
+    let photo = patronusdesign_doc::ItemId(d.alloc());
+    let frame = patronusdesign_doc::Item::new(photo, lid, Shape::Rectangle, shapes::rectangle(Rect::new(40.0, 420.0, 200.0, 500.0)));
     d.insert_item(SpreadRef::Doc(0), frame, None).unwrap();
     let caption = d.paragraph_anchor(sid, 0).unwrap();
 
@@ -1689,14 +1689,14 @@ fn round_trips_page_item_and_text_hyperlinks() {
 /// (noted in review of #1446).
 #[test]
 fn a_link_to_an_anchor_the_document_no_longer_has_is_not_written() {
-    use designcraft_doc::{Hyperlink, HyperlinkDest as D, HyperlinkSource as S};
+    use patronusdesign_doc::{Hyperlink, HyperlinkDest as D, HyperlinkSource as S};
 
     let mut d = Document::new(&NewDocument { pages: 2, ..NewDocument::default() });
     let lid = d.default_layer();
     let (_, sid) =
         d.add_text_frame(SpreadRef::Doc(0), Rect::new(40.0, 40.0, 400.0, 400.0), lid, "See the plate overleaf.", ParaFormat::default()).unwrap();
-    let photo = designcraft_doc::ItemId(d.alloc());
-    let frame = designcraft_doc::Item::new(photo, lid, Shape::Rectangle, shapes::rectangle(Rect::new(40.0, 420.0, 200.0, 500.0)));
+    let photo = patronusdesign_doc::ItemId(d.alloc());
+    let frame = patronusdesign_doc::Item::new(photo, lid, Shape::Rectangle, shapes::rectangle(Rect::new(40.0, 420.0, 200.0, 500.0)));
     d.insert_item(SpreadRef::Doc(0), frame, None).unwrap();
 
     // An anchor id the document has never had, alongside a link that is fine.
@@ -1725,7 +1725,7 @@ fn a_link_to_an_anchor_the_document_no_longer_has_is_not_written() {
 /// so it is clear what has to change if IDML ever lets one source span paragraphs (#1446).
 #[test]
 fn a_hyperlink_across_a_paragraph_is_written_as_one_source_per_paragraph() {
-    use designcraft_doc::{Hyperlink, HyperlinkDest as D, HyperlinkSource as S};
+    use patronusdesign_doc::{Hyperlink, HyperlinkDest as D, HyperlinkSource as S};
 
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
@@ -1817,7 +1817,7 @@ fn a_link_from_an_anchored_frame_is_kept_and_reported() {
 
 #[test]
 fn round_trips_index_references() {
-    use designcraft_doc::index::IndexRange;
+    use patronusdesign_doc::index::IndexRange;
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
     let (_, sid) = d
@@ -1827,10 +1827,10 @@ fn round_trips_index_references() {
         let s = d.story_mut(sid).unwrap();
         s.insert_index_ref(
             0,
-            designcraft_doc::IndexRef { topics: vec!["Type".into(), "Kerning".into()], sort: vec![], range: IndexRange::CurrentPage },
+            patronusdesign_doc::IndexRef { topics: vec!["Type".into(), "Kerning".into()], sort: vec![], range: IndexRange::CurrentPage },
         );
-        s.insert_index_ref(5, designcraft_doc::IndexRef { topics: vec!["Pairs".into()], sort: vec![], range: IndexRange::NextParagraphs(2) });
-        s.insert_index_ref(9, designcraft_doc::IndexRef { topics: vec!["Spacing".into()], sort: vec![], range: IndexRange::See("Type".into()) });
+        s.insert_index_ref(5, patronusdesign_doc::IndexRef { topics: vec!["Pairs".into()], sort: vec![], range: IndexRange::NextParagraphs(2) });
+        s.insert_index_ref(9, patronusdesign_doc::IndexRef { topics: vec!["Spacing".into()], sort: vec![], range: IndexRange::See("Type".into()) });
     }
     d.check().unwrap();
     let back = import_idml(&export_idml(&d)).unwrap();
@@ -1848,21 +1848,25 @@ fn round_trips_index_references() {
     );
     // The text survives; page references keep their places (See references, which InDesign keeps
     // on topics rather than in text, come back at the story start).
-    assert_eq!(s.text.replace(designcraft_doc::INDEX_MARK, ""), "Kerning adjusts pairs.\nMore.");
-    assert!(s.text.starts_with(&format!("{0}{0}Ke{0}rning", designcraft_doc::INDEX_MARK)), "{:?}", s.text);
+    assert_eq!(s.text.replace(patronusdesign_doc::INDEX_MARK, ""), "Kerning adjusts pairs.\nMore.");
+    assert!(s.text.starts_with(&format!("{0}{0}Ke{0}rning", patronusdesign_doc::INDEX_MARK)), "{:?}", s.text);
 }
 
 #[test]
 fn round_trips_anchored_objects() {
-    use designcraft_doc::{AnchorPosition, AnchoredObject, anchored::AnchorAlign};
+    use patronusdesign_doc::{AnchorPosition, AnchoredObject, anchored::AnchorAlign};
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
     let (_, sid) =
         d.add_text_frame(SpreadRef::Doc(0), Rect::new(40.0, 40.0, 400.0, 400.0), lid, "Inline here.\nAbove.", ParaFormat::default()).unwrap();
-    let mut a =
-        designcraft_doc::Item::new(designcraft_doc::ItemId(d.alloc()), lid, Shape::Rectangle, shapes::rectangle(Rect::new(0.0, 0.0, 20.0, 16.0)));
-    a.fill = Fill::swatch(designcraft_color::swatch::BLACK);
-    let b = designcraft_doc::Item::new(designcraft_doc::ItemId(d.alloc()), lid, Shape::Oval, shapes::ellipse(Rect::new(0.0, 0.0, 60.0, 30.0)));
+    let mut a = patronusdesign_doc::Item::new(
+        patronusdesign_doc::ItemId(d.alloc()),
+        lid,
+        Shape::Rectangle,
+        shapes::rectangle(Rect::new(0.0, 0.0, 20.0, 16.0)),
+    );
+    a.fill = Fill::swatch(patronusdesign_color::swatch::BLACK);
+    let b = patronusdesign_doc::Item::new(patronusdesign_doc::ItemId(d.alloc()), lid, Shape::Oval, shapes::ellipse(Rect::new(0.0, 0.0, 60.0, 30.0)));
     {
         let s = d.story_mut(sid).unwrap();
         s.insert_object(7, AnchoredObject::new(a, AnchorPosition::Inline { y_offset: 2.0 }));
@@ -1878,7 +1882,7 @@ fn round_trips_anchored_objects() {
     let (w, h) = s.objects[0].size();
     assert!((w - 20.0).abs() < 1e-6 && (h - 16.0).abs() < 1e-6);
     assert_eq!(s.objects[0].position, AnchorPosition::Inline { y_offset: 2.0 });
-    assert_eq!(s.objects[0].item.fill.swatch, designcraft_color::swatch::BLACK);
+    assert_eq!(s.objects[0].item.fill.swatch, patronusdesign_color::swatch::BLACK);
     assert_eq!(s.objects[1].item.shape, Shape::Oval);
     assert_eq!(s.objects[1].position, AnchorPosition::AboveLine { align: AnchorAlign::Center, space_before: 3.0, space_after: 4.0 });
 }
@@ -1886,7 +1890,7 @@ fn round_trips_anchored_objects() {
 /// Anchored settings an item leaves unset come from its object style chain, attribute by attribute.
 #[test]
 fn anchored_objects_take_unset_settings_from_object_styles() {
-    use designcraft_doc::{AnchorPosition, anchored::AnchorRelative as R};
+    use patronusdesign_doc::{AnchorPosition, anchored::AnchorRelative as R};
     let styles = STYLES.replace(
         r#"<ObjectStyle Self="ObjectStyle/$ID/[None]" Name="$ID/[None]"/>"#,
         r#"<ObjectStyle Self="ObjectStyle/$ID/[None]" Name="$ID/[None]">
@@ -1942,7 +1946,7 @@ fn anchored_objects_take_unset_settings_from_object_styles() {
 /// item's own setting wins, and export writes it back.
 #[test]
 fn anchored_spine_relative_comes_from_object_styles_and_round_trips() {
-    use designcraft_doc::AnchorPosition;
+    use patronusdesign_doc::AnchorPosition;
     let styles = STYLES.replace(
         r#"<ObjectStyle Self="ObjectStyle/$ID/[None]" Name="$ID/[None]"/>"#,
         r#"<ObjectStyle Self="ObjectStyle/$ID/[None]" Name="$ID/[None]"/>
@@ -1980,7 +1984,7 @@ fn anchored_spine_relative_comes_from_object_styles_and_round_trips() {
 /// composition measure every X offset rightwards.
 #[test]
 fn left_aligned_anchored_x_offsets_flip_at_the_idml_boundary() {
-    use designcraft_doc::AnchorPosition;
+    use patronusdesign_doc::AnchorPosition;
     let rect = |id: &str, align: &str, x: &str| {
         format!(
             r#"<Rectangle Self="{id}" ItemTransform="1 0 0 1 0 0">
@@ -2008,7 +2012,7 @@ fn left_aligned_anchored_x_offsets_flip_at_the_idml_boundary() {
     assert_eq!(x_offsets(&d), [108.0, 0.0, 116.0]);
     // The left-aligned object lands 108 pt right of the reference point.
     let sid = d.stories.iter().find(|(_, s)| !s.objects.is_empty()).map(|(id, _)| *id).unwrap();
-    let cs = designcraft_compose::compose_story(&d, sid, &Default::default());
+    let cs = patronusdesign_compose::compose_story(&d, sid, &Default::default());
     let placed: Vec<_> = cs.frames.iter().flat_map(|f| &f.objects).collect();
     let x = |i: usize| placed.iter().find(|o| o.index == i).unwrap().origin.x;
     assert!((x(0) - x(1) - 108.0).abs() < 1e-6, "{} {}", x(0), x(1));
@@ -2032,14 +2036,15 @@ fn left_aligned_anchored_x_offsets_flip_at_the_idml_boundary() {
 fn round_trips_frames_with_pasted_in_items() {
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
-    let inner = designcraft_doc::Item::new(designcraft_doc::ItemId(d.alloc()), lid, Shape::Oval, shapes::ellipse(Rect::new(0.0, 0.0, 300.0, 300.0)));
-    let mut frame = designcraft_doc::Item::new(
-        designcraft_doc::ItemId(d.alloc()),
+    let inner =
+        patronusdesign_doc::Item::new(patronusdesign_doc::ItemId(d.alloc()), lid, Shape::Oval, shapes::ellipse(Rect::new(0.0, 0.0, 300.0, 300.0)));
+    let mut frame = patronusdesign_doc::Item::new(
+        patronusdesign_doc::ItemId(d.alloc()),
         lid,
         Shape::Rectangle,
         shapes::rectangle(Rect::new(100.0, 100.0, 200.0, 200.0)),
     );
-    frame.content = designcraft_doc::Content::Group { items: vec![std::sync::Arc::new(inner)] };
+    frame.content = patronusdesign_doc::Content::Group { items: vec![std::sync::Arc::new(inner)] };
     d.insert_item(SpreadRef::Doc(0), frame, None).unwrap();
     let back = import_idml(&export_idml(&d)).unwrap();
     let f = &back.spreads[0].items[0];
@@ -2060,9 +2065,9 @@ fn vertical_story_orientation_round_trips() {
     d.add_text_frame(SpreadRef::Doc(0), Rect::new(450.0, 72.0, 550.0, 400.0), lid, "横", ParaFormat::default()).unwrap();
     d.story_mut(sid).unwrap().vertical = true;
     // Orientation and column direction are separate settings of the story.
-    d.story_mut(sid).unwrap().direction = designcraft_doc::TextDirection::RightToLeft;
+    d.story_mut(sid).unwrap().direction = patronusdesign_doc::TextDirection::RightToLeft;
     let back = import_idml(&export_idml(&d)).unwrap();
-    use designcraft_doc::TextDirection::{LeftToRight, RightToLeft};
+    use patronusdesign_doc::TextDirection::{LeftToRight, RightToLeft};
     let directions: Vec<_> = back.stories.values().map(|s| (s.frames.len(), s.vertical, s.direction)).collect();
     assert!(directions.contains(&(2, true, RightToLeft)) && directions.contains(&(1, false, LeftToRight)), "{directions:?}");
     let frames: Vec<bool> = back.spreads[0].items.iter().map(|i| back.frame_vertical(i)).collect();
@@ -2083,7 +2088,7 @@ fn cjk_character_attributes_import_from_independent_xml_and_round_trip() {
     assert_eq!(a.jidori, Some(4));
     assert_eq!(a.tsume, Some(0.2));
     assert_eq!(a.kenten_character.as_deref(), Some("○"));
-    assert_eq!(a.leading_model, Some(designcraft_doc::cjk::LeadingModel::Center));
+    assert_eq!(a.leading_model, Some(patronusdesign_doc::cjk::LeadingModel::Center));
     assert_eq!(st.paras[0].para.bunri_kinshi, Some(true));
     assert_eq!(st.paras[0].para.rensuuji, Some(false));
     let back = import_idml(&export_idml(&doc)).unwrap();
@@ -2097,7 +2102,7 @@ fn cjk_character_attributes_import_from_independent_xml_and_round_trip() {
 
 #[test]
 fn composers_import_by_kind_and_round_trip() {
-    use designcraft_doc::Composer as C;
+    use patronusdesign_doc::Composer as C;
     let para = |composer: &str, text: &str| {
         format!(
             r#"<ParagraphStyleRange AppliedParagraphStyle="ParagraphStyle/$ID/[No paragraph style]" Composer="{composer}"><CharacterStyleRange AppliedCharacterStyle="CharacterStyle/$ID/[No character style]"><Content>{text}</Content><Br /></CharacterStyleRange></ParagraphStyleRange>"#
@@ -2154,7 +2159,7 @@ fn warichu_imports_from_idml_and_round_trips() {
     assert_eq!(a.warichu_lines, Some(3));
     assert_eq!(a.warichu_size, Some(40.0));
     assert_eq!(a.warichu_line_spacing, Some(1.0));
-    assert_eq!(a.warichu_alignment, Some(designcraft_doc::cjk::WarichuAlignment::Left));
+    assert_eq!(a.warichu_alignment, Some(patronusdesign_doc::cjk::WarichuAlignment::Left));
     assert_eq!(a.warichu_chars_before_break, Some(2));
     assert_eq!(a.warichu_chars_after_break, Some(2));
     let back = import_idml(&export_idml(&doc)).unwrap();
@@ -2170,9 +2175,9 @@ fn warichu_imports_from_idml_and_round_trips() {
 #[test]
 fn automatic_kerning_does_not_import_inactive_numeric_values() {
     for (attributes, expected) in [
-        (r#"KerningMethod="$ID/Optical" KerningValue="1e+11""#, Some(designcraft_doc::Kerning::Optical)),
-        (r#"KerningMethod="$ID/Metrics" KerningValue="0""#, Some(designcraft_doc::Kerning::Metrics)),
-        (r#"KerningValue="-40""#, Some(designcraft_doc::Kerning::Manual(-40.0))),
+        (r#"KerningMethod="$ID/Optical" KerningValue="1e+11""#, Some(patronusdesign_doc::Kerning::Optical)),
+        (r#"KerningMethod="$ID/Metrics" KerningValue="0""#, Some(patronusdesign_doc::Kerning::Metrics)),
+        (r#"KerningValue="-40""#, Some(patronusdesign_doc::Kerning::Manual(-40.0))),
         (r#"KerningValue="1e+11""#, None),
     ] {
         let story = format!(
@@ -2285,12 +2290,12 @@ fn cjk_mojikumi_table_without_base_set_applies_its_rows() {
     let d = import_idml(&bytes).unwrap();
     let name = d.stories.values().flat_map(|s| &s.paras).find_map(|p| p.para.mojikumi.clone()).unwrap();
     assert_eq!(name, "MojikumiTable/Baseless");
-    let rules = designcraft_doc::mojikumi::Rules::resolve(&d.styles, &name).unwrap().unwrap();
+    let rules = patronusdesign_doc::mojikumi::Rules::resolve(&d.styles, &name).unwrap().unwrap();
     assert!(rules.assumed_base());
     let pair = rules.pair(12, 18);
     assert_eq!((pair.min, pair.desired, pair.max, pair.priority), (0.25, 0.75, 1.0, 2));
     // Pairs the table does not list use the half-em set: no blank at line start.
-    assert_eq!(rules.pair(22, designcraft_doc::mojikumi::class('（')).desired, 0.0);
+    assert_eq!(rules.pair(22, patronusdesign_doc::mojikumi::class('（')).desired, 0.0);
     let back = import_idml(&export_idml(&d)).unwrap();
     assert_eq!(back.styles.mojikumi_tables, d.styles.mojikumi_tables);
 }
@@ -2315,11 +2320,11 @@ fn cjk_mojikumi_table_based_on_nothing_matches_a_table_without_base_set() {
     let d = import_idml(&bytes).unwrap();
     let name = d.stories.values().flat_map(|s| &s.paras).find_map(|p| p.para.mojikumi.clone()).unwrap();
     assert_eq!(name, "MojikumiTable/NoBase");
-    let nothing = designcraft_doc::mojikumi::Rules::resolve(&d.styles, &name).unwrap().unwrap();
-    let missing = designcraft_doc::mojikumi::Rules::resolve(&d.styles, "MojikumiTable/Baseless").unwrap().unwrap();
+    let nothing = patronusdesign_doc::mojikumi::Rules::resolve(&d.styles, &name).unwrap().unwrap();
+    let missing = patronusdesign_doc::mojikumi::Rules::resolve(&d.styles, "MojikumiTable/Baseless").unwrap().unwrap();
     assert!(nothing.assumed_base());
-    let close = designcraft_doc::mojikumi::class('。');
-    for (l, r) in [(12, 18), (22, designcraft_doc::mojikumi::class('（')), (close, 22), (close, 12)] {
+    let close = patronusdesign_doc::mojikumi::class('。');
+    for (l, r) in [(12, 18), (22, patronusdesign_doc::mojikumi::class('（')), (close, 22), (close, 12)] {
         let (a, b) = (missing.pair(l, r), nothing.pair(l, r));
         assert_eq!((a.min, a.desired, a.max, a.priority), (b.min, b.desired, b.max, b.priority), "{l}/{r}");
     }
@@ -2347,12 +2352,12 @@ fn cjk_mojikumi_line_end_all_one_em_set_applies_and_round_trips() {
     ]);
     let d = import_idml(&bytes).unwrap();
     let name = d.stories.values().flat_map(|s| &s.paras).find_map(|p| p.para.mojikumi.clone()).unwrap();
-    let close = designcraft_doc::mojikumi::class('。');
+    let close = patronusdesign_doc::mojikumi::class('。');
     for name in [name.as_str(), "MojikumiTable/OneEm"] {
-        let rules = designcraft_doc::mojikumi::Rules::resolve(&d.styles, name).unwrap().unwrap();
+        let rules = patronusdesign_doc::mojikumi::Rules::resolve(&d.styles, name).unwrap().unwrap();
         assert!(!rules.assumed_base(), "{name}");
         assert_eq!(rules.pair(close, 22).desired, 0.5, "{name}");
-        assert_eq!(rules.pair(22, designcraft_doc::mojikumi::class('（')).desired, 0.0, "{name}");
+        assert_eq!(rules.pair(22, patronusdesign_doc::mojikumi::class('（')).desired, 0.0, "{name}");
     }
     let back = import_idml(&export_idml(&d)).unwrap();
     assert_eq!(back.styles.mojikumi_tables, d.styles.mojikumi_tables);
@@ -2371,11 +2376,11 @@ fn arabic_controls_import_independent_xml_and_round_trip() {
     assert_eq!(st.paras[0].para.kashidas, Some(false));
     assert_eq!(st.paras[0].para.arabic_justification.as_deref(), Some("NaskhJustification"));
     let a = &st.runs().next().unwrap().1.over;
-    assert_eq!(a.character_direction, Some(designcraft_doc::arabic::CharacterDirection::LeftToRight));
+    assert_eq!(a.character_direction, Some(patronusdesign_doc::arabic::CharacterDirection::LeftToRight));
     assert_eq!(a.allow_kashidas, Some(false));
     assert_eq!(a.diacritic_x_offset, Some(150.0));
     assert_eq!(a.diacritic_y_offset, Some(-100.0));
-    assert_eq!(a.digits, Some(designcraft_doc::Digits::Farsi));
+    assert_eq!(a.digits, Some(patronusdesign_doc::Digits::Farsi));
     let back = import_idml(&export_idml(&d)).unwrap();
     let b = back.stories.values().find(|s| s.text.contains('ب')).unwrap();
     let attrs = &b.runs().next().unwrap().1.over;
@@ -2392,14 +2397,14 @@ fn arabic_story_and_table_directions_survive_idml_export() {
     let mut d = Document::new(&NewDocument::default());
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(0.0, 0.0, 300.0, 300.0), d.default_layer(), "", ParaFormat::default()).unwrap();
     let st = d.story_mut(sid).unwrap();
-    st.direction = designcraft_doc::TextDirection::RightToLeft;
-    let mut t = designcraft_doc::Table::new(42, 1, 2, 0, 0, 200.0);
-    t.options.direction = designcraft_doc::TextDirection::RightToLeft;
+    st.direction = patronusdesign_doc::TextDirection::RightToLeft;
+    let mut t = patronusdesign_doc::Table::new(42, 1, 2, 0, 0, 200.0);
+    t.options.direction = patronusdesign_doc::TextDirection::RightToLeft;
     st.insert_table(0, t);
     let back = import_idml(&export_idml(&d)).unwrap();
     let st = back.stories.values().find(|st| !st.tables.is_empty()).unwrap();
-    assert_eq!(st.direction, designcraft_doc::TextDirection::RightToLeft);
-    assert_eq!(st.tables.values().next().unwrap().options.direction, designcraft_doc::TextDirection::RightToLeft);
+    assert_eq!(st.direction, patronusdesign_doc::TextDirection::RightToLeft);
+    assert_eq!(st.tables.values().next().unwrap().options.direction, patronusdesign_doc::TextDirection::RightToLeft);
 }
 
 /// IDML has no attribute for a drop cap's character style: it is the nested style list's leading
@@ -2438,7 +2443,7 @@ fn drop_caps_import_and_round_trip() {
         let st = d.styles.para("Opener").unwrap();
         assert_eq!((st.para.drop_cap_chars, st.para.drop_cap_lines), (Some(1), Some(3)));
         assert_eq!(st.para.drop_cap_style.as_deref(), Some("Strong"));
-        assert_eq!(st.para.nested_styles, Some(vec![designcraft_doc::NestedStyle::drop_cap("Strong")]), "one entry, not duplicated");
+        assert_eq!(st.para.nested_styles, Some(vec![patronusdesign_doc::NestedStyle::drop_cap("Strong")]), "one entry, not duplicated");
         let p = &d.stories.values().find(|s| s.text.starts_with("Once")).unwrap().paras[0];
         assert_eq!((p.para.drop_cap_chars, p.para.drop_cap_lines), (Some(2), Some(2)));
         assert_eq!(p.para.drop_cap_style.as_deref(), Some(st::NO_CHAR_STYLE));
@@ -2463,7 +2468,7 @@ fn drop_caps_import_and_round_trip() {
     let st = back.styles.para("Opener").unwrap();
     assert_eq!((st.para.drop_cap_chars, st.para.drop_cap_lines, st.para.drop_cap_style.as_deref()), (Some(1), Some(3), Some("Strong")));
     assert_eq!((st.para.drop_cap_align_left, st.para.drop_cap_scale_descenders), (Some(false), Some(true)));
-    assert_eq!(st.para.nested_styles, Some(vec![designcraft_doc::NestedStyle::drop_cap("Strong")]));
+    assert_eq!(st.para.nested_styles, Some(vec![patronusdesign_doc::NestedStyle::drop_cap("Strong")]));
 }
 
 /// IDML styles and stories with an `Opener` style whose drop cap style is `Strong`, plus `styles`
@@ -2567,7 +2572,7 @@ fn a_cleared_drop_cap_style_round_trips() {
     let back = import_idml(&export_idml(&d)).unwrap();
     let pp = resolved(&back);
     assert_eq!(pp.drop_cap_style, st::NO_CHAR_STYLE);
-    assert_eq!(pp.nested_styles, vec![designcraft_doc::NestedStyle::drop_cap(st::NO_CHAR_STYLE)]);
+    assert_eq!(pp.nested_styles, vec![patronusdesign_doc::NestedStyle::drop_cap(st::NO_CHAR_STYLE)]);
     // The style's drop cap style without nested styles: the paragraph is written with an empty
     // list, which clears it on import.
     if let Some(s) = d.styles_mut().para_mut("Opener") {
@@ -2586,8 +2591,8 @@ fn a_cleared_drop_cap_style_round_trips() {
 /// corner shape without a radius takes the chain's radius.
 #[test]
 fn frames_inherit_object_style_corners_and_text_frame_options() {
-    use designcraft_doc::{AutoSize, FirstBaseline, VerticalJustification};
-    use designcraft_geom::corners::CornerShape as C;
+    use patronusdesign_doc::{AutoSize, FirstBaseline, VerticalJustification};
+    use patronusdesign_geom::corners::CornerShape as C;
     // Anchors in the order top-left, bottom-left, bottom-right, top-right.
     let path = |x: f64| {
         let pts: String = [(x, 0.0), (x, 50.0), (x + 50.0, 50.0), (x + 50.0, 0.0)]
@@ -2711,7 +2716,7 @@ fn layer_lock_guides_round_trips() {
 /// a group containing a text frame whose story is serialized later.
 #[test]
 fn round_trips_anchored_text_frames_in_body_and_footnotes() {
-    use designcraft_doc::{AnchorPosition, AnchoredObject, Content, Item, ItemId};
+    use patronusdesign_doc::{AnchorPosition, AnchoredObject, Content, Item, ItemId};
     use std::sync::Arc;
     let mut d = Document::new(&NewDocument::default());
     let layer = d.default_layer();
@@ -2820,7 +2825,7 @@ fn malformed_mojikumi_rows_are_not_silently_coerced() {
             // cannot apply them. The resolver supplies a diagnostic instead.
             let document = import_idml(&bytes).unwrap();
             document.check().unwrap();
-            assert!(designcraft_doc::mojikumi::Rules::resolve(&document.styles, "MojikumiTable/Bad").is_err());
+            assert!(patronusdesign_doc::mojikumi::Rules::resolve(&document.styles, "MojikumiTable/Bad").is_err());
             let restored = import_idml(&export_idml(&document)).unwrap();
             assert_eq!(restored.styles.mojikumi_tables, document.styles.mojikumi_tables);
         } else {
@@ -2843,13 +2848,13 @@ fn imports_column_rules_from_frames_and_object_styles() {
     for o in [d.spreads[0].items[0].text_frame().unwrap().options.clone(), style] {
         assert!(o.column_rule, "{o:?}");
         assert_eq!(o.column_rule_weight, 2.5);
-        assert_eq!(o.column_rule_color, designcraft_color::swatch::BLACK);
+        assert_eq!(o.column_rule_color, patronusdesign_color::swatch::BLACK);
         assert!((o.column_rule_tint - 0.4).abs() < 1e-6);
         assert_eq!((o.column_rule_offset, o.column_rule_top_inset, o.column_rule_bottom_inset), (-3.0, 6.0, 9.0));
     }
     // Absent attributes: no rule, InDesign's defaults.
     let d = inset_fixture(r#"<TextFramePreference TextColumnCount="3"/>"#, "");
-    assert_eq!(d.spreads[0].items[0].text_frame().unwrap().options, designcraft_doc::TextFrameOptions { columns: 3, ..Default::default() });
+    assert_eq!(d.spreads[0].items[0].text_frame().unwrap().options, patronusdesign_doc::TextFrameOptions { columns: 3, ..Default::default() });
 }
 
 #[test]
@@ -2951,11 +2956,11 @@ fn table_style_cascade_preserves_sparse_edges_and_local_overrides() {
     assert_cascade_round_trip(&d, table);
 }
 
-fn first_table(doc: &Document) -> &designcraft_doc::Table {
+fn first_table(doc: &Document) -> &patronusdesign_doc::Table {
     doc.stories.values().flat_map(|s| s.tables.values()).next().unwrap()
 }
 
-fn assert_cascade_table_options(table: &designcraft_doc::Table) {
+fn assert_cascade_table_options(table: &patronusdesign_doc::Table) {
     assert_eq!((table.nrows(), table.ncols()), (2, 3));
     assert_eq!(table.style, "Table");
     assert_eq!(table.options.space_before, 19.0);
@@ -2966,53 +2971,53 @@ fn assert_cascade_table_options(table: &designcraft_doc::Table) {
     assert_eq!(fills.first_color, "Brand");
 }
 
-fn assert_cascade_header_cell(table: &designcraft_doc::Table) {
+fn assert_cascade_header_cell(table: &patronusdesign_doc::Table) {
     let header = table.cell(0, 0).unwrap();
-    assert_eq!(header.fill, designcraft_color::swatch::PAPER, "header takes precedence over left region");
+    assert_eq!(header.fill, patronusdesign_color::swatch::PAPER, "header takes precedence over left region");
     assert!(header.style.is_empty(), "a table region does not become AppliedCellStyle");
     assert_eq!(header.insets, [2.0, 3.0, 4.0, 5.0]);
-    assert_eq!(header.vj, designcraft_doc::VerticalJustification::Center);
+    assert_eq!(header.vj, patronusdesign_doc::VerticalJustification::Center);
     assert_eq!(header.text.paras[0].style, "CellParagraph");
     assert_eq!(header.strokes[0].weight, 2.0);
     assert_eq!(header.strokes[0].tint, 0.4);
-    assert_ne!(header.strokes[0].kind, designcraft_doc::StrokeType::Solid);
+    assert_ne!(header.strokes[0].kind, patronusdesign_doc::StrokeType::Solid);
     assert_eq!(header.strokes[2].weight, 6.0);
     assert_eq!(header.border_overrides, [true; 4]);
     assert_eq!(header.stroke_defined, [true; 4]);
     assert_eq!(header.stroke_priorities, [0; 4]);
 }
 
-fn assert_cascade_explicit_cell(table: &designcraft_doc::Table) {
+fn assert_cascade_explicit_cell(table: &patronusdesign_doc::Table) {
     let explicit = table.cell(0, 1).unwrap();
     assert_eq!(explicit.fill, "Brand");
     assert_eq!(explicit.fill_tint, 0.75);
     assert_eq!(explicit.insets, [0.0, 3.0, 4.0, 5.0]);
     assert_eq!(explicit.strokes[0].weight, 2.0, "color-only override inherits weight");
-    assert_eq!(explicit.strokes[0].color, designcraft_color::swatch::NONE);
+    assert_eq!(explicit.strokes[0].color, patronusdesign_color::swatch::NONE);
     assert_eq!(explicit.strokes[3].weight, 5.0);
     assert_eq!(explicit.strokes[3].tint, 0.3);
 }
 
-fn assert_cascade_local_cell(table: &designcraft_doc::Table) {
+fn assert_cascade_local_cell(table: &patronusdesign_doc::Table) {
     let local = table.cell(0, 2).unwrap();
-    assert_eq!(local.fill, designcraft_color::swatch::NONE);
+    assert_eq!(local.fill, patronusdesign_color::swatch::NONE);
     assert_eq!(local.fill_tint, 0.0);
     assert_eq!(local.insets[1], 0.0);
-    assert_eq!(local.vj, designcraft_doc::VerticalJustification::Bottom);
+    assert_eq!(local.vj, patronusdesign_doc::VerticalJustification::Bottom);
     assert_eq!(local.strokes[0].weight, 0.0);
-    assert_eq!(local.strokes[3].color, designcraft_color::swatch::NONE);
+    assert_eq!(local.strokes[3].color, patronusdesign_color::swatch::NONE);
     assert_eq!(local.stroke_priorities, [0, 0, 0, 7]);
     assert_eq!(local.text.paras[0].style, st::BASIC_PARAGRAPH, "explicit paragraph style wins");
 }
 
-fn assert_cascade_body_cells(table: &designcraft_doc::Table) {
-    assert_eq!(table.cell(1, 0).unwrap().fill, designcraft_color::swatch::BLACK);
+fn assert_cascade_body_cells(table: &patronusdesign_doc::Table) {
+    assert_eq!(table.cell(1, 0).unwrap().fill, patronusdesign_color::swatch::BLACK);
     assert_eq!(table.cell(1, 0).unwrap().strokes[1].weight, 0.0);
     assert_eq!(table.cell(1, 1).unwrap().fill_tint, 0.5);
     assert_eq!(table.cell(1, 2).unwrap().fill, "Brand");
 }
 
-fn assert_cascade_round_trip(d: &Document, table: &designcraft_doc::Table) {
+fn assert_cascade_round_trip(d: &Document, table: &patronusdesign_doc::Table) {
     let back = import_idml(&export_idml(d)).unwrap();
     let roundtrip = first_table(&back);
     for (before, after) in table.cells.iter().zip(&roundtrip.cells) {
@@ -3028,7 +3033,7 @@ fn assert_cascade_round_trip(d: &Document, table: &designcraft_doc::Table) {
     }
     let style = back.styles.cell.iter().find(|s| s.name == "Explicit").unwrap();
     assert_eq!(style.strokes[0].weight, None, "style export keeps absence distinct from zero");
-    assert_eq!(style.strokes[0].color.as_deref(), Some(designcraft_color::swatch::NONE));
+    assert_eq!(style.strokes[0].color.as_deref(), Some(patronusdesign_color::swatch::NONE));
     assert_eq!(back.styles.table.iter().find(|s| s.name == "Table").unwrap().based_on.as_deref(), Some("BaseTable"));
 }
 
@@ -3065,7 +3070,7 @@ fn table_style_cycles_and_missing_bases_terminate_without_losing_nearest_values(
     assert_eq!(table.options.space_after, 20.0);
     assert_eq!(table.cell(1, 1).unwrap().strokes[0].weight, 0.0);
     assert_eq!(table.cell(1, 1).unwrap().strokes[0].color, "Brand");
-    let missing = designcraft_doc::resolve_cell_style(&d.styles.cell, "Missing");
+    let missing = patronusdesign_doc::resolve_cell_style(&d.styles.cell, "Missing");
     assert_eq!(missing.inset_overrides[1], Some(0.0));
 }
 
@@ -3132,7 +3137,7 @@ fn legacy_native_documents_export_both_builtin_table_styles_when_missing() {
     assert_eq!(styles.matches("Self=\"TableStyle/$ID/[Basic Table]\"").count(), 1);
     assert_eq!(styles.matches("Self=\"TableStyle/$ID/[No table style]\"").count(), 1);
     let back = import_idml(&bytes).unwrap();
-    assert!(back.styles.table.iter().any(|s| s.name == designcraft_doc::BASIC_TABLE));
+    assert!(back.styles.table.iter().any(|s| s.name == patronusdesign_doc::BASIC_TABLE));
 }
 
 #[test]
@@ -3186,12 +3191,12 @@ fn alternating_table_strokes_inherit_and_roundtrip_without_flattening_cell_edges
     let row = before.options.row_strokes.as_ref().unwrap();
     assert_eq!((row.first, row.next), (1, 1));
     assert_eq!(row.first_stroke.tint, 0.25);
-    assert_eq!(row.first_stroke.color, designcraft_color::swatch::PAPER);
-    assert_eq!(row.next_stroke.color, designcraft_color::swatch::NONE);
+    assert_eq!(row.first_stroke.color, patronusdesign_color::swatch::PAPER);
+    assert_eq!(row.next_stroke.color, patronusdesign_color::swatch::NONE);
     assert!(!row.uniform_stroke().unwrap().is_visible(), "zero patterns are uniform even when their colors differ");
     let column = before.options.column_strokes.as_ref().unwrap();
     assert_eq!((column.first, column.next, column.skip_first), (2, 1, 1));
-    assert_eq!(column.next_stroke.kind, designcraft_doc::StrokeType::Dotted);
+    assert_eq!(column.next_stroke.kind, patronusdesign_doc::StrokeType::Dotted);
     assert!(column.uniform_stroke().is_none(), "nonuniform/skipped patterns are preserved without guessing their phase");
     assert_eq!(before.cell(0, 0).unwrap().strokes[2].weight, 6.0, "cell styles remain higher-precedence edges");
     let back = import_idml(&export_idml(&document)).unwrap();
@@ -3224,52 +3229,52 @@ fn alternating_table_strokes_local_off_overrides_named_style_on_roundtrip() {
         assert_eq!(row.first_stroke.weight, 4.0);
         assert_eq!(row.next_stroke.color, "Brand");
         assert_eq!(column.skip_first, 3);
-        assert_eq!(column.next_stroke.kind, designcraft_doc::StrokeType::Dotted);
+        assert_eq!(column.next_stroke.kind, patronusdesign_doc::StrokeType::Dotted);
     }
 }
 
 #[test]
 fn complete_uniform_native_style_fields_keep_legacy_identity_on_idml_roundtrip() {
     let mut document = import_idml(&fixture()).unwrap();
-    let stroke = designcraft_doc::CellStroke { weight: 3.0, tint: 0.5, ..Default::default() };
-    document.styles_mut().cell.push(designcraft_doc::CellStyle {
+    let stroke = patronusdesign_doc::CellStroke { weight: 3.0, tint: 0.5, ..Default::default() };
+    document.styles_mut().cell.push(patronusdesign_doc::CellStyle {
         name: "Uniform".into(),
         insets: Some([5.0; 4]),
         stroke: Some(stroke.clone()),
         ..Default::default()
     });
-    document.styles_mut().table.push(designcraft_doc::TableStyle { name: "Uniform".into(), border: Some(stroke.clone()), ..Default::default() });
+    document.styles_mut().table.push(patronusdesign_doc::TableStyle { name: "Uniform".into(), border: Some(stroke.clone()), ..Default::default() });
     let back = import_idml(&export_idml(&document)).unwrap();
     let cell = back.styles.cell.iter().find(|s| s.name == "Uniform").unwrap();
     assert_eq!(cell.insets, Some([5.0; 4]));
     assert_eq!(cell.stroke.as_ref(), Some(&stroke));
-    assert!(cell.strokes.iter().all(designcraft_doc::CellStrokeAttrs::is_empty));
+    assert!(cell.strokes.iter().all(patronusdesign_doc::CellStrokeAttrs::is_empty));
     let table = back.styles.table.iter().find(|s| s.name == "Uniform").unwrap();
     assert_eq!(table.border.as_ref(), Some(&stroke));
-    assert!(table.borders.iter().all(designcraft_doc::CellStrokeAttrs::is_empty));
+    assert!(table.borders.iter().all(patronusdesign_doc::CellStrokeAttrs::is_empty));
 }
 
 #[test]
 fn table_style_row_fills_overlay_legacy_alt_rows_on_idml_roundtrip() {
     let mut document = import_idml(&fixture()).unwrap();
-    document.styles_mut().table.push(designcraft_doc::TableStyle {
+    document.styles_mut().table.push(patronusdesign_doc::TableStyle {
         name: "RowFillsOverlay".into(),
-        alt_rows: Some(designcraft_doc::AltFills {
+        alt_rows: Some(patronusdesign_doc::AltFills {
             first: 2,
-            first_color: designcraft_color::swatch::PAPER.into(),
+            first_color: patronusdesign_color::swatch::PAPER.into(),
             first_tint: 0.25,
             next: 3,
-            next_color: designcraft_color::swatch::BLACK.into(),
+            next_color: patronusdesign_color::swatch::BLACK.into(),
             next_tint: 0.5,
             skip_first: 0,
             skip_last: 0,
         }),
-        row_fills: designcraft_doc::AltFillsAttrs {
+        row_fills: patronusdesign_doc::AltFillsAttrs {
             first: Some(0),
-            first_color: Some(designcraft_color::swatch::BLACK.into()),
+            first_color: Some(patronusdesign_color::swatch::BLACK.into()),
             first_tint: Some(0.8),
             next: Some(1),
-            next_color: Some(designcraft_color::swatch::PAPER.into()),
+            next_color: Some(patronusdesign_color::swatch::PAPER.into()),
             next_tint: Some(0.1),
             skip_first: Some(1),
             skip_last: Some(2),
@@ -3279,10 +3284,10 @@ fn table_style_row_fills_overlay_legacy_alt_rows_on_idml_roundtrip() {
     let back = import_idml(&export_idml(&document)).unwrap();
     let table = back.styles.table.iter().find(|s| s.name == "RowFillsOverlay").unwrap();
     assert_eq!(table.row_fills.first, Some(0));
-    assert_eq!(table.row_fills.first_color.as_deref(), Some(designcraft_color::swatch::BLACK));
+    assert_eq!(table.row_fills.first_color.as_deref(), Some(patronusdesign_color::swatch::BLACK));
     assert!((table.row_fills.first_tint.unwrap() - 0.8).abs() < 1e-4);
     assert_eq!(table.row_fills.next, Some(1));
-    assert_eq!(table.row_fills.next_color.as_deref(), Some(designcraft_color::swatch::PAPER));
+    assert_eq!(table.row_fills.next_color.as_deref(), Some(patronusdesign_color::swatch::PAPER));
     assert!((table.row_fills.next_tint.unwrap() - 0.1).abs() < 1e-4);
     assert_eq!(table.row_fills.skip_first, Some(1));
     assert_eq!(table.row_fills.skip_last, Some(2));
@@ -3298,7 +3303,7 @@ fn split_columns_import_and_round_trip() {
     let doc = import_idml(&fixture_with_story(story)).unwrap();
     let para = |d: &Document| d.stories.values().find(|s| s.text.contains("Split list")).unwrap().paras[0].para.clone();
     let a = para(&doc);
-    assert_eq!(a.span_columns, Some(designcraft_doc::SpanColumns::Split(3)));
+    assert_eq!(a.span_columns, Some(patronusdesign_doc::SpanColumns::Split(3)));
     assert_eq!(a.split_inside_gutter, Some(27.0));
     assert_eq!(a.split_outside_gutter, Some(4.5));
     let b = para(&import_idml(&export_idml(&doc)).unwrap());
@@ -3307,8 +3312,8 @@ fn split_columns_import_and_round_trip() {
 
 #[test]
 fn paragraph_border_shading_span_and_list_options_import_and_round_trip() {
-    use designcraft_doc::{BoxBottom, BoxTop, BoxWidth, Cap, Join, ListAlign, StrokeType};
-    use designcraft_geom::corners::{Corner, CornerShape};
+    use patronusdesign_doc::{BoxBottom, BoxTop, BoxWidth, Cap, Join, ListAlign, StrokeType};
+    use patronusdesign_geom::corners::{Corner, CornerShape};
     let story = r#"<idPkg:Story xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"><Story Self="s1">
       <ParagraphStyleRange AppliedParagraphStyle="ParagraphStyle/$ID/[No paragraph style]" ParagraphBorderOn="true"
         ParagraphBorderStrokeEndCap="RoundEndCap" ParagraphBorderStrokeEndJoin="BevelEndJoin"
@@ -3356,7 +3361,7 @@ fn paragraph_border_shading_span_and_list_options_import_and_round_trip() {
     assert_eq!((a.restart_numbers, a.restart_after_level), (Some(false), Some(1)));
     assert_eq!((a.bullet_font.as_deref(), a.bullet_font_style.as_deref()), (Some("Courier New"), Some("Bold")));
     let b = para(&import_idml(&export_idml(&doc)).unwrap());
-    let pick = |p: &designcraft_doc::ParaAttrs| {
+    let pick = |p: &patronusdesign_doc::ParaAttrs| {
         let border = (&p.border_type, p.border_cap, p.border_join, p.border_corners, p.border_width, p.border_top, p.border_bottom);
         let more = (p.border_display_if_splits, p.border_merge, &p.border_gap_color, p.border_gap_tint);
         let shading = (p.shading_corners, p.shading_width, p.shading_top, p.shading_bottom, p.shading_clip, p.shading_nonprinting);
@@ -3395,12 +3400,12 @@ fn list_numbering_format_expression_and_bullet_import_and_round_trip() {
     ]);
     let check = |d: &Document| {
         let (head, _) = d.styles.resolve_para_style("Text/Head");
-        assert_eq!(head.number_style, designcraft_doc::NumberStyle::UpperLetters);
+        assert_eq!(head.number_style, patronusdesign_doc::NumberStyle::UpperLetters);
         assert_eq!(head.number_label(2), "B.\t");
         let (table, _) = d.styles.resolve_para_style("Text/Table");
         assert_eq!(table.number_label(7), "Tabel 007\t");
         let (kanji, _) = d.styles.resolve_para_style("Text/Kanji");
-        assert_eq!(kanji.number_style, designcraft_doc::NumberStyle::Kanji);
+        assert_eq!(kanji.number_style, patronusdesign_doc::NumberStyle::Kanji);
         let (point, _) = d.styles.resolve_para_style("Text/Point");
         assert_eq!(point.bullet_label(), "\u{25A0}\u{2002}");
     };
@@ -3434,7 +3439,7 @@ fn applied_font_with_an_id_prefix_names_the_family() {
     let bold = story.runs().find(|(r, _)| story.text[r.clone()].starts_with("bold")).unwrap().1;
     assert_eq!(bold.over.font_family.as_deref(), Some("Source Serif 4"));
     // The bundled family draws the text (an unknown family would fall back to Source Sans 3).
-    let cs = designcraft_compose::compose_story(&d, *sid, &Default::default());
+    let cs = patronusdesign_compose::compose_story(&d, *sid, &Default::default());
     let first_para = story.text.find('\n').unwrap();
     let families: Vec<&str> = cs
         .frames
@@ -3449,7 +3454,7 @@ fn applied_font_with_an_id_prefix_names_the_family() {
 
 #[test]
 fn list_tab_position_round_trips_as_a_tab_stop() {
-    use designcraft_doc::{ListType, ParaAttrs, ParagraphStyle, TabAlign, TabStop};
+    use patronusdesign_doc::{ListType, ParaAttrs, ParagraphStyle, TabAlign, TabStop};
     let stop = |position, align| TabStop { position, align, leader: String::new(), align_on: String::new() };
     let mut d = Document::new(&NewDocument::default());
     std::sync::Arc::make_mut(&mut d.styles).paragraph.push(ParagraphStyle {
@@ -3491,7 +3496,7 @@ fn round_trips_the_zero_point_and_ruler_origin() {
     d.settings.zero_point = [36.0, 18.5];
     let back = import_idml(&export_idml(&d)).unwrap();
     assert_eq!(back.settings.zero_point, [36.0, 18.5]);
-    for origin in [designcraft_doc::RulerOrigin::Page, designcraft_doc::RulerOrigin::Spine, designcraft_doc::RulerOrigin::Spread] {
+    for origin in [patronusdesign_doc::RulerOrigin::Page, patronusdesign_doc::RulerOrigin::Spine, patronusdesign_doc::RulerOrigin::Spread] {
         d.settings.ruler_origin = origin;
         assert_eq!(import_idml(&export_idml(&d)).unwrap().settings.ruler_origin, origin);
     }
@@ -3513,11 +3518,11 @@ fn round_trips_the_zero_point_and_ruler_origin() {
     assert_eq!(fixture("NaN 4").settings.zero_point, [0.0, 0.0]);
 }
 
-/// Q is `Q` in IDML, as InDesign writes it (`U` is another unit). Units DesignCraft lacks are
+/// Q is `Q` in IDML, as InDesign writes it (`U` is another unit). Units Patronus Design lacks are
 /// read as points, and the import report says so.
 #[test]
 fn ruler_units_in_q_and_ha_round_trip_and_unknown_units_are_reported() {
-    use designcraft_geom::Unit;
+    use patronusdesign_geom::Unit;
     let mut d = Document::new(&NewDocument::default());
     for (h, v) in [(Unit::Q, Unit::Ha), (Unit::Ha, Unit::Q), (Unit::Millimeters, Unit::Points)] {
         (d.settings.horizontal_units, d.settings.vertical_units) = (h, v);
@@ -3559,8 +3564,8 @@ fn round_trips_lock_column_guides() {
 
 #[test]
 fn kenten_shatai_and_grid_settings_import_and_round_trip() {
-    use designcraft_doc::cjk::CharacterAlignment;
-    use designcraft_doc::cjk_settings::{AdornmentOverprint, KentenAlignment, KentenKind, KentenPosition};
+    use patronusdesign_doc::cjk::CharacterAlignment;
+    use patronusdesign_doc::cjk_settings::{AdornmentOverprint, KentenAlignment, KentenKind, KentenPosition};
     let story = r#"<idPkg:Story xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"><Story Self="s1">
       <ParagraphStyleRange AppliedParagraphStyle="ParagraphStyle/$ID/[No paragraph style]" AutoTcy="3" AutoTcyIncludeRoman="true" RotateSingleByteCharacters="true" AllowArbitraryHyphenation="true" GridAlignment="AlignEmCenter" GridAlignFirstLineOnly="true" GridGyoudori="2" ParagraphGyoudori="true">
         <CharacterStyleRange AppliedCharacterStyle="CharacterStyle/$ID/[No character style]" KentenKind="KentenSmallBlackCircle" KentenFontSize="6" KentenXScale="80" KentenYScale="120" KentenPlacement="1.5" KentenPosition="BelowLeft" KentenAlignment="AlignKentenLeft" KentenCharacterSet="CharacterInput" KentenTint="50" KentenStrokeTint="-1" KentenWeight="0.5" KentenOverprintFill="OverprintOn" KentenOverprintStroke="Auto" ShataiMagnification="20" ShataiDegreeAngle="6000" ShataiAdjustRotation="true" ShataiAdjustTsume="false"><Properties><KentenFont type="string">$ID/</KentenFont><KentenFontStyle type="enumeration">Nothing</KentenFontStyle><KentenFillColor type="string">Text Color</KentenFillColor></Properties><Content>甲乙</Content></CharacterStyleRange>
@@ -3585,7 +3590,7 @@ fn kenten_shatai_and_grid_settings_import_and_round_trip() {
     assert_eq!(custom.kenten_character.as_deref(), Some("★"));
     let p = &st.paras[0].para;
     assert_eq!((p.auto_tcy, p.auto_tcy_include_roman, p.rotate_roman, p.roman_word_break), (Some(3), Some(true), Some(true), Some(true)));
-    assert_eq!((p.grid_align, p.grid_reference), (Some(designcraft_doc::GridAlign::FirstLineOnly), Some(CharacterAlignment::EmCenter)));
+    assert_eq!((p.grid_align, p.grid_reference), (Some(patronusdesign_doc::GridAlign::FirstLineOnly), Some(CharacterAlignment::EmCenter)));
     assert_eq!((p.grid_gyoudori, p.paragraph_gyoudori), (Some(2), Some(true)));
 
     let back = import_idml(&export_idml(&doc)).unwrap();
@@ -3639,8 +3644,8 @@ fn ruby_settings_import_from_idml_and_round_trip() {
 }
 
 fn assert_imported_ruby_settings(doc: &Document) {
-    use designcraft_doc::cjk_settings::AdornmentOverprint;
-    use designcraft_doc::ruby::{RubyAlignment, RubyOverhang, RubyParentSpacing, RubyPosition, RubyType};
+    use patronusdesign_doc::cjk_settings::AdornmentOverprint;
+    use patronusdesign_doc::ruby::{RubyAlignment, RubyOverhang, RubyParentSpacing, RubyPosition, RubyType};
     let a = doc.stories.values().find(|s| s.text.contains("漢字")).unwrap().runs().next().unwrap().1.over.clone();
     assert_eq!(a.ruby.as_deref(), Some("かん　じ"));
     assert_eq!(a.ruby_type, Some(RubyType::PerCharacter));
@@ -3658,8 +3663,8 @@ fn assert_imported_ruby_settings(doc: &Document) {
 }
 
 fn ruby_round_trip_document() -> Document {
-    use designcraft_doc::cjk_settings::AdornmentOverprint;
-    use designcraft_doc::ruby::{RubyAlignment, RubyOverhang, RubyParentSpacing, RubyPosition, RubyType};
+    use patronusdesign_doc::cjk_settings::AdornmentOverprint;
+    use patronusdesign_doc::ruby::{RubyAlignment, RubyOverhang, RubyParentSpacing, RubyPosition, RubyType};
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(72.0, 72.0, 300.0, 200.0), lid, "漢字", ParaFormat::default()).unwrap();
@@ -3758,8 +3763,8 @@ fn hostile_tab_lists_import_within_the_limits() {
     assert!(report.warnings.iter().any(|w| w.starts_with("tab lists repaired to fit the limits") && w.ends_with("): 1")), "{:?}", report.warnings);
     let doc = report.document;
     let tabs = doc.stories.values().find(|s| s.text.contains("Many tabs")).unwrap().paras[0].para.tabs.clone().unwrap();
-    assert_eq!(tabs.len(), designcraft_doc::MAX_TAB_STOPS);
-    assert!(tabs.iter().all(|t| t.position.is_finite() && t.leader.chars().count() <= designcraft_doc::MAX_TAB_LEADER));
+    assert_eq!(tabs.len(), patronusdesign_doc::MAX_TAB_STOPS);
+    assert!(tabs.iter().all(|t| t.position.is_finite() && t.leader.chars().count() <= patronusdesign_doc::MAX_TAB_LEADER));
     assert!(tabs.windows(2).all(|w| w[0].position < w[1].position), "sorted");
     assert_eq!((tabs[0].position, tabs[99].position), (0.0, 297.0), "the first stops by position");
     // A list within the limits, unsorted and with a char stop on `.`, imports without a warning.
@@ -3807,7 +3812,7 @@ fn cell_edge_gap_colours_and_tints_import_and_round_trip_per_edge() {
 
 #[test]
 fn em_box_first_baseline_offset_round_trips() {
-    use designcraft_doc::FirstBaseline;
+    use patronusdesign_doc::FirstBaseline;
     let first = |d: &Document| d.spreads[0].items[0].text_frame().unwrap().options.first_baseline;
     let d = inset_fixture(r#"<TextFramePreference FirstBaselineOffset="EmboxHeight"/>"#, "");
     assert_eq!(first(&d), FirstBaseline::EmboxHeight);
@@ -3835,15 +3840,15 @@ fn imports_and_round_trips_text_wrap_side_and_contour_type() {
     let w = d.item(id).unwrap().wrap.clone();
     assert_eq!(
         (w.mode, w.side, w.contour),
-        (designcraft_doc::WrapMode::Contour, designcraft_doc::WrapSide::LeftSide, designcraft_doc::ContourType::BoundingBox)
+        (patronusdesign_doc::WrapMode::Contour, patronusdesign_doc::WrapSide::LeftSide, patronusdesign_doc::ContourType::BoundingBox)
     );
     // Every side and contour type survives export and import (detected edges included, which
     // composition follows as the frame's path).
-    d.item_mut(id).unwrap().wrap.side = designcraft_doc::WrapSide::AwayFromSpine;
-    d.item_mut(id).unwrap().wrap.contour = designcraft_doc::ContourType::DetectEdges;
+    d.item_mut(id).unwrap().wrap.side = patronusdesign_doc::WrapSide::AwayFromSpine;
+    d.item_mut(id).unwrap().wrap.contour = patronusdesign_doc::ContourType::DetectEdges;
     let back = import_idml(&export_idml(&d)).unwrap();
     let w = back.spreads[0].items.iter().find(|i| i.graphic().is_some()).unwrap().wrap.clone();
-    assert_eq!((w.side, w.contour), (designcraft_doc::WrapSide::AwayFromSpine, designcraft_doc::ContourType::DetectEdges));
+    assert_eq!((w.side, w.contour), (patronusdesign_doc::WrapSide::AwayFromSpine, patronusdesign_doc::ContourType::DetectEdges));
 }
 
 fn feather_fixture(transparency: &str) -> Document {
@@ -3897,7 +3902,7 @@ fn imports_gradient_and_directional_feathers() {
     let df = &items[0].effects.directional_feather;
     assert!(df.on);
     assert_eq!(df.widths, [5.0, 3.0, 6.0, 4.0]);
-    assert_eq!(items[1].effects, designcraft_doc::Effects::default());
+    assert_eq!(items[1].effects, patronusdesign_doc::Effects::default());
 
     // Not applied: the settings stay off.
     let off = feather_fixture(
@@ -3906,34 +3911,34 @@ fn imports_gradient_and_directional_feathers() {
              <DirectionalFeatherSetting Applied="false" LeftWidth="3"/>
            </TransparencySetting>"#,
     );
-    assert_eq!(off.spreads[0].items[0].effects, designcraft_doc::Effects::default());
+    assert_eq!(off.spreads[0].items[0].effects, patronusdesign_doc::Effects::default());
 }
 
 #[test]
 fn gradient_and_directional_feathers_round_trip() {
-    use designcraft_doc::{DirectionalFeather, GradientFeather, Item, ItemId};
+    use patronusdesign_doc::{DirectionalFeather, GradientFeather, Item, ItemId};
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
-    let add = |d: &mut Document, effects: designcraft_doc::Effects| {
+    let add = |d: &mut Document, effects: patronusdesign_doc::Effects| {
         let mut it = Item::new(ItemId(d.alloc()), lid, Shape::Rectangle, shapes::rectangle(Rect::new(40.0, 40.0, 140.0, 120.0)));
         it.effects = effects;
         d.insert_item(SpreadRef::Doc(0), it, None).unwrap();
     };
-    let linear = designcraft_doc::Effects {
+    let linear = patronusdesign_doc::Effects {
         gradient_feather: GradientFeather { on: true, radial: false, angle: 0.0, start: 0.75, end: 0.25, vector: Some([50.0, 60.0, 110.0, 60.0]) },
         directional_feather: DirectionalFeather { on: true, widths: [1.0, 2.0, 3.0, 4.0] },
         ..Default::default()
     };
-    let radial = designcraft_doc::Effects {
+    let radial = patronusdesign_doc::Effects {
         gradient_feather: GradientFeather { on: true, radial: true, angle: 30.0, start: 0.0, end: 1.0, vector: None },
         ..Default::default()
     };
     add(&mut d, linear.clone());
     add(&mut d, radial.clone());
-    add(&mut d, designcraft_doc::Effects::default());
+    add(&mut d, patronusdesign_doc::Effects::default());
     let back = import_idml(&export_idml(&d)).unwrap();
     let effects: Vec<_> = back.spreads[0].items.iter().map(|i| i.effects.clone()).collect();
-    assert_eq!(effects, [linear, radial, designcraft_doc::Effects::default()]);
+    assert_eq!(effects, [linear, radial, patronusdesign_doc::Effects::default()]);
 }
 
 /// One single-column text frame at (0, 0)-(300, 200) on page 1, beside a 100 pt wide rectangle
@@ -3983,14 +3988,14 @@ fn custom_wrap_fixture(wrap_props: &str) -> Vec<u8> {
 /// The custom boundary: 40 pt wide, the full height of the 100 pt wide rectangle.
 const NARROW_WRAP_PATH: &str = r#"<PathGeometry><GeometryPathType PathOpen="false"><PathPointArray><PathPointType Anchor="0 0" LeftDirection="0 0" RightDirection="0 0"/><PathPointType Anchor="0 200" LeftDirection="0 200" RightDirection="0 200"/><PathPointType Anchor="40 200" LeftDirection="40 200" RightDirection="40 200"/><PathPointType Anchor="40 0" LeftDirection="40 0" RightDirection="40 0"/></PathPointArray></GeometryPathType></PathGeometry>"#;
 
-fn wrapping_item(d: &Document) -> &designcraft_doc::Item {
-    d.spreads[0].items.iter().find(|i| i.wrap.mode != designcraft_doc::WrapMode::None).unwrap()
+fn wrapping_item(d: &Document) -> &patronusdesign_doc::Item {
+    d.spreads[0].items.iter().find(|i| i.wrap.mode != patronusdesign_doc::WrapMode::None).unwrap()
 }
 
 /// Leftmost line start in the frame.
 fn first_line_x(d: &Document) -> f64 {
     let sid = *d.stories.keys().next().unwrap();
-    let cs = designcraft_compose::compose_story(d, sid, &Default::default());
+    let cs = patronusdesign_compose::compose_story(d, sid, &Default::default());
     assert!(cs.frames[0].lines.len() > 3);
     cs.frames[0].lines.iter().map(|l| l.x0).fold(f64::INFINITY, f64::min)
 }
@@ -4023,7 +4028,7 @@ fn hostile_custom_wrap_boundary_is_dropped() {
     for props in [nan.as_str(), inf.as_str(), huge.as_str(), empty] {
         let d = import_idml_with(&custom_wrap_fixture(props), &|_| None).unwrap();
         let it = wrapping_item(&d);
-        assert_eq!(it.wrap.mode, designcraft_doc::WrapMode::BoundingBox);
+        assert_eq!(it.wrap.mode, patronusdesign_doc::WrapMode::BoundingBox);
         assert_eq!(it.wrap.path, None);
         assert!(first_line_x(&d) >= 100.0 - 1e-6);
     }
@@ -4078,14 +4083,14 @@ fn tracked_deleted_text_takes_no_room_and_round_trips() {
     ));
     let lines = |d: &Document| {
         let sid = *d.stories.keys().next().unwrap();
-        let cs = designcraft_compose::compose_story(d, sid, &Default::default());
+        let cs = patronusdesign_compose::compose_story(d, sid, &Default::default());
         cs.frames.iter().flat_map(|f| f.lines.iter().map(|l| (l.baseline, l.x0, l.end_x))).collect::<Vec<_>>()
     };
     let d = import_idml_with(&fixture_with_story(&tracked), &|_| None).unwrap();
     let story = d.stories.values().next().unwrap();
     assert_eq!(story.text, "The first paragraph keeps a deleted word.\n\nNew second paragraph.");
-    let marks = |s: &designcraft_doc::Story| s.runs().map(|(r, f)| (s.text[r].to_string(), f.over.change)).collect::<Vec<_>>();
-    use designcraft_doc::ChangeMark::{Deleted, Inserted};
+    let marks = |s: &patronusdesign_doc::Story| s.runs().map(|(r, f)| (s.text[r].to_string(), f.over.change)).collect::<Vec<_>>();
+    use patronusdesign_doc::ChangeMark::{Deleted, Inserted};
     let want = vec![
         ("The first paragraph keeps a ".to_string(), None),
         ("deleted ".to_string(), Some(Deleted)),
@@ -4163,7 +4168,7 @@ fn same_para_style_spacing_from_a_based_on_style_element_closes_the_gap() {
     );
     let d = import_idml(&fixture_with_table_styles(styles, &story)).unwrap();
     let sid = d.stories.iter().find(|(_, s)| s.text.contains("One")).map(|(id, _)| *id).unwrap();
-    let cs = designcraft_compose::compose_story(&d, sid, &Default::default());
+    let cs = patronusdesign_compose::compose_story(&d, sid, &Default::default());
     let baseline = |para: usize| cs.frames[0].lines.iter().find(|l| l.para == para).unwrap().baseline;
     assert!((baseline(1) - baseline(0) - 13.0).abs() < 1e-6, "{} {}", baseline(0), baseline(1));
     assert!((baseline(3) - baseline(2) - 13.0 - 4.5 - 18.0).abs() < 1e-6, "{} {}", baseline(2), baseline(3));
@@ -4172,7 +4177,7 @@ fn same_para_style_spacing_from_a_based_on_style_element_closes_the_gap() {
 /// Composed lines (baseline, left, right) of the only story.
 fn story_lines(d: &Document) -> Vec<(f64, f64, f64)> {
     let sid = *d.stories.keys().next().unwrap();
-    let cs = designcraft_compose::compose_story(d, sid, &Default::default());
+    let cs = patronusdesign_compose::compose_story(d, sid, &Default::default());
     cs.frames.iter().flat_map(|f| f.lines.iter().map(|l| (l.baseline, l.x0, l.end_x))).collect()
 }
 
@@ -4194,7 +4199,7 @@ fn assert_deleted_para_takes_no_room(deleted: &str, deleted_text: &str) {
     let marks: Vec<_> = story.runs().map(|(r, f)| (story.text[r].to_string(), f.over.change)).collect();
     let want = vec![
         ("First live paragraph.\n".to_string(), None),
-        (deleted_text.to_string(), Some(designcraft_doc::ChangeMark::Deleted)),
+        (deleted_text.to_string(), Some(patronusdesign_doc::ChangeMark::Deleted)),
         ("Second live paragraph.".to_string(), None),
     ];
     assert_eq!(marks, want);
@@ -4246,7 +4251,7 @@ fn live_frame_break_before_deleted_paragraph_still_breaks() {
     let reference = import(format!("{first}\n{second}"));
     let sid = *reference.stories.keys().next().unwrap();
     let per_frame: Vec<usize> =
-        designcraft_compose::compose_story(&reference, sid, &Default::default()).frames.iter().map(|f| f.lines.len()).collect();
+        patronusdesign_compose::compose_story(&reference, sid, &Default::default()).frames.iter().map(|f| f.lines.len()).collect();
     assert!(per_frame.first() == Some(&1) && per_frame.get(1).is_some_and(|n| *n > 0), "the break sends the second paragraph on");
     let expected = story_lines(&reference);
     assert_eq!(story_lines(&import(format!("{first}\n{deleted}\n{second}"))), expected);
@@ -4279,7 +4284,7 @@ fn vertical_balance_columns_balances_the_imported_frame() {
     let mut d = import_idml(&zip_files(&[("designmap.xml", designmap), ("Spreads/Spread_s.xml", spread), ("Stories/Story_s1.xml", &story)])).unwrap();
     let sid = *d.stories.keys().next().unwrap();
     let per_column = |d: &Document| {
-        let cs = designcraft_compose::compose_story(d, sid, &Default::default());
+        let cs = patronusdesign_compose::compose_story(d, sid, &Default::default());
         assert!(!cs.is_overset());
         let ft = &cs.frames[0];
         [0, 1].map(|c| ft.lines.iter().filter(|l| l.column == c).count())
@@ -4294,18 +4299,18 @@ fn vertical_balance_columns_balances_the_imported_frame() {
 
 #[test]
 fn type_on_a_path_keeps_its_start_and_end_brackets() {
-    use designcraft_geom::{Anchor, PathData, Point, SubPath};
+    use patronusdesign_geom::{Anchor, PathData, Point, SubPath};
     for end in [Some(250.0), None] {
         let mut d = Document::new(&NewDocument::default());
         let lid = d.default_layer();
-        let id = designcraft_doc::ItemId(d.alloc());
+        let id = patronusdesign_doc::ItemId(d.alloc());
         let line = PathData::single(SubPath::new(vec![Anchor::corner(Point::new(100.0, 300.0)), Anchor::corner(Point::new(500.0, 300.0))], false));
-        let mut it = designcraft_doc::Item::new(id, lid, Shape::GraphicLine, line);
-        let sid = designcraft_doc::StoryId(d.alloc());
-        let mut tf = designcraft_doc::TextFrame { story: sid, options: Default::default() };
-        tf.options.path = Some(designcraft_doc::PathType { start: 30.0, end, ..Default::default() });
-        it.content = designcraft_doc::Content::Text(tf);
-        let mut story = designcraft_doc::Story::with_text(sid, "Along", Default::default());
+        let mut it = patronusdesign_doc::Item::new(id, lid, Shape::GraphicLine, line);
+        let sid = patronusdesign_doc::StoryId(d.alloc());
+        let mut tf = patronusdesign_doc::TextFrame { story: sid, options: Default::default() };
+        tf.options.path = Some(patronusdesign_doc::PathType { start: 30.0, end, ..Default::default() });
+        it.content = patronusdesign_doc::Content::Text(tf);
+        let mut story = patronusdesign_doc::Story::with_text(sid, "Along", Default::default());
         story.frames = vec![id];
         d.stories.insert(sid, std::sync::Arc::new(story));
         d.insert_item(SpreadRef::Doc(0), it, None).unwrap();
@@ -4322,8 +4327,8 @@ fn type_on_a_path_keeps_its_start_and_end_brackets() {
 fn parent_based_on_round_trips_and_cycles_are_broken() {
     let mut d = Document::new(&NewDocument { pages: 2, ..Default::default() });
     let a = d.parents[0].id;
-    let b = d.add_parent("B", "Opening", 2, 12.0, designcraft_doc::Margins::uniform(36.0));
-    d.add_parent("C", "Closing", 2, 12.0, designcraft_doc::Margins::uniform(36.0));
+    let b = d.add_parent("B", "Opening", 2, 12.0, patronusdesign_doc::Margins::uniform(36.0));
+    d.add_parent("C", "Closing", 2, 12.0, patronusdesign_doc::Margins::uniform(36.0));
     let set = |d: &mut Document, pi: usize, on| std::sync::Arc::make_mut(&mut d.parents[pi]).parent.as_mut().unwrap().based_on = on;
     set(&mut d, 1, Some(a));
     set(&mut d, 2, Some(b));
@@ -4342,7 +4347,7 @@ fn parent_based_on_round_trips_and_cycles_are_broken() {
 
 #[test]
 fn object_style_effects_round_trip() {
-    use designcraft_doc::{DropShadow, Effects, ObjectStyle};
+    use patronusdesign_doc::{DropShadow, Effects, ObjectStyle};
     let mut d = Document::new(&NewDocument::default());
     let fx = Effects {
         drop_shadow: DropShadow { on: true, distance: 5.0, size: 12.0, opacity: 0.28, ..Default::default() },
@@ -4351,17 +4356,17 @@ fn object_style_effects_round_trip() {
     };
     d.styles_mut().object.push(ObjectStyle { name: "Photo".into(), effects: Some(fx.clone()), ..Default::default() });
     d.styles_mut().object.push(ObjectStyle { name: "Plain".into(), fill: Some(Fill::swatch("Black")), ..Default::default() });
-    let rounded = designcraft_geom::corners::CornerOptions::uniform(designcraft_geom::corners::CornerShape::Rounded, 9.0);
+    let rounded = patronusdesign_geom::corners::CornerOptions::uniform(patronusdesign_geom::corners::CornerShape::Rounded, 9.0);
     d.styles_mut().object.push(ObjectStyle { name: "Rounded".into(), corners: Some(rounded), ..Default::default() });
     let lid = d.default_layer();
-    let id = designcraft_doc::ItemId(d.alloc());
-    let mut it = designcraft_doc::Item::new(id, lid, Shape::Rectangle, shapes::rectangle(Rect::new(40.0, 40.0, 140.0, 140.0)));
+    let id = patronusdesign_doc::ItemId(d.alloc());
+    let mut it = patronusdesign_doc::Item::new(id, lid, Shape::Rectangle, shapes::rectangle(Rect::new(40.0, 40.0, 140.0, 140.0)));
     it.object_style = "Photo".into();
     it.effects = fx.clone();
     d.insert_item(SpreadRef::Doc(0), it, None).unwrap();
     // A frame that turned the style's effects off writes them off, so it doesn't take the style's.
-    let id = designcraft_doc::ItemId(d.alloc());
-    let mut off = designcraft_doc::Item::new(id, lid, Shape::Rectangle, shapes::rectangle(Rect::new(200.0, 40.0, 300.0, 140.0)));
+    let id = patronusdesign_doc::ItemId(d.alloc());
+    let mut off = patronusdesign_doc::Item::new(id, lid, Shape::Rectangle, shapes::rectangle(Rect::new(200.0, 40.0, 300.0, 140.0)));
     off.object_style = "Photo".into();
     d.insert_item(SpreadRef::Doc(0), off, None).unwrap();
 
@@ -4419,7 +4424,7 @@ fn object_style_effects_import_by_category_and_based_on() {
     let base = fx("Base").unwrap();
     assert!(base.drop_shadow.on && base.drop_shadow.size == 9.0 && (base.drop_shadow.distance - 5.0).abs() < 1e-9);
     assert_eq!(base.feather, 0.0, "EnableFeather=false");
-    assert_eq!(base.drop_shadow.mode, designcraft_color::BlendMode::Normal, "no BlendMode: Normal, as earlier exports rendered");
+    assert_eq!(base.drop_shadow.mode, patronusdesign_color::BlendMode::Normal, "no BlendMode: Normal, as earlier exports rendered");
     let child = fx("Child").unwrap();
     assert_eq!((child.drop_shadow.size, child.feather), (9.0, 6.0), "settings from the BasedOn style");
     assert!(fx("Off").is_none());
@@ -4428,16 +4433,16 @@ fn object_style_effects_import_by_category_and_based_on() {
 
 #[test]
 fn a_strokes_gradient_vector_round_trips() {
-    let mut d = designcraft_doc::Document::new(&designcraft_doc::build::NewDocument::default());
-    let id = designcraft_doc::ItemId(d.alloc());
-    let mut it = designcraft_doc::Item::new(
+    let mut d = patronusdesign_doc::Document::new(&patronusdesign_doc::build::NewDocument::default());
+    let id = patronusdesign_doc::ItemId(d.alloc());
+    let mut it = patronusdesign_doc::Item::new(
         id,
         d.default_layer(),
-        designcraft_doc::Shape::Path,
-        designcraft_geom::shapes::rectangle(designcraft_geom::Rect::new(10.0, 10.0, 110.0, 60.0)),
+        patronusdesign_doc::Shape::Path,
+        patronusdesign_geom::shapes::rectangle(patronusdesign_geom::Rect::new(10.0, 10.0, 110.0, 60.0)),
     );
     it.stroke.gradient_vector = Some([10.0, 35.0, 110.0, 35.0]);
-    d.insert_item(designcraft_doc::SpreadRef::Doc(0), it, None).unwrap();
+    d.insert_item(patronusdesign_doc::SpreadRef::Doc(0), it, None).unwrap();
     let back = crate::import_idml(&crate::export_idml(&d)).unwrap();
     let v = back.spreads[0].items[0].stroke.gradient_vector.unwrap();
     assert!(v.iter().zip([10.0, 35.0, 110.0, 35.0]).all(|(a, b)| (a - b).abs() < 1e-6), "{v:?}");
@@ -4445,7 +4450,7 @@ fn a_strokes_gradient_vector_round_trips() {
 
 #[test]
 fn feather_choke_and_corners_round_trip() {
-    use designcraft_doc::{Effects, FeatherCorners, FeatherOptions, Item, ItemId, ObjectStyle};
+    use patronusdesign_doc::{Effects, FeatherCorners, FeatherOptions, Item, ItemId, ObjectStyle};
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
     let feathers = [(6.0, 40.0, FeatherCorners::Sharp), (4.0, 0.0, FeatherCorners::Rounded), (3.0, 12.5, FeatherCorners::Diffused)];
@@ -4529,19 +4534,19 @@ fn a_style_setting_only_a_rules_type_gap_or_keep_in_frame_overrides_it() {
     let d = import_idml(&fixture_with_table_styles(&styles, STORY)).unwrap();
     let style = |n: &str| d.styles.paragraph.iter().find(|s| s.name == n).unwrap().para.clone();
     let wavy = style("Wavy").rule_below.expect("the type alone overrides the rule");
-    assert_eq!((wavy.on, wavy.weight, wavy.kind), (true, 3.0, designcraft_doc::StrokeType::Wavy), "the rest from the based-on style");
+    assert_eq!((wavy.on, wavy.weight, wavy.kind), (true, 3.0, patronusdesign_doc::StrokeType::Wavy), "the rest from the based-on style");
     let gap = style("Gap").rule_below.expect("the gap colour alone, with no on or weight in the chain");
-    assert!(!gap.on && gap.gap_color != designcraft_color::swatch::NONE, "{gap:?}");
+    assert!(!gap.on && gap.gap_color != patronusdesign_color::swatch::NONE, "{gap:?}");
     assert!(style("Kept").rule_above.expect("Keep In Frame alone").keep_in_frame);
     // Text Color, in either spelling, for a gap and a rule colour.
     let text = style("TextGap");
     let (below, above) = (text.rule_below.expect("rule below"), text.rule_above.expect("rule above"));
-    assert_eq!(below.gap_color, designcraft_doc::TEXT_COLOR);
-    assert_eq!((above.gap_color.as_str(), above.color.as_str()), (designcraft_doc::TEXT_COLOR, designcraft_doc::TEXT_COLOR));
+    assert_eq!(below.gap_color, patronusdesign_doc::TEXT_COLOR);
+    assert_eq!((above.gap_color.as_str(), above.color.as_str()), (patronusdesign_doc::TEXT_COLOR, patronusdesign_doc::TEXT_COLOR));
     // And it is written back as Text Color, not as no swatch.
     let back = import_idml(&export_idml(&d)).unwrap();
     let below = back.styles.paragraph.iter().find(|s| s.name == "TextGap").unwrap().para.rule_below.clone().unwrap();
-    assert_eq!(below.gap_color, designcraft_doc::TEXT_COLOR, "round-trips");
+    assert_eq!(below.gap_color, patronusdesign_doc::TEXT_COLOR, "round-trips");
 }
 
 #[test]
@@ -4641,7 +4646,7 @@ fn frame_preference_property_color_resolves_for_frames_and_object_styles() {
 </Spread></Document>"#;
     let d = import_idml_with(&zip_files(&[("designmap.xml", document)]), &|_| None).unwrap();
     let colors: Vec<_> = d.spreads[0].items.iter().map(|it| it.text_frame().unwrap().options.column_rule_color.as_str()).collect();
-    assert_eq!(colors, vec!["Near", "Near", "Far", designcraft_color::swatch::NONE]);
+    assert_eq!(colors, vec!["Near", "Near", "Far", patronusdesign_color::swatch::NONE]);
     assert_eq!(d.styles.object_style("Child").unwrap().text_frame.as_ref().unwrap().column_rule_color, "Near");
 }
 
@@ -4675,7 +4680,7 @@ fn guides_package(origin: &str) -> Vec<u8> {
 /// origin, with Fit to Page, Locked and their layer; parent pages' too. They go out again.
 #[test]
 fn ruler_guides_import_and_round_trip() {
-    use designcraft_doc::Orientation::{Horizontal, Vertical};
+    use patronusdesign_doc::Orientation::{Horizontal, Vertical};
     let guides = |d: &Document| {
         let p = &d.spreads[0].pages[1];
         p.guides.iter().map(|g| (g.orientation, g.position, g.spread, g.locked, g.layer.is_some())).collect::<Vec<_>>()
@@ -4820,7 +4825,7 @@ fn aki_below_doc(composer: &str) -> Document {
 /// The distance from the first baseline of [`aki_below_doc`]'s story to the second.
 fn second_line_gap(d: &Document) -> f64 {
     let sid = d.stories.values().find(|s| s.text.contains("Big")).unwrap().id;
-    let cs = designcraft_compose::compose_story(d, sid, &Default::default());
+    let cs = patronusdesign_compose::compose_story(d, sid, &Default::default());
     let baselines: Vec<f64> = cs.frames.iter().flat_map(|f| &f.lines).map(|l| l.baseline).collect();
     assert_eq!(baselines.len(), 2, "{baselines:?}");
     baselines[1] - baselines[0]
@@ -4833,8 +4838,8 @@ fn second_line_gap(d: &Document) -> f64 {
 fn the_default_cjk_leading_model_applies_only_with_a_japanese_composer() {
     for composer in ["$ID/HL Composer", "$ID/HL Single", "$ID/HL Composer Optyca"] {
         let d = aki_below_doc(composer);
-        let root = d.styles.para(designcraft_doc::NO_PARA_STYLE).unwrap();
-        assert_eq!(root.chars.leading_model, Some(designcraft_doc::cjk::LeadingModel::AkiBelow), "the import keeps the file's model");
+        let root = d.styles.para(patronusdesign_doc::NO_PARA_STYLE).unwrap();
+        assert_eq!(root.chars.leading_model, Some(patronusdesign_doc::cjk::LeadingModel::AkiBelow), "the import keeps the file's model");
         let gap = second_line_gap(&d);
         assert!((gap - 28.8).abs() < 0.01, "{composer}: {gap}");
     }
@@ -4848,13 +4853,13 @@ fn the_default_cjk_leading_model_applies_only_with_a_japanese_composer() {
 /// reimport, and lays out the same.
 #[test]
 fn a_japanese_composer_and_its_leading_model_round_trip() {
-    use designcraft_doc::Composer as C;
+    use patronusdesign_doc::Composer as C;
     let d = aki_below_doc("$ID/HL Composer J");
     let back = import_idml(&export_idml(&d)).unwrap();
     for doc in [&d, &back] {
-        let root = doc.styles.para(designcraft_doc::NO_PARA_STYLE).unwrap();
+        let root = doc.styles.para(patronusdesign_doc::NO_PARA_STYLE).unwrap();
         assert_eq!(root.para.composer, Some(C::Japanese));
-        assert_eq!(root.chars.leading_model, Some(designcraft_doc::cjk::LeadingModel::AkiBelow));
+        assert_eq!(root.chars.leading_model, Some(patronusdesign_doc::cjk::LeadingModel::AkiBelow));
     }
     assert!((second_line_gap(&d) - second_line_gap(&back)).abs() < 0.01);
 }
@@ -4884,7 +4889,7 @@ fn unusable_cjk_metrics_do_not_refuse_the_whole_file() {
 
 mod liquid_page_rules {
     use super::*;
-    use designcraft_doc::LiquidRule as R;
+    use patronusdesign_doc::LiquidRule as R;
     use std::sync::Arc;
 
     // Literal XML expectations, independent of names.rs and serde spellings.
@@ -5067,7 +5072,7 @@ fn custom_column_positions_import_and_round_trip() {
         )
         .unwrap()
     };
-    let rects = |d: &designcraft_doc::Document| d.spreads[0].pages[0].column_rects().iter().map(|r| (r.x0, r.x1)).collect::<Vec<_>>();
+    let rects = |d: &patronusdesign_doc::Document| d.spreads[0].pages[0].column_rects().iter().map(|r| (r.x0, r.x1)).collect::<Vec<_>>();
 
     // Dragged: the gutter sits at 150..170 instead of 215..235, and the columns follow it.
     let d = with(r#"ColumnsPositions="0 150 170 450""#);
@@ -5114,7 +5119,7 @@ fn custom_column_positions_import_and_round_trip() {
 /// and `GuideZone`), in a document without facing pages. A spread guide sits beside it.
 #[test]
 fn ruler_guide_in_a_column_gutter_imports_without_facing_pages() {
-    use designcraft_doc::Orientation::{Horizontal, Vertical};
+    use patronusdesign_doc::Orientation::{Horizontal, Vertical};
     let package = |view: &str| {
         let prefs =
             PREFS.replace(r#"FacingPages="true""#, r#"FacingPages="false""#).replace("</idPkg:Preferences>", &format!("{view}</idPkg:Preferences>"));
@@ -5185,7 +5190,7 @@ const FIRST_BASELINE_STORY: &str = r#"<idPkg:Story xmlns:idPkg="http://ns.adobe.
 
 #[test]
 fn cell_first_baseline_comes_from_cell_styles_table_regions_and_cells_and_round_trips() {
-    use designcraft_doc::FirstBaseline;
+    use patronusdesign_doc::FirstBaseline;
     let d = import_idml(&fixture_with_table_styles(FIRST_BASELINE_STYLES, FIRST_BASELINE_STORY)).unwrap();
     d.check().unwrap();
     let style = d.styles.cell.iter().find(|c| c.name == "Cap").unwrap();
@@ -5259,7 +5264,7 @@ fn toc_style_entries_fall_back_on_malformed_and_unsupported_values() {
     assert_eq!(toc.entries.len(), 3, "an entry without a style name is skipped: {:?}", toc.entries);
     let e1 = &toc.entries[0];
     assert_eq!(e1.level, 1, "an unreadable level falls back to 1");
-    assert_eq!(e1.page_number, designcraft_doc::TocPageNumber::After, "an unknown page-number position falls back to After");
+    assert_eq!(e1.page_number, patronusdesign_doc::TocPageNumber::After, "an unknown page-number position falls back to After");
     assert_eq!(e1.separator.as_deref(), Some("^q"), "an unknown special-character code is kept as written");
     assert_eq!(
         (e1.entry_style.as_deref(), e1.page_number_style.as_deref(), e1.separator_style.as_deref()),
@@ -5301,20 +5306,20 @@ fn exports_graphic_in_table_cell() {
     let mut d = Document::new(&NewDocument::default());
     let lid = d.default_layer();
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(40.0, 40.0, 400.0, 400.0), lid, "Intro", ParaFormat::default()).unwrap();
-    let asset = designcraft_doc::AssetId(d.alloc());
-    let id = d.add_asset(designcraft_doc::Asset {
+    let asset = patronusdesign_doc::AssetId(d.alloc());
+    let id = d.add_asset(patronusdesign_doc::Asset {
         id: asset,
         name: "tick.png".into(),
         mime: "image/png".into(),
-        data: designcraft_doc::AssetData::embedded(vec![1, 2, 3]),
+        data: patronusdesign_doc::AssetData::embedded(vec![1, 2, 3]),
         ..Default::default()
     });
-    let mut t = designcraft_doc::Table::new(d.alloc(), 2, 2, 0, 0, 200.0);
-    t.cell_mut(1, 0).unwrap().graphic = Some(designcraft_doc::Graphic {
+    let mut t = patronusdesign_doc::Table::new(d.alloc(), 2, 2, 0, 0, 200.0);
+    t.cell_mut(1, 0).unwrap().graphic = Some(patronusdesign_doc::Graphic {
         layer_options: None,
         asset: id,
         size: (24.0, 24.0),
-        xf: designcraft_geom::Affine::IDENTITY,
+        xf: patronusdesign_geom::Affine::IDENTITY,
         clip: None,
         auto_fit: Default::default(),
         fit_align: 4,
@@ -5373,7 +5378,7 @@ fn non_finite_number_lists_never_reach_the_model() {
 fn rotated_cell_text_round_trips_and_the_import_says_it_is_not_composed() {
     let mut d = Document::new(&NewDocument::default());
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(0.0, 0.0, 300.0, 300.0), d.default_layer(), "", ParaFormat::default()).unwrap();
-    let mut t = designcraft_doc::Table::new(7, 1, 3, 0, 0, 300.0);
+    let mut t = patronusdesign_doc::Table::new(7, 1, 3, 0, 0, 300.0);
     t.cell_mut(0, 0).unwrap().rotation = 90.0;
     t.cell_mut(0, 1).unwrap().rotation = 270.0;
     d.story_mut(sid).unwrap().insert_table(0, t);
@@ -5393,14 +5398,14 @@ fn rotated_cell_text_round_trips_and_the_import_says_it_is_not_composed() {
     let mut plain = Document::new(&NewDocument::default());
     let (_, sid) =
         plain.add_text_frame(SpreadRef::Doc(0), Rect::new(0.0, 0.0, 300.0, 300.0), plain.default_layer(), "", ParaFormat::default()).unwrap();
-    plain.story_mut(sid).unwrap().insert_table(0, designcraft_doc::Table::new(8, 1, 2, 0, 0, 200.0));
+    plain.story_mut(sid).unwrap().insert_table(0, patronusdesign_doc::Table::new(8, 1, 2, 0, 0, 200.0));
     let quiet = import_idml_report(&export_idml(&plain), &|_| None).unwrap();
     assert!(quiet.warnings.iter().all(|w| !w.contains("rotated text")), "{:?}", quiet.warnings);
 }
 
 #[test]
 fn style_names_with_a_literal_colon_survive_a_round_trip() {
-    use designcraft_doc::styles::{CellStyle, CharacterStyle, ObjectStyle, ParagraphStyle, TableStyle};
+    use patronusdesign_doc::styles::{CellStyle, CharacterStyle, ObjectStyle, ParagraphStyle, TableStyle};
     let names = ["Title: Big", "Group/Child: X", "Back\\slash: \\:"];
     let mut d = small_doc();
     for n in names {
@@ -5453,7 +5458,7 @@ fn split_document_round_trips() {
   </RootParagraphStyleGroup>
 </idPkg:Styles>"#;
     let d = import_idml_with(&fixture_with_styles(xml), &|_| None).unwrap();
-    let split = |d: &designcraft_doc::Document, name: &str| d.styles.export_tag(name, false).is_some_and(|t| t.split);
+    let split = |d: &patronusdesign_doc::Document, name: &str| d.styles.export_tag(name, false).is_some_and(|t| t.split);
     assert!(split(&d, "Part") && split(&d, "Chapter") && !split(&d, "Body"));
     let back = import_idml(&export_idml(&d)).unwrap();
     assert!(split(&back, "Part") && split(&back, "Chapter") && !split(&back, "Body"));
@@ -5482,10 +5487,10 @@ fn export_tags_round_trip() {
   </RootParagraphStyleGroup>
 </idPkg:Styles>"#;
     let d = import_idml_with(&fixture_with_styles(xml), &|_| None).unwrap();
-    let tag = |d: &designcraft_doc::Document, name: &str, character: bool| {
+    let tag = |d: &patronusdesign_doc::Document, name: &str, character: bool| {
         d.styles.export_tag(name, character).map(|t| (t.tag.clone(), t.class.clone(), t.split))
     };
-    let check = |d: &designcraft_doc::Document| {
+    let check = |d: &patronusdesign_doc::Document| {
         assert_eq!(tag(d, "Chapter", false), Some(("h1".into(), "title".into(), false)));
         assert_eq!(tag(d, "Lead", true), Some(("em".into(), "lead".into(), false)));
         assert_eq!(tag(d, "Body", false), None);
@@ -5498,7 +5503,7 @@ fn export_tags_round_trip() {
 /// tags, read from the file's `EPubExportPreference` and written back.
 #[test]
 fn epub_split_document_round_trips() {
-    use designcraft_doc::EpubSplit;
+    use patronusdesign_doc::EpubSplit;
     let styles =
         STYLES.replace("</RootParagraphStyleGroup>", r#"<ParagraphStyle Self="ParagraphStyle/Chapter" Name="Chapter"/></RootParagraphStyleGroup>"#);
     assert!(styles.contains("ParagraphStyle/Chapter"), "the fixture has a paragraph style group");
@@ -5506,7 +5511,7 @@ fn epub_split_document_round_trips() {
         (r#"BreakDocument="false" ParagraphStyleName="ParagraphStyle/Chapter""#, EpubSplit::Off),
         (r#"BreakDocument="true" ParagraphStyleName="ParagraphStyle/Chapter""#, EpubSplit::Style("Chapter".into())),
         (r#"BreakDocument="true" ParagraphStyleName="ParagraphStyle/Text%3aBody""#, EpubSplit::Style("Text/Body".into())),
-        (r#"BreakDocument="true" ParagraphStyleName="$ID/NormalParagraphStyle""#, EpubSplit::Style(designcraft_doc::BASIC_PARAGRAPH.into())),
+        (r#"BreakDocument="true" ParagraphStyleName="$ID/NormalParagraphStyle""#, EpubSplit::Style(patronusdesign_doc::BASIC_PARAGRAPH.into())),
         (r#"BreakDocument="true" ParagraphStyleName="""#, EpubSplit::ExportTags),
         (r#"BreakDocument="true" ParagraphStyleName="ParagraphStyle/Missing""#, EpubSplit::Off),
     ] {
@@ -5545,7 +5550,7 @@ fn keeps_edited_cross_reference_text() {
     assert_eq!(s.xrefs[0].text.as_deref(), Some("Page <pageNum />: Bove, Vinny. \"Advent Horizon.\" 1996."));
     assert_eq!(s.xrefs[0].page.as_deref(), Some("7"));
     // Its destination is gone: the text and page it last showed.
-    assert_eq!(designcraft_compose::xref::xref_text(&d, &s.xrefs[0], None), "Page 7: Bove, Vinny. \"Advent Horizon.\" 1996.");
+    assert_eq!(patronusdesign_compose::xref::xref_text(&d, &s.xrefs[0], None), "Page 7: Bove, Vinny. \"Advent Horizon.\" 1996.");
     assert_eq!(s.xrefs[1].text.as_deref(), Some("\"Intro\" on page <pageNum />"), "with no destination to generate from, the text as shown");
     let back = import_idml(&export_idml(&d)).unwrap();
     back.check().unwrap();
@@ -5562,12 +5567,12 @@ fn only_exactly_generated_cross_reference_text_is_regenerated() {
     let lid = d.default_layer();
     let (_, sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(40.0, 40.0, 400.0, 400.0), lid, "Results\nSee", ParaFormat::default()).unwrap();
     let target = d.paragraph_anchor(sid, 0).unwrap();
-    d.xref_formats.push(designcraft_doc::XrefFormat { name: "Page".into(), definition: "Page <pageNum />".into() });
+    d.xref_formats.push(patronusdesign_doc::XrefFormat { name: "Page".into(), definition: "Page <pageNum />".into() });
     for t in ["Page <pageNum />, revised", "Page <pageNum />", "Seite <pageNum />"] {
         let st = d.story_mut(sid).unwrap();
         let end = st.len();
         st.insert(end, " ");
-        let x = designcraft_doc::CrossRef { target, format: "Page".into(), text: Some(t.into()), page: Some("1".into()) };
+        let x = patronusdesign_doc::CrossRef { target, format: "Page".into(), text: Some(t.into()), page: Some("1".into()) };
         st.insert_xref(end + 1, x);
     }
     d.check().unwrap();

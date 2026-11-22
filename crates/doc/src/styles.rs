@@ -1,6 +1,6 @@
 //! Paragraph, character and object styles with based-on inheritance.
 
-use designcraft_geom::corners::CornerOptions;
+use patronusdesign_geom::corners::CornerOptions;
 use serde::{Deserialize, Serialize};
 
 use crate::attrs::{CharAttrs, CharProps, ParaAttrs, ParaProps};

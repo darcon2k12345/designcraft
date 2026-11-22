@@ -1,9 +1,9 @@
 [package]
-name = "designcraft-color"
+name = "patronusdesign-color"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "DesignCraft color"
+description = "Patronus Design color"
 
 [lints]
 workspace = true

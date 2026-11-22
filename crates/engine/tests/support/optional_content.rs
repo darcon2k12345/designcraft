@@ -1,9 +1,9 @@
-use designcraft_doc::{Asset, AssetId, Content, Document, Graphic, Item, ItemId, Shape, SpreadRef, build::NewDocument};
-use designcraft_geom::{Affine, Rect, shapes};
 use hayro_syntax::{
     Pdf,
     object::{Array, Dict, Name, ObjectIdentifier},
 };
+use patronusdesign_doc::{Asset, AssetId, Content, Document, Graphic, Item, ItemId, Shape, SpreadRef, build::NewDocument};
+use patronusdesign_geom::{Affine, Rect, shapes};
 
 pub fn fixture(config: &str, second_name: &str) -> Vec<u8> {
     layered_fixture(Some(config), second_name)
@@ -91,7 +91,7 @@ pub fn document(bytes: Vec<u8>, hidden_sets: &[&[&str]]) -> Document {
         id: asset,
         name: "layers.pdf".into(),
         mime: "application/pdf".into(),
-        data: designcraft_doc::AssetData::embedded(bytes),
+        data: patronusdesign_doc::AssetData::embedded(bytes),
         link: None,
         link_fingerprint: None,
         link_relative: None,
@@ -166,7 +166,7 @@ pub fn catalog(bytes: &[u8]) -> Vec<(String, bool)> {
 
 pub fn painted(bytes: &[u8], expected: &[bool]) {
     let width = u32::try_from(expected.len()).unwrap() * 50;
-    let image = designcraft_render::render_pdf_page(bytes, 0, width.max(100)).unwrap();
+    let image = patronusdesign_render::render_pdf_page(bytes, 0, width.max(100)).unwrap();
     for (index, painted) in expected.iter().enumerate() {
         let image_width = usize::from(image.width());
         let x = (2 * index + 1) * image_width / (2 * expected.len());

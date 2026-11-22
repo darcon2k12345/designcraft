@@ -448,8 +448,8 @@ fn open_filters(purpose: &str) -> &'static [OpenFilter] {
             OpenFilter { name: "Video and sound", extensions: &["mp4", "m4v", "mov", "webm", "mp3", "m4a", "wav", "ogg"] },
         ],
         _ => &[
-            OpenFilter { name: "DesignCraft, IDML or InDesign", extensions: &["designcraft", "idml", "indd", "indt"] },
-            OpenFilter { name: "DesignCraft", extensions: &["designcraft"] },
+            OpenFilter { name: "Patronus Design, IDML or InDesign", extensions: &["designcraft", "idml", "indd", "indt"] },
+            OpenFilter { name: "Patronus Design", extensions: &["designcraft"] },
             OpenFilter { name: "InDesign Markup (IDML)", extensions: &["idml"] },
             OpenFilter { name: "InDesign document or template (INDD, INDT)", extensions: &["indd", "indt"] },
             // Files saved without an extension; `file.open` tells the formats apart by content.
@@ -478,7 +478,7 @@ fn picked_save_path(picked: std::path::PathBuf, ext: Option<&str>) -> std::path:
     let Some(ext) = ext else { return picked };
     if ext.eq_ignore_ascii_case("designcraft") {
         let p = picked.to_string_lossy();
-        return designcraft_engine::cmd::with_document_extension(&p).into();
+        return patronusdesign_engine::cmd::with_document_extension(&p).into();
     }
     if picked.extension().is_some() || picked.file_name().is_none() {
         return picked;
@@ -600,7 +600,7 @@ mod tests {
         let folder = std::env::temp_dir();
         let suggested = folder.join("Brochure.pdf");
         assert_eq!(save_dialog_start(&suggested.to_string_lossy()), (Some(folder.clone()), "Brochure.pdf".to_string()));
-        let gone = folder.join(format!("designcraft-gone-{}", std::process::id())).join("Brochure.pdf");
+        let gone = folder.join(format!("patronusdesign-gone-{}", std::process::id())).join("Brochure.pdf");
         assert_eq!(save_dialog_start(&gone.to_string_lossy()), (None, "Brochure.pdf".to_string()), "a folder deleted since: the system's own");
         assert_eq!(save_dialog_start("Untitled 1.2 Folder"), (None, "Untitled 1.2 Folder".to_string()), "a bare name: the system's own");
     }
@@ -610,7 +610,7 @@ mod tests {
     /// doesn't queue a second dialog.
     #[test]
     fn different_askers_and_documents_queue_their_own_dialogs() {
-        let mut app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.answer_dialogs(answer_with(None));
         app.run("file.new", serde_json::json!({})).unwrap();
         app.run("app.placeDialog", serde_json::json!({})).unwrap();
@@ -629,11 +629,11 @@ mod tests {
     fn an_answer_waits_for_a_dialog_opened_after_the_asking() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("Held.designcraft");
-        let mut source = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut source = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         source.run("file.new", serde_json::json!({})).unwrap();
         source.run("file.saveAs", serde_json::json!({"path": path.to_string_lossy()})).unwrap();
 
-        let mut app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.answer_dialogs(answer_with(Some(path.to_string_lossy().to_string())));
         app.run("app.openDialog", serde_json::json!({})).unwrap();
         app.ui.dialog = Some(crate::dialogs::Dialog::new("preferences", serde_json::json!({})));
@@ -653,11 +653,11 @@ mod tests {
     fn file_open_without_a_path_opens_the_chosen_document_when_the_dialog_answers() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("Chosen.designcraft");
-        let mut source = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut source = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         source.run("file.new", serde_json::json!({})).unwrap();
         source.run("file.saveAs", serde_json::json!({"path": path.to_string_lossy()})).unwrap();
 
-        let mut app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.answer_dialogs(answer_with(Some(path.to_string_lossy().to_string())));
         app.run("app.openDialog", serde_json::json!({})).unwrap();
         assert!(app.session.documents().is_empty(), "nothing opens before the dialog has answered");

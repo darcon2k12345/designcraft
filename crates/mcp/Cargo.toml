@@ -1,20 +1,20 @@
 [package]
-name = "designcraft-mcp"
+name = "patronusdesign-mcp"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "DesignCraft MCP server: JSON-RPC 2.0 over stdio, driving a running app or a headless session"
+description = "Patronus Design MCP server: JSON-RPC 2.0 over stdio, driving a running app or a headless session"
 
 [lints]
 workspace = true
 
 [dependencies]
 craft-mcp-server = { workspace = true }
-designcraft-engine = { workspace = true }
-designcraft-render = { workspace = true }
-designcraft-tools = { workspace = true }
+patronusdesign-engine = { workspace = true }
+patronusdesign-render = { workspace = true }
+patronusdesign-tools = { workspace = true }
 craft-file-formats = { workspace = true }
-designcraft-geom = { workspace = true }
+patronusdesign-geom = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
 

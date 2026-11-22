@@ -13,13 +13,13 @@
 //! Linked bytes are loaded ([`AssetData::load`]) only to decode a level that isn't cached, and
 //! on the canvas only on a decode thread. A linked file that can't be had ([`Unavailable`]) is
 //! remembered apart from failed decodes: it is asked for again once
-//! [`designcraft_doc::asset_data::link_generation`] has advanced (a relink, an update).
+//! [`patronusdesign_doc::asset_data::link_generation`] has advanced (a relink, an update).
 
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 
-use designcraft_doc::{AssetData, SourceKey, Unavailable};
+use patronusdesign_doc::{AssetData, SourceKey, Unavailable};
 use vello_cpu::Pixmap;
 
 use crate::decode::{decode_pixmap_reduced, decode_sizes, drawn_pixels};
@@ -62,7 +62,7 @@ struct Cache {
     /// Pixel size of each asset at full resolution (as decoded, else as its header gives it), so
     /// the level to draw is known without decoding.
     dims: HashMap<(SourceKey, u32), (u32, u32)>,
-    /// The colour settings the pixels were converted with ([`designcraft_color::cms::generation`]).
+    /// The colour settings the pixels were converted with ([`patronusdesign_color::cms::generation`]).
     colour: u64,
     /// Advances each time the cache is emptied, so records of decodes into the old cache
     /// (the background queue's recent decodes) no longer count.
@@ -108,7 +108,7 @@ fn with<R>(f: impl FnOnce(&mut Cache) -> R) -> R {
     let mut g = CACHE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let c = g.get_or_insert_with(Cache::default);
     // Decoding converts CMYK through the working space: new colour settings, new pixels.
-    let colour = designcraft_color::cms::generation();
+    let colour = patronusdesign_color::cms::generation();
     if c.colour != colour {
         *c = Cache { clock: c.clock, colour, epoch: c.epoch.wrapping_add(1), ..Cache::default() };
     }
@@ -149,7 +149,7 @@ fn is_bad(id: SourceKey, page: u32) -> bool {
 /// Why the bytes `id` names couldn't be loaded, when that was found since the links last
 /// changed.
 fn unavailable_now(id: SourceKey) -> Option<Unavailable> {
-    let generation = designcraft_doc::asset_data::link_generation();
+    let generation = patronusdesign_doc::asset_data::link_generation();
     with(|c| c.unavailable.get(&id).filter(|(_, g, _)| *g == generation).map(|(why, ..)| *why))
 }
 
@@ -165,8 +165,8 @@ pub(crate) fn load_bytes(data: &AssetData, gate: bool) -> Option<Arc<Vec<u8>>> {
     if let Some(bytes) = data.resident() {
         return Some(bytes);
     }
-    let generation = designcraft_doc::asset_data::link_generation();
-    let fits = data.len() <= designcraft_doc::asset_data::MAX_LINKED_BYTES;
+    let generation = patronusdesign_doc::asset_data::link_generation();
+    let fits = data.len() <= patronusdesign_doc::asset_data::MAX_LINKED_BYTES;
     let _reserved = (gate && fits).then(|| reserve(usize::try_from(data.len()).unwrap_or(usize::MAX), data.key(), None));
     match data.load() {
         Ok(bytes) => Some(bytes),
@@ -178,7 +178,7 @@ pub(crate) fn load_bytes(data: &AssetData, gate: bool) -> Option<Arc<Vec<u8>>> {
 }
 
 /// Cache `pm` as `level` of the bytes `id` names. `colour` is the
-/// [`designcraft_color::cms::generation`] read before the pixels were looked up or decoded:
+/// [`patronusdesign_color::cms::generation`] read before the pixels were looked up or decoded:
 /// pixels converted under settings changed since are not kept (the next request decodes them
 /// again).
 fn store(id: SourceKey, page: u32, level: u8, pm: Arc<Pixmap>, colour: u64) {
@@ -311,7 +311,7 @@ fn fault(_: SourceKey) {}
 /// Full-resolution decode of `data` (cached).
 pub fn decoded(data: &AssetData, page: u32) -> Option<Arc<Pixmap>> {
     let id = data.key();
-    let colour = designcraft_color::cms::generation();
+    let colour = patronusdesign_color::cms::generation();
     if let Some(pm) = lookup((id, page, 0)) {
         return Some(pm);
     }
@@ -384,7 +384,7 @@ fn mip_gated(data: &AssetData, page: u32, width_pt: f64, on_screen: f64, gate: b
     if is_bad(id, page) || unavailable_now(id).is_some() {
         return None;
     }
-    let colour = designcraft_color::cms::generation();
+    let colour = patronusdesign_color::cms::generation();
     let cached = |size: (u32, u32)| {
         let level = level_for(size, width_pt, on_screen);
         let pm = cached_level(id, page, level, colour)?;
@@ -555,7 +555,7 @@ mod background {
     use std::sync::{Arc, Condvar, Mutex, PoisonError};
     use std::time::Instant;
 
-    use designcraft_doc::SourceKey;
+    use patronusdesign_doc::SourceKey;
 
     use super::Want;
 
@@ -676,7 +676,7 @@ mod background {
             q.jobs.pop_front();
         }
         if q.threads < THREADS {
-            if std::thread::Builder::new().name("designcraft-decode".into()).spawn(run).is_ok() {
+            if std::thread::Builder::new().name("patronusdesign-decode".into()).spawn(run).is_ok() {
                 q.threads += 1;
             } else if q.threads == 0 {
                 q.jobs.retain(|j| j.key() != key);
@@ -817,14 +817,14 @@ mod background {
         /// in the background, not skipped.
         #[test]
         fn a_finished_decode_counts_only_for_its_own_image() {
-            let bytes = designcraft_doc::AssetData::embedded(vec![1u8]);
+            let bytes = patronusdesign_doc::AssetData::embedded(vec![1u8]);
             let key = (bytes.key(), 0);
             let done = Done { key, level: Some(1), at: Instant::now(), epoch: 3, woken: false, rewoken: false };
             assert!(done.is_recent(key, Some(1), 3));
             assert!(!done.is_recent(key, Some(2), 3), "another level");
             assert!(!done.is_recent((key.0, 1), Some(1), 3), "another page");
             assert!(!done.is_recent(key, Some(1), 4), "the cache was emptied since");
-            let other = designcraft_doc::AssetData::embedded(vec![1u8]);
+            let other = patronusdesign_doc::AssetData::embedded(vec![1u8]);
             assert!(!done.is_recent((other.key(), 0), Some(1), 3), "other bytes");
         }
     }
@@ -896,8 +896,8 @@ fn reduced_estimates(wants: &[Want]) -> Option<(usize, usize)> {
         if level == 0 {
             return None;
         }
-        let shrink = level.min(usize::from(designcraft_images::MAX_REDUCED_SHRINK));
-        let (_, _, decode_peak) = designcraft_images::reduced_jpeg_estimate(&bytes, shrink as u8)?;
+        let shrink = level.min(usize::from(patronusdesign_images::MAX_REDUCED_SHRINK));
+        let (_, _, decode_peak) = patronusdesign_images::reduced_jpeg_estimate(&bytes, shrink as u8)?;
         for cached in levels.iter_mut().take(level + 1).skip(shrink) {
             *cached = true;
         }
@@ -1049,7 +1049,7 @@ fn held_in_view(
     let covered = |k: &(SourceKey, u32), level: u8| {
         let Some((_, ls)) = levels.get(k) else { return level == 0 };
         if reduced.contains(k) {
-            ls.iter().any(|l| (*l).min(designcraft_images::MAX_REDUCED_SHRINK) <= level && level <= *l)
+            ls.iter().any(|l| (*l).min(patronusdesign_images::MAX_REDUCED_SHRINK) <= level && level <= *l)
         } else {
             ls.contains(&level)
         }
@@ -1105,7 +1105,7 @@ fn plan(wants: Vec<Want>) -> Vec<(usize, Vec<Want>)> {
             Some((*key, (size, wanted.iter().map(|w| level_for(size, w.width_pt, w.on_screen)).collect())))
         })
         .collect();
-    let generation = designcraft_doc::asset_data::link_generation();
+    let generation = patronusdesign_doc::asset_data::link_generation();
     // The assets that are neither cached nor failed.
     let to_decode: HashSet<(SourceKey, u32)> =
         with(|c| index.keys().filter(|k| !failed(c, k, generation) && !drawn_cached(c, k, &levels)).copied().collect());
@@ -1203,7 +1203,7 @@ fn reduced(id: SourceKey, bytes: &[u8], page: u32, level: u8, gate: Option<usize
     if !bytes.starts_with(&[0xFF, 0xD8]) {
         return None;
     }
-    let shrink = level.min(designcraft_images::MAX_REDUCED_SHRINK);
+    let shrink = level.min(patronusdesign_images::MAX_REDUCED_SHRINK);
     let mut pm = match lookup((id, page, shrink)) {
         Some(p) => p,
         None => {
@@ -1213,7 +1213,7 @@ fn reduced(id: SourceKey, bytes: &[u8], page: u32, level: u8, gate: Option<usize
             // Gated, a JPEG without an estimate (one only a full decode reads) isn't tried here.
             let _reserved = match gate {
                 Some(held) => {
-                    let (_, _, peak) = designcraft_images::reduced_jpeg_estimate(bytes, shrink)?;
+                    let (_, _, peak) = patronusdesign_images::reduced_jpeg_estimate(bytes, shrink)?;
                     Some(reserve((peak.saturating_mul(3) / 2).saturating_add(held), id, None))
                 }
                 None => None,
@@ -1763,10 +1763,10 @@ pub(crate) mod tests {
         let bytes = png_sized(64, 64);
         let id = bytes.key();
         let pm = Arc::new(Pixmap::new(64, 64));
-        let old = designcraft_color::cms::generation().wrapping_sub(1);
+        let old = patronusdesign_color::cms::generation().wrapping_sub(1);
         store(bytes.key(), 0, 0, pm.clone(), old);
         assert!(!is_cached((id, 0, 0)), "converted before the settings changed");
-        store(bytes.key(), 0, 0, pm, designcraft_color::cms::generation());
+        store(bytes.key(), 0, 0, pm, patronusdesign_color::cms::generation());
         assert!(is_cached((id, 0, 0)));
     }
 
@@ -1786,8 +1786,8 @@ pub(crate) mod tests {
     /// Linked files for these tests: bytes by path, served by a loader that counts its reads.
     pub(crate) mod linked {
         use super::*;
-        use designcraft_doc::asset_data::{Loaded, Loader};
-        use designcraft_doc::{Fingerprint, LinkedSource};
+        use patronusdesign_doc::asset_data::{Loaded, Loader};
+        use patronusdesign_doc::{Fingerprint, LinkedSource};
         use std::collections::HashMap;
 
         static FILES: Mutex<Option<HashMap<String, Vec<u8>>>> = Mutex::new(None);
@@ -1806,7 +1806,7 @@ pub(crate) mod tests {
         /// A linked asset whose file is `bytes` (`None`: missing for now) at the unique `path`.
         pub(crate) fn file(path: &str, bytes: Option<Vec<u8>>, len: u64) -> AssetData {
             static INSTALL: std::sync::Once = std::sync::Once::new();
-            INSTALL.call_once(|| designcraft_doc::asset_data::install_loader(Arc::new(Files)));
+            INSTALL.call_once(|| patronusdesign_doc::asset_data::install_loader(Arc::new(Files)));
             if let Some(b) = bytes {
                 put(path, b);
             }
@@ -1858,7 +1858,7 @@ pub(crate) mod tests {
         assert!(mip(&data, 0, 8.0, 1.0).is_none());
         assert_eq!(linked::reads("mem:/comes-back.png"), 1, "not read again before the links change");
         linked::put("mem:/comes-back.png", bytes);
-        designcraft_doc::asset_data::links_changed();
+        patronusdesign_doc::asset_data::links_changed();
         assert_eq!(unavailable(&data), None);
         assert_eq!(mip(&data, 0, 8.0, 1.0).map(|pm| pm.width()), Some(8));
     }
@@ -1866,35 +1866,39 @@ pub(crate) mod tests {
     /// The page draws a missing linked image from its proxy, at the graphic's place.
     #[test]
     fn a_missing_linked_image_draws_its_proxy() {
-        use designcraft_doc::build::NewDocument;
-        use designcraft_doc::{Document, Item, SpreadRef};
-        use designcraft_geom::kurbo::{Affine, Rect};
+        use patronusdesign_doc::build::NewDocument;
+        use patronusdesign_doc::{Document, Item, SpreadRef};
+        use patronusdesign_geom::kurbo::{Affine, Rect};
         let original = png_bytes(64, 64, [0, 0, 255, 255]);
         for defer in [false, true] {
             let path = format!("mem:/missing-{defer}.png");
             let mut d = Document::new(&NewDocument::default());
             let lid = d.default_layer();
-            let aid = designcraft_doc::AssetId(d.alloc());
+            let aid = patronusdesign_doc::AssetId(d.alloc());
             let proxy =
-                designcraft_doc::Proxy { mime: "image/png".into(), pixels: (4, 4), data: AssetData::embedded(png_bytes(4, 4, [255, 0, 0, 255])) };
+                patronusdesign_doc::Proxy { mime: "image/png".into(), pixels: (4, 4), data: AssetData::embedded(png_bytes(4, 4, [255, 0, 0, 255])) };
             d.assets.insert(
                 aid,
-                Arc::new(designcraft_doc::Asset {
+                Arc::new(patronusdesign_doc::Asset {
                     id: aid,
                     name: "photo.png".into(),
                     mime: "image/png".into(),
                     link: Some(path.clone()),
-                    storage: designcraft_doc::Storage::Linked,
+                    storage: patronusdesign_doc::Storage::Linked,
                     data: linked::file(&path, None, original.len() as u64),
                     proxy: Some(proxy),
                     pixels: Some((64, 64)),
                     ..Default::default()
                 }),
             );
-            let id = designcraft_doc::ItemId(d.alloc());
-            let mut it =
-                Item::new(id, lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(Rect::new(100.0, 100.0, 200.0, 200.0)));
-            it.content = designcraft_doc::Content::Graphic(designcraft_doc::Graphic {
+            let id = patronusdesign_doc::ItemId(d.alloc());
+            let mut it = Item::new(
+                id,
+                lid,
+                patronusdesign_doc::Shape::Rectangle,
+                patronusdesign_geom::shapes::rectangle(Rect::new(100.0, 100.0, 200.0, 200.0)),
+            );
+            it.content = patronusdesign_doc::Content::Graphic(patronusdesign_doc::Graphic {
                 layer_options: None,
                 asset: aid,
                 size: (100.0, 100.0),

@@ -14,7 +14,7 @@
 
 use std::rc::Rc;
 
-use designcraft_doc::{CharRun, ListCounter, Story, VerticalJustification};
+use patronusdesign_doc::{CharRun, ListCounter, Story, VerticalJustification};
 
 use crate::{Above, Band, ComposeOptions, ComposedStory, Cursor, FrameSpec, Line, ParaInfo, RunStyle, Snapshot};
 
@@ -489,9 +489,9 @@ impl<'a> Pass<'a> {
 
 #[cfg(test)]
 mod tests {
-    use designcraft_doc::build::NewDocument;
-    use designcraft_doc::{Align, Document, ItemId, ListType, ParaFormat, SpreadRef, StartParagraph, Story, StoryId, VerticalJustification};
-    use designcraft_geom::Rect;
+    use patronusdesign_doc::build::NewDocument;
+    use patronusdesign_doc::{Align, Document, ItemId, ListType, ParaFormat, SpreadRef, StartParagraph, Story, StoryId, VerticalJustification};
+    use patronusdesign_geom::Rect;
 
     use super::SHAPED;
     use crate::Cache;

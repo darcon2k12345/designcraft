@@ -3,10 +3,10 @@
 use std::ops::Range;
 use std::sync::Arc;
 
-use designcraft_doc::{CellAddr, StoryId};
-use designcraft_geom::Unit;
-pub use designcraft_tools::SnapView;
-use designcraft_tools::{Action, CanvasLayout, Cursor, Mods, Overlay, PointerEvent, PointerKind, ToolContext, ToolKey};
+use patronusdesign_doc::{CellAddr, StoryId};
+use patronusdesign_geom::Unit;
+pub use patronusdesign_tools::SnapView;
+use patronusdesign_tools::{Action, CanvasLayout, Cursor, Mods, Overlay, PointerEvent, PointerKind, ToolContext, ToolKey};
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -66,7 +66,7 @@ impl Session {
         if let Err(e) = self.end_composition() {
             log::warn!("ending the IME composition: {e}");
         }
-        self.tool = designcraft_tools::create(id);
+        self.tool = patronusdesign_tools::create(id);
         self.temp_tool = None;
         if matches!(self.tool.id(), "selection" | "directSelection") {
             self.last_selection_tool = self.tool.id();
@@ -128,7 +128,7 @@ impl Session {
 
     /// The tool pointer, key, overlay and cursor events go to: the selection tool a Cmd-held press
     /// borrowed, for the rest of that gesture, or else the chosen tool.
-    fn gesture_tool(&mut self) -> &mut dyn designcraft_tools::Tool {
+    fn gesture_tool(&mut self) -> &mut dyn patronusdesign_tools::Tool {
         match self.temp_tool.as_deref_mut() {
             Some(t) => t,
             None => self.tool.as_mut(),
@@ -159,7 +159,7 @@ impl Session {
             && !self.tool.busy()
             && let Some(id) = self.borrowed_selection_tool()
         {
-            self.temp_tool = Some(designcraft_tools::create(id));
+            self.temp_tool = Some(patronusdesign_tools::create(id));
         }
         let actions = self.with_ctx(view, |s, cx| s.gesture_tool().pointer(cx, ev)).unwrap_or_default();
         let r = self.run_actions(actions);
@@ -171,7 +171,7 @@ impl Session {
 
     /// Dispatch a temporary view tool without replacing the active tool or its state.
     /// Its actions use the same execution path as the selected tool's gestures.
-    pub fn pointer_with_tool(&mut self, tool: &mut dyn designcraft_tools::Tool, ev: &PointerEvent, view: ViewInfo) -> Result<()> {
+    pub fn pointer_with_tool(&mut self, tool: &mut dyn patronusdesign_tools::Tool, ev: &PointerEvent, view: ViewInfo) -> Result<()> {
         let actions = self.with_ctx(view, |_, cx| tool.pointer(cx, ev)).unwrap_or_default();
         self.run_actions(actions)
     }
@@ -191,14 +191,14 @@ impl Session {
         self.with_ctx(view, |s, cx| s.gesture_tool().overlays(cx)).unwrap_or_default()
     }
 
-    pub fn cursor(&mut self, p: designcraft_geom::Point, mods: Mods, view: ViewInfo) -> Cursor {
+    pub fn cursor(&mut self, p: patronusdesign_geom::Point, mods: Mods, view: ViewInfo) -> Cursor {
         // Cmd held over the canvas shows the selection tool a press would borrow.
         if mods.cmd
             && self.temp_tool.is_none()
             && !self.tool.busy()
             && let Some(id) = self.borrowed_selection_tool()
         {
-            let borrowed = designcraft_tools::create(id);
+            let borrowed = patronusdesign_tools::create(id);
             return self.with_ctx(view, |_, cx| borrowed.cursor(cx, p, mods)).unwrap_or_default();
         }
         self.with_ctx(view, |s, cx| s.gesture_tool().cursor(cx, p, mods)).unwrap_or_default()
@@ -206,11 +206,11 @@ impl Session {
 
     /// Canvas centres of the content grabbers the Selection tool shows: the selected frame's and
     /// the one under `hover`.
-    pub fn content_grabbers(&mut self, hover: Option<designcraft_geom::Point>, view: ViewInfo) -> Vec<designcraft_geom::Point> {
+    pub fn content_grabbers(&mut self, hover: Option<patronusdesign_geom::Point>, view: ViewInfo) -> Vec<patronusdesign_geom::Point> {
         if self.tool.id() != "selection" {
             return vec![];
         }
-        self.with_ctx(view, |_, cx| designcraft_tools::select::grabbers(cx, hover).into_iter().map(|(_, c)| c).collect()).unwrap_or_default()
+        self.with_ctx(view, |_, cx| patronusdesign_tools::select::grabbers(cx, hover).into_iter().map(|(_, c)| c).collect()).unwrap_or_default()
     }
 
     pub fn tool_busy(&self) -> bool {
@@ -231,7 +231,7 @@ impl Session {
             // typed, so no gesture stays open.
             match self.with_ctx(view, |s, cx| s.tool.ime_preedit(cx, "", None)) {
                 Some(cancel) => self.run_actions(cancel)?,
-                None => self.tool = designcraft_tools::create(self.tool.id()),
+                None => self.tool = patronusdesign_tools::create(self.tool.id()),
             }
         }
         r
@@ -259,14 +259,14 @@ impl Session {
             Some(actions) => self.run_actions(actions),
             None => {
                 // No document to type into: only the tool's state goes.
-                self.tool = designcraft_tools::create(self.tool.id());
+                self.tool = patronusdesign_tools::create(self.tool.id());
                 Ok(())
             }
         }
     }
 
     /// The caret line (canvas space) the IME candidate window follows.
-    pub fn tool_ime_caret(&mut self, view: ViewInfo) -> Option<(designcraft_geom::Point, designcraft_geom::Point)> {
+    pub fn tool_ime_caret(&mut self, view: ViewInfo) -> Option<(patronusdesign_geom::Point, patronusdesign_geom::Point)> {
         self.with_ctx(view, |s, cx| s.tool.ime_caret(cx)).flatten()
     }
 
@@ -578,7 +578,7 @@ impl Session {
     pub fn ime_commit(&mut self, text: &str, view: ViewInfo) -> Result<Option<ImeMutation>> {
         let Some(pre) = self.ime_state() else { return self.tool_ime_commit(text, view).map(|()| None) };
         self.tool_ime_commit(text, view)?;
-        let inserted = designcraft_tools::ime_commit_text(text);
+        let inserted = patronusdesign_tools::ime_commit_text(text);
         // A commit replaces the selection: the removed ranges are empty at its two ends.
         let (start, end) = (pre.anchor.min(pre.focus), pre.anchor.max(pre.focus));
         Ok(self.ime_mutation_from_states(pre, start..start, end..end, inserted))
@@ -594,7 +594,7 @@ impl Session {
         }
         let Some(pre) = self.ime_state() else { return Ok(None) };
         self.end_preedit_without_typing()?;
-        let inserted = designcraft_tools::ime_commit_text(text);
+        let inserted = patronusdesign_tools::ime_commit_text(text);
         let r = self.execute("text.deleteSurrounding", &json!({"before": before, "after": after, "bytes": bytes, "commit": inserted.clone()}))?;
         Ok(self.ime_mutation_from_command(pre, &r, inserted))
     }
@@ -661,7 +661,7 @@ impl Session {
         match self.with_ctx(ViewInfo::default(), |s, cx| s.tool.ime_preedit(cx, "", None)) {
             Some(actions) => self.run_actions(actions),
             None => {
-                self.tool = designcraft_tools::create(self.tool.id());
+                self.tool = patronusdesign_tools::create(self.tool.id());
                 Ok(())
             }
         }

@@ -65,7 +65,7 @@ pub fn check_pdf_input_size(size: usize) -> Result<(), PdfRasterError> {
 }
 
 /// PDF page `page` as PNG, its longer side about `max_side` pixels, with the `hidden` layers off.
-/// Only the `shown` part ([`designcraft_doc::Asset::shown_box`]) is kept when given.
+/// Only the `shown` part ([`patronusdesign_doc::Asset::shown_box`]) is kept when given.
 /// Returns `None` on the same failures as [`pdf_page_png_checked`].
 pub fn pdf_page_png(bytes: &[u8], page: usize, max_side: u32, hidden: &[String], shown: Option<[f64; 4]>) -> Option<Vec<u8>> {
     pdf_page_png_checked(bytes, page, max_side, hidden, shown).ok()
@@ -178,9 +178,9 @@ pub fn pdf_page_box(bytes: &[u8], page: usize, kind: &str) -> Option<(f64, f64, 
 /// in points. A box the page doesn't define is its crop box, as PDF readers do. The content boxes
 /// are the bounds of what the page draws, found from its drawing operations without rendering it
 /// (the whole page when it draws nothing).
-pub fn pdf_crop_box(bytes: &[u8], page: usize, crop: designcraft_doc::PdfCrop) -> Option<([f64; 4], (f64, f64))> {
+pub fn pdf_crop_box(bytes: &[u8], page: usize, crop: patronusdesign_doc::PdfCrop) -> Option<([f64; 4], (f64, f64))> {
     use craft_pdf::syntax::object::{Rect as PRect, dict::keys};
-    use designcraft_doc::PdfCrop;
+    use patronusdesign_doc::PdfCrop;
     const WHOLE: [f64; 4] = [0.0, 0.0, 1.0, 1.0];
     let pdf = craft_pdf::open_slice(bytes, None).ok()?;
     let p = pdf.pages().get(page)?;
@@ -223,10 +223,10 @@ pub fn pdf_crop_box(bytes: &[u8], page: usize, crop: designcraft_doc::PdfCrop) -
     (frac.iter().all(|v| v.is_finite()) && size.0 > 0.0 && size.1 > 0.0).then_some((frac, size))
 }
 
-/// The part of the page a placed PDF shows ([`designcraft_doc::Asset::shown_box`]). A Bounding
+/// The part of the page a placed PDF shows ([`patronusdesign_doc::Asset::shown_box`]). A Bounding
 /// Box crop that import left unmeasured is measured here, once per file, page and crop: that
 /// interprets the page's drawing, which only drawing or exporting the graphic needs.
-pub fn shown_box(asset: &designcraft_doc::Asset) -> Option<[f64; 4]> {
+pub fn shown_box(asset: &patronusdesign_doc::Asset) -> Option<[f64; 4]> {
     match shown_box_now(asset, true) {
         Prepared::Ready(b) => b,
         Prepared::Pending | Prepared::Failed => None,
@@ -235,7 +235,7 @@ pub fn shown_box(asset: &designcraft_doc::Asset) -> Option<[f64; 4]> {
 
 /// [`shown_box`]; without `wait`, a crop still to measure is measured in the background
 /// ([`Prepared::Pending`]).
-pub(crate) fn shown_box_now(asset: &designcraft_doc::Asset, wait: bool) -> Prepared<Option<[f64; 4]>> {
+pub(crate) fn shown_box_now(asset: &patronusdesign_doc::Asset, wait: bool) -> Prepared<Option<[f64; 4]>> {
     if !asset.content_box_pending() {
         return Prepared::Ready(asset.shown_box());
     }
@@ -246,18 +246,18 @@ pub(crate) fn shown_box_now(asset: &designcraft_doc::Asset, wait: bool) -> Prepa
     }
 }
 
-type ContentBoxes = HashMap<(designcraft_doc::SourceKey, u32, designcraft_doc::PdfCrop), Option<[f64; 4]>>;
+type ContentBoxes = HashMap<(patronusdesign_doc::SourceKey, u32, patronusdesign_doc::PdfCrop), Option<[f64; 4]>>;
 
 /// Boxes remembered; all are forgotten beyond this (measuring one again costs a render).
 const MAX_CONTENT_BOXES: usize = 1024;
 static CONTENT_BOXES: std::sync::Mutex<Option<ContentBoxes>> = std::sync::Mutex::new(None);
 
-fn known_content_box(key: &(designcraft_doc::SourceKey, u32, designcraft_doc::PdfCrop)) -> Option<Option<[f64; 4]>> {
+fn known_content_box(key: &(patronusdesign_doc::SourceKey, u32, patronusdesign_doc::PdfCrop)) -> Option<Option<[f64; 4]>> {
     CONTENT_BOXES.lock().unwrap_or_else(std::sync::PoisonError::into_inner).as_ref().and_then(|c| c.get(key).copied())
 }
 
 /// Measure the box `key` names in `bytes` (outside the lock) and remember it.
-fn measure_content_box(key: (designcraft_doc::SourceKey, u32, designcraft_doc::PdfCrop), bytes: &[u8]) -> Option<[f64; 4]> {
+fn measure_content_box(key: (patronusdesign_doc::SourceKey, u32, patronusdesign_doc::PdfCrop), bytes: &[u8]) -> Option<[f64; 4]> {
     let b = pdf_crop_box(bytes, key.1 as usize, key.2).map(|(frac, _)| frac);
     let mut cache = CONTENT_BOXES.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let cache = cache.get_or_insert_with(HashMap::new);
@@ -271,7 +271,7 @@ fn measure_content_box(key: (designcraft_doc::SourceKey, u32, designcraft_doc::P
 /// [`pdf_crop_box`]'s box, cached by the file's key. With `wait` it is measured here (reading a
 /// linked file); without, in the background. A linked file that can't be had isn't asked for
 /// again until the links change ([`crate::images::unavailable`]).
-fn content_box(data: &designcraft_doc::AssetData, page: u32, crop: designcraft_doc::PdfCrop, wait: bool) -> Prepared<[f64; 4]> {
+fn content_box(data: &patronusdesign_doc::AssetData, page: u32, crop: patronusdesign_doc::PdfCrop, wait: bool) -> Prepared<[f64; 4]> {
     let key = (data.key(), page, crop);
     let known = |b: Option<[f64; 4]>| b.map_or(Prepared::Failed, Prepared::Ready);
     if let Some(b) = known_content_box(&key) {
@@ -350,8 +350,8 @@ mod crop_tests {
     #[test]
     fn a_linked_crop_is_measured_off_the_drawing_thread_and_a_missing_file_is_read_once() {
         use crate::images::tests::linked;
-        use designcraft_doc::PdfCrop;
-        let generation = designcraft_doc::asset_data::link_generation();
+        use patronusdesign_doc::PdfCrop;
+        let generation = patronusdesign_doc::asset_data::link_generation();
         let missing = linked::file("mem:/missing-crop.pdf", None, 100);
         let mut failed = false;
         for _ in 0..500 {
@@ -369,7 +369,7 @@ mod crop_tests {
             assert!(matches!(content_box(&missing, 0, PdfCrop::ContentVisible, true), Prepared::Failed));
             assert!(matches!(content_box(&missing, 0, PdfCrop::ContentVisible, false), Prepared::Failed));
         }
-        if designcraft_doc::asset_data::link_generation() == generation {
+        if patronusdesign_doc::asset_data::link_generation() == generation {
             assert_eq!(linked::reads("mem:/missing-crop.pdf"), 1);
         }
         let pdf = crate::pdf_layers::tests::two_layer_pdf();

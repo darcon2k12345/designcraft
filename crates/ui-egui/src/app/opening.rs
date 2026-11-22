@@ -1,5 +1,5 @@
 //! Opening a document file without stopping the UI: the file is read and parsed on a worker
-//! thread ([`designcraft_engine::cmd::read_document`]), and `file.open` opens what it read on a
+//! thread ([`patronusdesign_engine::cmd::read_document`]), and `file.open` opens what it read on a
 //! later frame. A large file with embedded images takes seconds to read; the status line says
 //! which file is opening, and Esc stops waiting for it.
 
@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, TryRecvError};
 
-use designcraft_engine::cmd::ReadDocument;
+use patronusdesign_engine::cmd::ReadDocument;
 
 use super::{DesignApp, Value, json};
 
@@ -38,12 +38,12 @@ impl DesignApp {
         let cancel = Arc::new(AtomicBool::new(false));
         let (send, read) = std::sync::mpsc::channel();
         // The file roots in force here apply on the worker too.
-        let roots = designcraft_engine::file_access::current();
+        let roots = patronusdesign_engine::file_access::current();
         let wake = self.egui_ctx.clone();
         let (worker_path, worker_cancel) = (path.clone(), Arc::clone(&cancel));
-        let spawned = std::thread::Builder::new().name("designcraft-open".into()).spawn(move || {
-            let read = designcraft_engine::file_access::confine(roots.as_ref(), || {
-                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| designcraft_engine::cmd::read_document(&worker_path, &worker_cancel)))
+        let spawned = std::thread::Builder::new().name("patronusdesign-open".into()).spawn(move || {
+            let read = patronusdesign_engine::file_access::confine(roots.as_ref(), || {
+                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| patronusdesign_engine::cmd::read_document(&worker_path, &worker_cancel)))
             });
             let read = match read {
                 Ok(read) => read.map_err(|e| e.to_string()),

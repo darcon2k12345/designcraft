@@ -1,9 +1,9 @@
 {
-  description = "DesignCraft — page layout and publishing, a free alternative to InDesign, in pure Rust";
+  description = "Patronus Design — page layout and publishing, a free alternative to InDesign, in pure Rust";
 
   inputs = {
-    # DesignCraft needs edition 2024 and rustc ≥ 1.95, so the flake tracks unstable. Consumers on a
-    # release channel can retarget it: `inputs.designcraft.inputs.nixpkgs.follows = "nixpkgs";`
+    # Patronus Design needs edition 2024 and rustc ≥ 1.95, so the flake tracks unstable. Consumers on a
+    # release channel can retarget it: `inputs.patronusdesign.inputs.nixpkgs.follows = "nixpkgs";`
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # Optional build input of the repository: the fonts that the build embeds when `CRAFT_FONTS_DIR`
@@ -52,24 +52,24 @@
       packages = forAllSystems (
         pkgs: _:
         let
-          designcraft = pkgs.callPackage ./nix/package.nix packageArgs;
+          patronusdesign = pkgs.callPackage ./nix/package.nix packageArgs;
         in
         {
-          inherit designcraft;
-          default = designcraft;
+          inherit patronusdesign;
+          default = patronusdesign;
         }
       );
 
-      # `nixpkgs.overlays = [ inputs.designcraft.overlays.default ]` → `pkgs.designcraft` everywhere.
+      # `nixpkgs.overlays = [ inputs.patronusdesign.overlays.default ]` → `pkgs.patronusdesign` everywhere.
       overlays.default = final: _prev: {
-        designcraft = final.callPackage ./nix/package.nix packageArgs;
+        patronusdesign = final.callPackage ./nix/package.nix packageArgs;
       };
 
       apps = forAllSystems (
         _: system: {
           default = {
             type = "app";
-            program = lib.getExe self.packages.${system}.designcraft;
+            program = lib.getExe self.packages.${system}.patronusdesign;
           };
         }
       );
@@ -77,13 +77,13 @@
       devShells = forAllSystems (
         pkgs: system:
         let
-          designcraft = self.packages.${system}.designcraft;
+          patronusdesign = self.packages.${system}.patronusdesign;
         in
         {
           default = pkgs.mkShell (
             {
               # The package's own native inputs, so `cargo build` in the shell needs no extra setup.
-              inputsFrom = [ designcraft ];
+              inputsFrom = [ patronusdesign ];
               packages = with pkgs; [
                 cargo
                 rustc
@@ -92,7 +92,7 @@
                 rust-analyzer
               ];
               # `cargo run` dlopens the Vulkan loader, libwayland and libxkbcommon like the packaged binary.
-              LD_LIBRARY_PATH = lib.makeLibraryPath designcraft.passthru.runtimeLibs;
+              LD_LIBRARY_PATH = lib.makeLibraryPath patronusdesign.passthru.runtimeLibs;
               RUST_BACKTRACE = "1";
             }
             // lib.optionalAttrs (craft-fonts != null) {
@@ -105,11 +105,11 @@
 
       checks = forAllSystems (
         pkgs: system: {
-          designcraft = self.packages.${system}.designcraft;
+          patronusdesign = self.packages.${system}.patronusdesign;
 
           # `nix fmt` formats the flake; this keeps it formatted.
           formatting =
-            pkgs.runCommand "designcraft-nix-formatting" { nativeBuildInputs = [ pkgs.nixfmt ]; }
+            pkgs.runCommand "patronusdesign-nix-formatting" { nativeBuildInputs = [ pkgs.nixfmt ]; }
               ''
                 nixfmt --check ${./flake.nix} ${./nix}
                 touch $out

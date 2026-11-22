@@ -11,12 +11,12 @@ use std::collections::{BTreeMap, HashSet};
 use std::ops::Range;
 use std::sync::Arc;
 
-use designcraft_color::{Color, ColorType, SwatchValue, swatch};
-use designcraft_compose::Cache;
-use designcraft_doc::cjk_settings::AdornmentOverprint;
-use designcraft_doc::{AnchoredObject, CharProps, Content, Document, Item, ItemId, SpreadRef, Story, StrokeType};
-use designcraft_geom::Affine;
-use designcraft_pdf::{drawn_children, item_exported, layer_exported, shown_parent_items};
+use patronusdesign_color::{Color, ColorType, SwatchValue, swatch};
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::cjk_settings::AdornmentOverprint;
+use patronusdesign_doc::{AnchoredObject, CharProps, Content, Document, Item, ItemId, SpreadRef, Story, StrokeType};
+use patronusdesign_geom::Affine;
+use patronusdesign_pdf::{drawn_children, item_exported, layer_exported, shown_parent_items};
 
 use super::{Issue, page_of};
 

@@ -2,14 +2,14 @@
 
 use std::sync::Arc;
 
-use designcraft_doc::{ItemId, Selection, SpreadRef};
+use patronusdesign_doc::{ItemId, Selection, SpreadRef};
 use serde_json::{Value, json};
 
 use super::{CommandSpec, bool_or, cmd, has_doc, has_selection, ids_param, ok};
 use crate::{HistoryEntry, Result, Session};
 
 /// `anchors` of `selection.set`: the points that exist, once each.
-fn anchors_param(doc: &designcraft_doc::Document, p: &Value) -> Vec<(ItemId, usize, usize)> {
+fn anchors_param(doc: &patronusdesign_doc::Document, p: &Value) -> Vec<(ItemId, usize, usize)> {
     let mut out: Vec<(ItemId, usize, usize)> = Vec::new();
     for v in p.get("anchors").and_then(Value::as_array).into_iter().flatten() {
         let n = |i: usize| v.get(i).and_then(Value::as_u64);
@@ -43,7 +43,7 @@ fn has_selection_or_text(s: &Session) -> std::result::Result<(), String> {
 }
 
 /// Plain text of a story slice: markers and anchored objects dropped, footnote text omitted.
-fn plain(st: &designcraft_doc::Story) -> String {
+fn plain(st: &patronusdesign_doc::Story) -> String {
     st.text.chars().filter(|c| !('\u{E000}'..='\u{E1FF}').contains(c)).map(|c| if c == '\u{2028}' { '\n' } else { c }).collect()
 }
 
@@ -63,11 +63,11 @@ fn copy_text(s: &mut Session) -> Result<Option<String>> {
 /// What pasting `slice` (text copied from `doc`) needs from `doc`, also in another document: the
 /// stories its anchored text frames show (and theirs) and the graphics it and those stories
 /// place. Nothing on spreads.
-fn text_source(doc: &designcraft_doc::Document, slice: &designcraft_doc::Story) -> designcraft_doc::Document {
+fn text_source(doc: &patronusdesign_doc::Document, slice: &patronusdesign_doc::Story) -> patronusdesign_doc::Document {
     let mut d = doc.clone();
     d.stories = doc.anchored_stories(slice);
-    let used: std::collections::HashSet<designcraft_doc::AssetId> =
-        std::iter::once(slice).chain(d.stories.values().map(|st| &**st)).flat_map(designcraft_doc::story_asset_refs).collect();
+    let used: std::collections::HashSet<patronusdesign_doc::AssetId> =
+        std::iter::once(slice).chain(d.stories.values().map(|st| &**st)).flat_map(patronusdesign_doc::story_asset_refs).collect();
     d.assets.retain(|id, _| used.contains(id));
     for sp in d.spreads.iter_mut().chain(d.parents.iter_mut()) {
         Arc::make_mut(sp).items.clear();
@@ -78,17 +78,17 @@ fn text_source(doc: &designcraft_doc::Document, slice: &designcraft_doc::Story) 
 /// Copied text `slice` pasted into `d`: the graphics it places (from `src`, its
 /// [`text_source`]) under `d`'s ids, since `src`'s may name other files in another document;
 /// fresh ids for its anchored items and copies of the stories its anchored text frames show.
-fn adopt_text(d: &mut designcraft_doc::Document, slice: &mut designcraft_doc::Story, src: &designcraft_doc::Document) {
-    let refs: std::collections::BTreeSet<designcraft_doc::AssetId> = designcraft_doc::story_asset_refs(slice).into_iter().collect();
+fn adopt_text(d: &mut patronusdesign_doc::Document, slice: &mut patronusdesign_doc::Story, src: &patronusdesign_doc::Document) {
+    let refs: std::collections::BTreeSet<patronusdesign_doc::AssetId> = patronusdesign_doc::story_asset_refs(slice).into_iter().collect();
     let mut map = std::collections::HashMap::new();
     for a in refs {
         // A graphic missing there stays missing: a fresh id, not one that may name a file here.
-        let here = d.adopt_asset(src, a).unwrap_or_else(|| designcraft_doc::AssetId(d.alloc()));
+        let here = d.adopt_asset(src, a).unwrap_or_else(|| patronusdesign_doc::AssetId(d.alloc()));
         if here != a {
             map.insert(a, here);
         }
     }
-    designcraft_doc::remap_story_assets(slice, &map);
+    patronusdesign_doc::remap_story_assets(slice, &map);
     d.adopt_anchored_from(slice, src);
 }
 
@@ -130,22 +130,23 @@ fn paste_text(s: &mut Session, text: Option<String>, formatted: bool) -> Result<
         && t.cell.is_none()
         && let Some(items) = s.clipboard.clone()
     {
-        let list: Vec<designcraft_doc::Item> = items.spreads.first().map(|sp| sp.items.iter().map(|i| (**i).clone()).collect()).unwrap_or_default();
+        let list: Vec<patronusdesign_doc::Item> =
+            items.spreads.first().map(|sp| sp.items.iter().map(|i| (**i).clone()).collect()).unwrap_or_default();
         if !list.is_empty() && list.iter().all(|i| super::anchored::check_item(i).is_ok()) {
             return s.edit(|d, sel| {
-                let st = d.story_mut(t.story).ok_or(designcraft_doc::DocError::NoStory(t.story))?;
+                let st = d.story_mut(t.story).ok_or(patronusdesign_doc::DocError::NoStory(t.story))?;
                 let r = t.range();
                 let del = r.start.min(st.len())..r.end.min(st.len());
                 st.delete(del.clone());
                 d.adjust_text_ranges(t.story, del, 0);
                 // Fresh ids, story and asset copies for every paste, as on the page.
                 let mut stories = std::collections::HashMap::new();
-                let fresh: Vec<designcraft_doc::Item> = list
+                let fresh: Vec<patronusdesign_doc::Item> = list
                     .iter()
                     .map(|orig| {
                         let mut i = orig.clone();
                         if !super::object::renumber(d, &items, &mut i, &mut stories) {
-                            return Err(designcraft_doc::DocError::Invalid(format!("{} nests groups or tables too deeply to copy", orig.id)));
+                            return Err(patronusdesign_doc::DocError::Invalid(format!("{} nests groups or tables too deeply to copy", orig.id)));
                         }
                         if d.layer(i.layer).is_none() {
                             i.layer = d.default_layer();
@@ -155,7 +156,7 @@ fn paste_text(s: &mut Session, text: Option<String>, formatted: bool) -> Result<
                     .collect::<std::result::Result<_, _>>()?;
                 super::object::retarget_copied_xrefs(d, &items, &stories);
                 let end = super::anchored::anchor_items(d, t.story, r.start, fresh, &Default::default())?;
-                sel.text = Some(designcraft_doc::TextSel { anchor: end, focus: end, ..t });
+                sel.text = Some(patronusdesign_doc::TextSel { anchor: end, focus: end, ..t });
                 Ok(json!({"pos": end, "anchored": list.len()}))
             });
         }
@@ -168,7 +169,7 @@ fn paste_text(s: &mut Session, text: Option<String>, formatted: bool) -> Result<
             adopt_text(d, &mut slice, &source);
             let slice_len = slice.text.len();
             let (end, r) = {
-                let st = d.text_story_mut(t.story, t.cell).ok_or(designcraft_doc::DocError::NoStory(t.story))?;
+                let st = d.text_story_mut(t.story, t.cell).ok_or(patronusdesign_doc::DocError::NoStory(t.story))?;
                 let r = t.range();
                 let r = r.start.min(st.len())..r.end.min(st.len());
                 st.delete(r.clone());
@@ -178,7 +179,7 @@ fn paste_text(s: &mut Session, text: Option<String>, formatted: bool) -> Result<
             if t.cell.is_none() {
                 d.adjust_text_ranges(t.story, r, slice_len);
             }
-            sel.text = Some(designcraft_doc::TextSel { anchor: end, focus: end, ..t });
+            sel.text = Some(patronusdesign_doc::TextSel { anchor: end, focus: end, ..t });
             Ok(json!({"pos": end, "formatted": true}))
         });
     }
@@ -202,8 +203,13 @@ fn outside_text(text: &str) -> Result<String> {
 /// on `at` (spread coordinates) or else on the margin area. The frame ends up selected. With
 /// `slice` (the text copied here, with its [`text_source`]), the frame's story is that formatted
 /// copy.
-fn paste_text_frame(s: &mut Session, p: &Value, text: &str, slice: Option<(&designcraft_doc::Story, &designcraft_doc::Document)>) -> Result<Value> {
-    use designcraft_geom::{Point, Rect, shapes};
+fn paste_text_frame(
+    s: &mut Session,
+    p: &Value,
+    text: &str,
+    slice: Option<(&patronusdesign_doc::Story, &patronusdesign_doc::Document)>,
+) -> Result<Value> {
+    use patronusdesign_geom::{Point, Rect, shapes};
     const LIMIT: f64 = 1.0e5;
     let sr = super::spread_param(p, "edit.paste")?;
     let at = super::point_param(p, "at")
@@ -223,14 +229,14 @@ fn paste_text_frame(s: &mut Session, p: &Value, text: &str, slice: Option<(&desi
         let c = at.unwrap_or(Point::new(column.center().x, margins.center().y));
         let rect = |h: f64| Rect::new(c.x - w / 2.0, c.y - h / 2.0, c.x + w / 2.0, c.y + h / 2.0);
         let para = match slice.and_then(|(sl, _)| sl.paras.first()) {
-            Some(pf) => designcraft_doc::ParaFormat { table: None, ..pf.clone() },
-            None => designcraft_doc::ParaFormat { style: d.styles.default_paragraph.clone(), ..Default::default() },
+            Some(pf) => patronusdesign_doc::ParaFormat { table: None, ..pf.clone() },
+            None => patronusdesign_doc::ParaFormat { style: d.styles.default_paragraph.clone(), ..Default::default() },
         };
         let (id, sid) = d.add_text_frame(sr, rect(max_h), lid, &text, para)?;
         if let Some((sl, source)) = slice {
             let mut sl = sl.clone();
             adopt_text(d, &mut sl, source);
-            d.story_mut(sid).ok_or(designcraft_doc::DocError::NoStory(sid))?.insert_story(0, &sl);
+            d.story_mut(sid).ok_or(patronusdesign_doc::DocError::NoStory(sid))?.insert_story(0, &sl);
         }
         // Shrink to the composed text unless it already fills the frame.
         let composed = cache.get(d, sid, None);
@@ -257,14 +263,14 @@ fn paste_text_frame(s: &mut Session, p: &Value, text: &str, slice: Option<(&desi
     })
 }
 
-fn strip_objects(st: &designcraft_doc::Story) -> designcraft_doc::Story {
+fn strip_objects(st: &patronusdesign_doc::Story) -> patronusdesign_doc::Story {
     let mut out = st.clone();
     let marks = [
-        designcraft_doc::FOOTNOTE_REF,
-        designcraft_doc::ENDNOTE_REF,
-        designcraft_doc::NOTE_MARK,
-        designcraft_doc::XREF_MARK,
-        designcraft_doc::TABLE_ANCHOR,
+        patronusdesign_doc::FOOTNOTE_REF,
+        patronusdesign_doc::ENDNOTE_REF,
+        patronusdesign_doc::NOTE_MARK,
+        patronusdesign_doc::XREF_MARK,
+        patronusdesign_doc::TABLE_ANCHOR,
     ];
     while let Some(i) = out.text.find(marks) {
         let n = out.text[i..].chars().next().map_or(1, char::len_utf8);
@@ -373,7 +379,7 @@ pub fn specs() -> Vec<CommandSpec> {
             let st = s.doc_mut()?;
             if let Some(t) = st.selection.text {
                 let len = st.doc.text_story(t.story, t.cell).map(|x| x.len()).unwrap_or(0);
-                st.selection.text = Some(designcraft_doc::TextSel { anchor: 0, focus: len, ..t });
+                st.selection.text = Some(patronusdesign_doc::TextSel { anchor: 0, focus: len, ..t });
             } else {
                 let mut ids = Vec::new();
                 let parents = st.editing_parents;
@@ -424,8 +430,8 @@ pub fn specs() -> Vec<CommandSpec> {
                 s.edit(|d, sel| {
                     let mut kept = Vec::new();
                     for id in &ids {
-                        if let Some(it) = d.item_mut(*id).filter(|it| content && matches!(it.content, designcraft_doc::Content::Graphic(_))) {
-                            it.content = designcraft_doc::Content::Unassigned;
+                        if let Some(it) = d.item_mut(*id).filter(|it| content && matches!(it.content, patronusdesign_doc::Content::Graphic(_))) {
+                            it.content = patronusdesign_doc::Content::Unassigned;
                             kept.push(*id);
                         } else {
                             let _ = d.remove_item(*id);
@@ -495,7 +501,7 @@ pub fn specs() -> Vec<CommandSpec> {
                 s.edit(|d, sel| {
                     // The same place on another spread is the same distance from its spine or left edge.
                     let dx = d.spread(to).map_or(0.0, |sp| paste_origin(sp) - from);
-                    let new = super::object::duplicate_from(d, &clip, &ids, to, designcraft_geom::Vec2::new(dx + off, off))?;
+                    let new = super::object::duplicate_from(d, &clip, &ids, to, patronusdesign_geom::Vec2::new(dx + off, off))?;
                     *sel = Selection::items(new.clone());
                     Ok(json!({"ids": new.iter().map(|i| i.0).collect::<Vec<_>>()}))
                 })
@@ -548,8 +554,8 @@ fn copy_items(s: &mut Session) -> Result<()> {
 
 /// The x a pasted object keeps its distance from: the spine, or the left edge of single-sided
 /// pages, which have none.
-fn paste_origin(sp: &designcraft_doc::Spread) -> f64 {
-    if sp.pages.iter().all(|p| p.side == designcraft_doc::PageSide::Single) { sp.bounds().x0 } else { sp.spine_x() }
+fn paste_origin(sp: &patronusdesign_doc::Spread) -> f64 {
+    if sp.pages.iter().all(|p| p.side == patronusdesign_doc::PageSide::Single) { sp.bounds().x0 } else { sp.spine_x() }
 }
 
 /// `edit.preview`: open the preview (unless one of the same name is open) and show `command` on it.
@@ -581,7 +587,7 @@ fn preview(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// A document holding copies of the selected items (and their stories) on spread 0.
-pub(crate) fn clip_doc(s: &Session) -> Result<designcraft_doc::Document> {
+pub(crate) fn clip_doc(s: &Session) -> Result<patronusdesign_doc::Document> {
     let st = s.doc()?;
     let mut d = (*st.doc).clone();
     let keep: Vec<ItemId> = st.selection.items.clone();
@@ -591,8 +597,8 @@ pub(crate) fn clip_doc(s: &Session) -> Result<designcraft_doc::Document> {
         let (Some(it), Some(loc)) = (st.doc.item(*id), st.doc.find(*id)) else { continue };
         let parent = st.doc.parent_xf(&loc);
         items.push(Arc::new(match &it.content {
-            designcraft_doc::Content::Graphic(g) if st.selection.content => graphic_alone(it, g, parent),
-            _ => designcraft_doc::Item { xf: parent * it.xf, ..it.clone() },
+            patronusdesign_doc::Content::Graphic(g) if st.selection.content => graphic_alone(it, g, parent),
+            _ => patronusdesign_doc::Item { xf: parent * it.xf, ..it.clone() },
         }));
     }
     for sp in d.spreads.iter_mut() {
@@ -602,7 +608,7 @@ pub(crate) fn clip_doc(s: &Session) -> Result<designcraft_doc::Document> {
     let mut frames = std::collections::HashSet::new();
     for it in &items {
         it.walk(&mut |i| {
-            if let designcraft_doc::Content::Text(_) = &i.content {
+            if let patronusdesign_doc::Content::Text(_) = &i.content {
                 frames.insert(i.id);
             }
         });
@@ -613,7 +619,7 @@ pub(crate) fn clip_doc(s: &Session) -> Result<designcraft_doc::Document> {
     // A text frame anchored in a copied frame's text (as IDML import makes them) is in its host's
     // story, not among the items: keep it, and the ones anchored in its text in turn, or the copy
     // pointed at a story the clipping didn't have and pasted the anchored frame empty.
-    let mut kept: std::collections::HashSet<designcraft_doc::StoryId> =
+    let mut kept: std::collections::HashSet<patronusdesign_doc::StoryId> =
         d.stories.iter().filter(|(_, st)| st.frames.iter().any(|f| frames.contains(f))).map(|(id, _)| *id).collect();
     // Nothing to scan when no story is kept (a copied graphic).
     while !kept.is_empty() {
@@ -623,7 +629,7 @@ pub(crate) fn clip_doc(s: &Session) -> Result<designcraft_doc::Document> {
             if !kept.contains(&owner) {
                 continue;
             }
-            if let designcraft_doc::Content::Text(tf) = &it.content {
+            if let patronusdesign_doc::Content::Text(tf) = &it.content {
                 found.push((it.id, tf.story));
             }
         }
@@ -656,13 +662,14 @@ pub(crate) fn clip_doc(s: &Session) -> Result<designcraft_doc::Document> {
 /// A placed graphic on its own, as InDesign copies one selected with Direct Selection: a frame of
 /// the whole graphic's bounds (uncropped), where the graphic sits on the spread (`parent` is the
 /// frame's parent transform), without the frame's fill, stroke or effects.
-fn graphic_alone(frame: &designcraft_doc::Item, g: &designcraft_doc::Graphic, parent: designcraft_geom::Affine) -> designcraft_doc::Item {
-    let r = designcraft_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1);
-    let mut it = designcraft_doc::Item::new(frame.id, frame.layer, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(r));
+fn graphic_alone(frame: &patronusdesign_doc::Item, g: &patronusdesign_doc::Graphic, parent: patronusdesign_geom::Affine) -> patronusdesign_doc::Item {
+    let r = patronusdesign_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1);
+    let mut it =
+        patronusdesign_doc::Item::new(frame.id, frame.layer, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(r));
     it.xf = parent * frame.xf * g.xf;
-    it.content = designcraft_doc::Content::Graphic(designcraft_doc::Graphic {
-        xf: designcraft_geom::Affine::IDENTITY,
-        auto_fit: designcraft_doc::Fitting::None,
+    it.content = patronusdesign_doc::Content::Graphic(patronusdesign_doc::Graphic {
+        xf: patronusdesign_geom::Affine::IDENTITY,
+        auto_fit: patronusdesign_doc::Fitting::None,
         crop: [0.0; 4],
         ..g.clone()
     });
@@ -690,14 +697,14 @@ fn paste_into(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(super::bad("edit.pasteInto", "the clipboard holds no objects"));
     }
     s.edit(|d, sel| {
-        let loc = d.find(target).ok_or(designcraft_doc::DocError::NoItem(target))?;
-        let frame = d.item_at(&loc).ok_or(designcraft_doc::DocError::NoItem(target))?.clone();
+        let loc = d.find(target).ok_or(patronusdesign_doc::DocError::NoItem(target))?;
+        let frame = d.item_at(&loc).ok_or(patronusdesign_doc::DocError::NoItem(target))?.clone();
         if frame.is_group() || frame.is_text_frame() {
             return Err(super::bad("edit.pasteInto", "paste into a graphic or empty frame (not a group or text frame)"));
         }
         let world = d.parent_xf(&loc) * frame.xf;
         // Copies on the frame's spread (stories and images come along), then nested in the frame.
-        let new = super::object::duplicate_from(d, &clip, &ids, loc.spread, designcraft_geom::Vec2::ZERO)?;
+        let new = super::object::duplicate_from(d, &clip, &ids, loc.spread, patronusdesign_geom::Vec2::ZERO)?;
         let mut kids = Vec::new();
         for id in &new {
             kids.push(d.remove_item_keep_story(*id)?);
@@ -705,17 +712,17 @@ fn paste_into(s: &mut Session, p: &Value) -> Result<Value> {
         // Centre the content on the frame when it doesn't overlap it (like InDesign).
         let fb = frame.bounds();
         let cb = kids.iter().map(|k| k.bounds()).reduce(|a, b| a.union(b)).unwrap_or(fb);
-        let shift = if cb.intersect(fb).area() > 0.0 { designcraft_geom::Vec2::ZERO } else { fb.center().to_vec2() - cb.center().to_vec2() };
+        let shift = if cb.intersect(fb).area() > 0.0 { patronusdesign_geom::Vec2::ZERO } else { fb.center().to_vec2() - cb.center().to_vec2() };
         let inv = world.inverse();
-        let kids: Vec<Arc<designcraft_doc::Item>> = kids
+        let kids: Vec<Arc<patronusdesign_doc::Item>> = kids
             .into_iter()
             .map(|mut k| {
-                k.xf = inv * designcraft_geom::Affine::translate(shift) * k.xf;
+                k.xf = inv * patronusdesign_geom::Affine::translate(shift) * k.xf;
                 Arc::new(k)
             })
             .collect();
-        let it = d.item_mut(target).ok_or(designcraft_doc::DocError::NoItem(target))?;
-        it.content = designcraft_doc::Content::Group { items: kids };
+        let it = d.item_mut(target).ok_or(patronusdesign_doc::DocError::NoItem(target))?;
+        it.content = patronusdesign_doc::Content::Group { items: kids };
         *sel = Selection::items(vec![target]);
         Ok(json!({"id": target.0, "items": new.len()}))
     })
@@ -740,10 +747,10 @@ mod paste_into_tests {
         assert_eq!(d.spreads[0].items.len(), 1, "the black square is inside the frame now");
         let f = d.item(ItemId(frame)).unwrap();
         assert!(f.has_nested_items() && !f.is_group());
-        assert_eq!(f.bounds(), designcraft_geom::Rect::new(150.0, 150.0, 250.0, 250.0), "bounds stay the frame's");
+        assert_eq!(f.bounds(), patronusdesign_geom::Rect::new(150.0, 150.0, 250.0, 250.0), "bounds stay the frame's");
         // Rendered clipped: black inside the frame, nothing outside it.
-        let cache = designcraft_compose::Cache::new();
-        let mut r = designcraft_render::Renderer::new();
+        let cache = patronusdesign_compose::Cache::new();
+        let mut r = patronusdesign_render::Renderer::new();
         let img = r.render_page(&d, &cache, 0, 1.0, false, &Default::default()).unwrap();
         assert!(img.pixel(200, 200)[0] < 90, "{:?}", img.pixel(200, 200));
         assert!(img.pixel(120, 120)[0] > 200, "{:?}", img.pixel(120, 120));
@@ -755,7 +762,7 @@ mod paste_into_tests {
         let dir = std::env::temp_dir().join(format!("dc-graphic-alone-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let png = dir.join("photo.png");
-        std::fs::write(&png, designcraft_render::Rendered { width: 200, height: 100, pixels: vec![40u8; 200 * 100 * 4] }.to_png()).unwrap();
+        std::fs::write(&png, patronusdesign_render::Rendered { width: 200, height: 100, pixels: vec![40u8; 200 * 100 * 4] }.to_png()).unwrap();
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         // A square frame showing the middle of a wide photo (cropped left and right).
@@ -768,8 +775,8 @@ mod paste_into_tests {
         s.execute("edit.copy", &json!({})).unwrap();
         let clip = s.clipboard.clone().unwrap();
         let it = &clip.spreads[0].items[0];
-        assert!(matches!(&it.content, designcraft_doc::Content::Graphic(g) if g.crop == [0.0; 4]));
-        assert_eq!(it.bounds(), designcraft_geom::Rect::new(50.0, 100.0, 250.0, 200.0));
+        assert!(matches!(&it.content, patronusdesign_doc::Content::Graphic(g) if g.crop == [0.0; 4]));
+        assert_eq!(it.bounds(), patronusdesign_geom::Rect::new(50.0, 100.0, 250.0, 200.0));
         assert!(it.stroke.weight == 0.0 || it.stroke.swatch == "[None]", "{:?}", it.stroke);
         // Paste Into a shape over it: the photo lands in place, inside the shape.
         let shape = s.execute("frame.create", &json!({"rect": [60, 90, 240, 210], "shape": "ellipse"})).unwrap()["id"].as_u64().unwrap();
@@ -778,13 +785,13 @@ mod paste_into_tests {
         let d = s.doc().unwrap().doc.clone();
         let kid = d.item(ItemId(shape)).unwrap().children()[0].clone();
         let at = d.parent_xf(&d.find(kid.id).unwrap()) * kid.xf;
-        assert!((at * designcraft_geom::Point::new(0.0, 0.0) - designcraft_geom::Point::new(50.0, 100.0)).hypot() < 1e-6);
-        assert!((at * designcraft_geom::Point::new(200.0, 100.0) - designcraft_geom::Point::new(250.0, 200.0)).hypot() < 1e-6);
+        assert!((at * patronusdesign_geom::Point::new(0.0, 0.0) - patronusdesign_geom::Point::new(50.0, 100.0)).hypot() < 1e-6);
+        assert!((at * patronusdesign_geom::Point::new(200.0, 100.0) - patronusdesign_geom::Point::new(250.0, 200.0)).hypot() < 1e-6);
         // Delete with the photo selected: the frame stays, empty.
         s.execute("selection.set", &json!({"ids": [frame], "content": true})).unwrap();
         assert_eq!(s.execute("edit.clear", &json!({})).unwrap()["deleted"], 1);
         let d = s.doc().unwrap().doc.clone();
-        assert!(matches!(d.item(ItemId(frame)).unwrap().content, designcraft_doc::Content::Unassigned));
+        assert!(matches!(d.item(ItemId(frame)).unwrap().content, patronusdesign_doc::Content::Unassigned));
         assert_eq!(s.doc().unwrap().selection, Selection::items(vec![ItemId(frame)]));
         d.check().unwrap();
         let _ = std::fs::remove_dir_all(&dir);
@@ -794,7 +801,7 @@ mod paste_into_tests {
 #[cfg(test)]
 mod paste_tests {
     use super::*;
-    use designcraft_geom::Rect;
+    use patronusdesign_geom::Rect;
 
     fn pasted(s: &mut Session, id: &str, p: Value) -> (SpreadRef, Rect) {
         let new = ItemId(s.execute(id, &p).unwrap()["ids"][0].as_u64().unwrap());
@@ -860,7 +867,7 @@ mod paste_tests {
     /// in that one's text, if `nested`, another with `Deepest`, as IDML import makes them (the
     /// commands don't anchor text frames). Returns the host frame.
     fn host_with_anchored_text_frames(s: &mut Session, nested: bool) -> ItemId {
-        use designcraft_doc::{AnchoredObject, ParaFormat, SpreadRef};
+        use patronusdesign_doc::{AnchoredObject, ParaFormat, SpreadRef};
         s.execute("file.new", &json!({})).unwrap();
         let host =
             s.execute("frame.create", &json!({"rect": [36, 36, 400, 400], "content": "text", "text": "Host"})).unwrap()["id"].as_u64().unwrap();
@@ -868,9 +875,9 @@ mod paste_tests {
             let layer = d.default_layer();
             let host_sid = d.item(ItemId(host)).and_then(|i| i.text_frame()).map(|t| t.story).unwrap();
             // Anchor a new text frame holding `text` in story `into`, and give back its story.
-            let anchor_frame = |d: &mut designcraft_doc::Document, into: designcraft_doc::StoryId, text: &str| {
+            let anchor_frame = |d: &mut patronusdesign_doc::Document, into: patronusdesign_doc::StoryId, text: &str| {
                 let (id, sid) = d
-                    .add_text_frame(SpreadRef::Doc(0), designcraft_geom::Rect::new(0.0, 0.0, 80.0, 40.0), layer, text, ParaFormat::default())
+                    .add_text_frame(SpreadRef::Doc(0), patronusdesign_geom::Rect::new(0.0, 0.0, 80.0, 40.0), layer, text, ParaFormat::default())
                     .unwrap();
                 let item = d.item(id).unwrap().clone();
                 let story = d.stories.get(&sid).unwrap().clone();
@@ -895,7 +902,7 @@ mod paste_tests {
     fn anchored_texts(s: &Session, host: ItemId) -> Vec<String> {
         let d = &s.doc().unwrap().doc;
         // Without the marks the text holds for what is anchored in it.
-        let text = |x: &designcraft_doc::Story| -> String { x.text.chars().filter(|c| !('\u{E000}'..='\u{E1FF}').contains(c)).collect() };
+        let text = |x: &patronusdesign_doc::Story| -> String { x.text.chars().filter(|c| !('\u{E000}'..='\u{E1FF}').contains(c)).collect() };
         let mut out = Vec::new();
         let mut todo = vec![d.item(host).unwrap().text_frame().unwrap().story];
         while let Some(sid) = todo.pop() {
@@ -944,7 +951,7 @@ mod paste_tests {
     /// import anchors an InDesign group: the group's members are anchored items too.
     #[test]
     fn a_text_frame_in_an_anchored_group_keeps_its_text() {
-        use designcraft_doc::{AnchoredObject, Content, Item, ParaFormat, Shape, SpreadRef};
+        use patronusdesign_doc::{AnchoredObject, Content, Item, ParaFormat, Shape, SpreadRef};
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let host = ItemId(
@@ -954,7 +961,7 @@ mod paste_tests {
             let layer = d.default_layer();
             let host_sid = d.item(host).and_then(|i| i.text_frame()).map(|t| t.story).unwrap();
             let (id, sid) = d
-                .add_text_frame(SpreadRef::Doc(0), designcraft_geom::Rect::new(0.0, 0.0, 80.0, 40.0), layer, "Grouped", ParaFormat::default())
+                .add_text_frame(SpreadRef::Doc(0), patronusdesign_geom::Rect::new(0.0, 0.0, 80.0, 40.0), layer, "Grouped", ParaFormat::default())
                 .unwrap();
             let child = d.item(id).unwrap().clone();
             let story = d.stories.get(&sid).unwrap().clone();
@@ -996,13 +1003,13 @@ mod paste_tests {
     fn copied_text_frames_keep_the_graphics_anchored_in_their_text() {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
-        let png = designcraft_render::Rendered { width: 4, height: 4, pixels: vec![200u8; 64] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 4, height: 4, pixels: vec![200u8; 64] }.to_png();
         let placed = s.execute("file.place", &json!({"base64": super::super::file::base64_encode(&png), "name": "a.png", "x": 72, "y": 72})).unwrap();
-        let (g, aid) = (ItemId(placed["id"].as_u64().unwrap()), designcraft_doc::AssetId(placed["asset"].as_u64().unwrap()));
+        let (g, aid) = (ItemId(placed["id"].as_u64().unwrap()), patronusdesign_doc::AssetId(placed["asset"].as_u64().unwrap()));
         let f = ItemId(s.execute("frame.create", &json!({"rect": [36, 200, 300, 400], "content": "text"})).unwrap()["id"].as_u64().unwrap());
         s.edit(|d, _| {
-            let it = d.item(g).cloned().ok_or(designcraft_doc::DocError::NoItem(g))?;
-            let sid = d.item(f).and_then(|i| i.text_frame()).map(|t| t.story).ok_or(designcraft_doc::DocError::NoItem(f))?;
+            let it = d.item(g).cloned().ok_or(patronusdesign_doc::DocError::NoItem(g))?;
+            let sid = d.item(f).and_then(|i| i.text_frame()).map(|t| t.story).ok_or(patronusdesign_doc::DocError::NoItem(f))?;
             super::super::anchored::anchor_items(d, sid, 0, vec![it], &Default::default())?;
             Ok(())
         })

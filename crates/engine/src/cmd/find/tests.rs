@@ -41,18 +41,18 @@ fn change_first_changes_one_match_in_the_whole_document() {
     }
 }
 
-fn scope_session(text: &str) -> (Session, designcraft_doc::StoryId) {
+fn scope_session(text: &str) -> (Session, patronusdesign_doc::StoryId) {
     let mut s = Session::new();
     s.execute("file.new", &json!({})).unwrap();
     let frame = s.execute("frame.create", &json!({"rect": [36, 36, 100, 100], "content": "text", "text": text})).unwrap();
-    (s, designcraft_doc::StoryId(frame["story"].as_u64().unwrap()))
+    (s, patronusdesign_doc::StoryId(frame["story"].as_u64().unwrap()))
 }
 
-fn scope_select(s: &mut Session, sid: designcraft_doc::StoryId, a: usize, b: usize) {
+fn scope_select(s: &mut Session, sid: patronusdesign_doc::StoryId, a: usize, b: usize) {
     s.execute("text.select", &json!({"story": sid.0, "anchor": a, "focus": b})).unwrap();
 }
 
-fn scope_hit(s: &mut Session, p: &serde_json::Value, sid: designcraft_doc::StoryId, a: usize, b: usize) {
+fn scope_hit(s: &mut Session, p: &serde_json::Value, sid: patronusdesign_doc::StoryId, a: usize, b: usize) {
     assert_eq!(s.execute("find.next", p).unwrap(), json!({"story": sid.0, "start": a, "end": b}));
     let selected = s.doc().unwrap().selection.text.unwrap();
     assert_eq!((selected.story, selected.range(), selected.cell), (sid, a..b, None));
@@ -74,7 +74,7 @@ fn assert_document_change_scenarios() {
         let mut sids = vec![sid];
         for text in texts.iter().skip(1) {
             let frame = s.execute("frame.create", &json!({"rect": [120, 36, 200, 100], "content": "text", "text": text})).unwrap();
-            sids.push(designcraft_doc::StoryId(frame["story"].as_u64().unwrap()));
+            sids.push(patronusdesign_doc::StoryId(frame["story"].as_u64().unwrap()));
         }
         assert_eq!(s.doc().unwrap().doc.stories.keys().copied().collect::<Vec<_>>(), sids);
         // Document Change keeps canonical target order even with a later story current.
@@ -127,7 +127,7 @@ fn find_scope_first_change_stops_after_first_matching_story_and_repairs_selectio
     // Identical replacement is still one counted match, not a reason to visit another story.
     let (mut s, sid) = scope_session("red red");
     let other = s.execute("frame.create", &json!({"rect": [120, 36, 200, 100], "content": "text", "text": "red"})).unwrap();
-    let other_sid = designcraft_doc::StoryId(other["story"].as_u64().unwrap());
+    let other_sid = patronusdesign_doc::StoryId(other["story"].as_u64().unwrap());
     scope_select(&mut s, other_sid, 0, 3);
     let before = s.doc().unwrap().doc.clone();
     let selection = s.doc().unwrap().selection.clone();
@@ -140,7 +140,7 @@ fn find_scope_first_change_stops_after_first_matching_story_and_repairs_selectio
     for reverse in [false, true] {
         let (mut s, sid) = scope_session("éX X");
         let other = s.execute("frame.create", &json!({"rect": [120, 36, 200, 100], "content": "text", "text": "X"})).unwrap();
-        let other_sid = designcraft_doc::StoryId(other["story"].as_u64().unwrap());
+        let other_sid = patronusdesign_doc::StoryId(other["story"].as_u64().unwrap());
         scope_select(&mut s, sid, if reverse { 3 } else { 2 }, if reverse { 2 } else { 3 });
         let before = s.doc().unwrap().doc.clone();
         let mut selection = s.doc().unwrap().selection.clone();
@@ -278,7 +278,7 @@ fn find_scope_change_other_story_and_no_hits_preserve_selection() {
         let (mut s, sid) = scope_session("éX");
         let frame = s.doc().unwrap().selection.text.unwrap().frame.unwrap();
         let other = s.execute("frame.create", &json!({"rect": [120, 36, 200, 100], "content": "text", "text": "a"})).unwrap();
-        let other_sid = designcraft_doc::StoryId(other["story"].as_u64().unwrap());
+        let other_sid = patronusdesign_doc::StoryId(other["story"].as_u64().unwrap());
         scope_select(&mut s, sid, 3, 2);
         let before = s.doc().unwrap().selection.clone();
         let mut p = json!({"find": "a", "change": "🙂", "scope": "document"});
@@ -427,10 +427,10 @@ fn find_scope_word_reselection_at_same_hit_recaptures_bounds() {
     let point = {
         let st = s.doc().unwrap();
         let cs = s.cache.get(&st.doc, sid, None);
-        let (fi, x, baseline, ascent, _) = designcraft_compose::caret(&cs, 1).unwrap();
-        let inner = designcraft_geom::Point::new(x, baseline - ascent * 0.5);
+        let (fi, x, baseline, ascent, _) = patronusdesign_compose::caret(&cs, 1).unwrap();
+        let inner = patronusdesign_geom::Point::new(x, baseline - ascent * 0.5);
         assert_eq!(cs.frames[fi].frame, frame);
-        assert_eq!(designcraft_compose::hit(&cs, fi, inner), Some(1), "real point lies inside the current hit");
+        assert_eq!(patronusdesign_compose::hit(&cs, fi, inner), Some(1), "real point lies inside the current hit");
         let loc = st.doc.find(frame).unwrap();
         st.doc.parent_xf(&loc) * st.doc.text_xf(st.doc.item(frame).unwrap()) * inner
     };
@@ -458,7 +458,7 @@ fn find_scope_word_reselection_at_same_hit_recaptures_bounds() {
 fn find_scope_story_explicit_story_document_order_and_scope_changes() {
     let (mut s, a) = scope_session("black red");
     let other = s.execute("frame.create", &json!({"rect": [150, 36, 100, 100], "content": "text", "text": "red"})).unwrap();
-    let b = designcraft_doc::StoryId(other["story"].as_u64().unwrap());
+    let b = patronusdesign_doc::StoryId(other["story"].as_u64().unwrap());
     scope_select(&mut s, a, 0, 9);
     let story = json!({"find": "red", "scope": "story"});
     assert_eq!(s.execute("find.next", &story).unwrap(), serde_json::Value::Null, "Story does not enter B or wrap to its prefix");
@@ -512,8 +512,13 @@ fn find_scope_substring_context_utf8_zero_width_and_invalid_ranges() {
     assert_eq!(s.doc().unwrap().doc.story(sid).unwrap().text, "scat é🙂 blue");
     for range in [6..7, 0..usize::MAX] {
         let st = s.doc_mut().unwrap();
-        st.selection =
-            designcraft_doc::Selection::text(designcraft_doc::TextSel { story: sid, anchor: range.start, focus: range.end, frame: None, cell: None });
+        st.selection = patronusdesign_doc::Selection::text(patronusdesign_doc::TextSel {
+            story: sid,
+            anchor: range.start,
+            focus: range.end,
+            frame: None,
+            cell: None,
+        });
         st.bump_revision();
         for command in ["find.find", "find.next", "find.change"] {
             let before = s.doc().unwrap().doc.clone();
@@ -573,7 +578,7 @@ fn find_scope_real_preview_restores_before_resolving_bounds() {
     // Install a viewport selection in the real preview. text.select is journaled
     // and would itself restore the template before selecting.
     let st = s.doc_mut().unwrap();
-    st.selection = designcraft_doc::Selection::text(designcraft_doc::TextSel { story: sid, anchor: 0, focus: 7, frame: None, cell: None });
+    st.selection = patronusdesign_doc::Selection::text(patronusdesign_doc::TextSel { story: sid, anchor: 0, focus: 7, frame: None, cell: None });
     st.bump_revision();
     let p = json!({"find": "red", "change": "blue", "scope": "selection"});
     assert_eq!(s.execute("find.find", &p).unwrap().as_array().unwrap().len(), 2);
@@ -604,7 +609,7 @@ fn document_scope_searches_and_changes_table_cells() {
     s.execute("table.setCell", &json!({"row": 0, "col": 1, "text": "Ore 12.15"})).unwrap();
     // The caret sits in the first cell, so Find Next goes to the second cell, then the story.
     let p = json!({"find": "Ore 12.15", "scope": "document"});
-    let cell = designcraft_doc::CellAddr { table, row: 0, col: 1 };
+    let cell = patronusdesign_doc::CellAddr { table, row: 0, col: 1 };
     assert_eq!(s.execute("find.next", &p).unwrap(), json!({"story": sid.0, "start": 0, "end": 9, "cell": {"table": table, "row": 0, "col": 1}}));
     assert_eq!(s.doc().unwrap().selection.text.map(|t| (t.story, t.range(), t.cell)), Some((sid, 0..9, Some(cell))));
     let next = s.execute("find.next", &p).unwrap();
@@ -642,7 +647,7 @@ fn change_changes_the_text_find_next_found_in_a_cell() {
     assert!(next.get("cell").is_none() && next.get("start").is_some(), "on to the story: {next}");
 }
 
-fn child_scope_session(note: bool, child: &str) -> (Session, designcraft_doc::StoryId, designcraft_doc::TextSel) {
+fn child_scope_session(note: bool, child: &str) -> (Session, patronusdesign_doc::StoryId, patronusdesign_doc::TextSel) {
     let (mut s, sid) = scope_session("red");
     scope_select(&mut s, sid, 3, 3);
     if note {
@@ -683,7 +688,7 @@ fn find_scope_children_error_atomically_and_parent_requests_stay_top_level() {
             let (mut s, sid, mut selected) = child_scope_session(note, child);
             selected.anchor = 0;
             selected.focus = child.len();
-            s.doc_mut().unwrap().selection = designcraft_doc::Selection::text(selected);
+            s.doc_mut().unwrap().selection = patronusdesign_doc::Selection::text(selected);
             assert_child_scope_requests_rejected(&mut s);
             let selection = s.doc().unwrap().selection.clone();
             for explicit in [false, true] {
@@ -723,7 +728,7 @@ fn find_scope_threaded_overset_story_uses_logical_offsets() {
     let (mut s, sid) = scope_session(&text);
     let a = s.doc().unwrap().doc.story(sid).unwrap().frames[0];
     let next = s.execute("frame.create", &json!({"rect": [150, 36, 20, 1], "content": "text"})).unwrap();
-    let b = designcraft_doc::ItemId(next["id"].as_u64().unwrap());
+    let b = patronusdesign_doc::ItemId(next["id"].as_u64().unwrap());
     s.edit(|d, _| Ok(d.thread(a, b)?)).unwrap();
     assert_eq!(s.doc().unwrap().doc.story(sid).unwrap().frames.len(), 2);
     scope_select(&mut s, sid, 0, 0);
@@ -777,7 +782,7 @@ fn change_format_styles_the_found_text_and_keeps_it() {
     s.execute("file.new", &json!({})).unwrap();
     let text = "Poached Eggs\nBreak eggs; cook until eggs are set.";
     let r = s.execute("frame.create", &json!({"rect": [36, 36, 300, 300], "content": "text", "text": text})).unwrap();
-    let sid = designcraft_doc::StoryId(r["story"].as_u64().unwrap());
+    let sid = patronusdesign_doc::StoryId(r["story"].as_u64().unwrap());
     s.execute("style.character.create", &json!({"name": "eggs", "chars": {"fontStyle": "Bold", "fill": "C=15 M=100 Y=100 K=0"}})).unwrap();
     s.execute("style.paragraph.create", &json!({"name": "Method"})).unwrap();
     let undo = s.doc().unwrap().history.undo.len();
@@ -791,12 +796,12 @@ fn change_format_styles_the_found_text_and_keeps_it() {
         assert_eq!(&story.text[at..at + 4], "eggs");
         assert_eq!(style_at(&s, at), "eggs");
     }
-    assert_eq!(style_at(&s, 8), designcraft_doc::NO_CHAR_STYLE, "case sensitive: not \"Eggs\"");
-    assert_eq!(style_at(&s, 25), designcraft_doc::NO_CHAR_STYLE, "only the found text");
+    assert_eq!(style_at(&s, 8), patronusdesign_doc::NO_CHAR_STYLE, "case sensitive: not \"Eggs\"");
+    assert_eq!(style_at(&s, 25), patronusdesign_doc::NO_CHAR_STYLE, "only the found text");
     // A paragraph style goes to the found text's paragraphs, with attributes over the text.
     s.execute("find.change", &json!({"find": "cook", "change": "", "paraStyle": "Method", "attrs": {"underline": true}})).unwrap();
     let story = s.doc().unwrap().doc.story(sid).unwrap().clone();
-    assert_eq!((story.paras[0].style.as_str(), story.paras[1].style.as_str()), (designcraft_doc::BASIC_PARAGRAPH, "Method"));
+    assert_eq!((story.paras[0].style.as_str(), story.paras[1].style.as_str()), (patronusdesign_doc::BASIC_PARAGRAPH, "Method"));
     assert_eq!(story.format_after(25).over.underline, Some(true));
     assert_eq!(story.format_after(19).style, "eggs", "the other text keeps its character style");
     // Change to and a Change Format: the new text is formatted.

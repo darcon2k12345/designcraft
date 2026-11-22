@@ -134,7 +134,7 @@ impl<'a, 'f> StoryWriter<'a, 'f> {
                 // Export Tagging: the style's element and class.
                 let (tag, class) = export_mapping(&doc.styles, &pf.style, false, &self.pc);
                 let props = doc.styles.resolve_para(pf).0;
-                let rtl = props.direction == designcraft_doc::TextDirection::RightToLeft;
+                let rtl = props.direction == patronusdesign_doc::TextDirection::RightToLeft;
                 // Chapter files start only at top-level paragraphs, after any open list or
                 // preformatted block is closed, so each file stays balanced.
                 if depth == 0 && self.heading_ids.is_some() && starts_chapter(&self.split, &doc.styles, &pf.style) {
@@ -146,9 +146,9 @@ impl<'a, 'f> StoryWriter<'a, 'f> {
                     out.push_str("</pre>\n");
                 }
                 let list_tag = (tag == "li").then_some(match props.list_type {
-                    designcraft_doc::ListType::Numbers => "ol",
-                    designcraft_doc::ListType::Bullets => "ul",
-                    designcraft_doc::ListType::None => "ul style=\"list-style:none\"",
+                    patronusdesign_doc::ListType::Numbers => "ol",
+                    patronusdesign_doc::ListType::Bullets => "ul",
+                    patronusdesign_doc::ListType::None => "ul style=\"list-style:none\"",
                 });
                 if list != list_tag {
                     close_list(&mut list, out);
@@ -238,7 +238,7 @@ impl<'a, 'f> StoryWriter<'a, 'f> {
         st: &Story,
         runs: &[(std::ops::Range<usize>, &story::CharFormat)],
         para: std::ops::Range<usize>,
-        base: &designcraft_doc::CharProps,
+        base: &patronusdesign_doc::CharProps,
         depth: usize,
         out: &mut String,
         after: &mut String,
@@ -285,9 +285,9 @@ impl<'a, 'f> StoryWriter<'a, 'f> {
         match &o.position {
             AnchorPosition::AboveLine { align, .. } if !out.is_empty() => {
                 let align = match align {
-                    designcraft_doc::anchored::AnchorAlign::Left => "left",
-                    designcraft_doc::anchored::AnchorAlign::Center => "center",
-                    designcraft_doc::anchored::AnchorAlign::Right => "right",
+                    patronusdesign_doc::anchored::AnchorAlign::Left => "left",
+                    patronusdesign_doc::anchored::AnchorAlign::Center => "center",
+                    patronusdesign_doc::anchored::AnchorAlign::Right => "right",
                 };
                 format!("<span class=\"anchored\" style=\"display:block;text-align:{align}\">{out}</span>")
             }
@@ -310,7 +310,7 @@ impl<'a, 'f> StoryWriter<'a, 'f> {
         }
         let mime = safe_mime(&a.mime);
         // Video and sound: an HTML5 player (with the poster, when there is one).
-        if let Some(kind) = designcraft_doc::media_kind(mime) {
+        if let Some(kind) = patronusdesign_doc::media_kind(mime) {
             let name = asset_path("media", a, mime);
             self.images.insert(name.clone(), (mime, data));
             let m = it.media.clone().unwrap_or_default();
@@ -465,10 +465,10 @@ impl<'a, 'f> StoryWriter<'a, 'f> {
 /// Run text with variables replaced by their values; `left` is what the export may still write
 /// of them (a value that doesn't fit is left out).
 fn run_text(doc: &Document, raw: &str, left: &mut usize) -> String {
-    if raw.chars().any(|c| designcraft_doc::vars::var_index(c).is_some()) {
+    if raw.chars().any(|c| patronusdesign_doc::vars::var_index(c).is_some()) {
         let sub: String = raw
             .chars()
-            .map(|c| match designcraft_doc::vars::var_index(c) {
+            .map(|c| match patronusdesign_doc::vars::var_index(c) {
                 Some(i) => {
                     let v = doc.variable_value(i, None).unwrap_or_default();
                     if v.len() > *left {

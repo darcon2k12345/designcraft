@@ -14,7 +14,7 @@ fn stroke_param(s: &Session, v: Option<&Value>, cmd: &str) -> Result<Option<Cell
 }
 
 /// Fill in the cell style fields given in `p`.
-fn cell_style_fields(cs: &mut designcraft_doc::CellStyle, p: &Value, stroke: Option<CellStroke>, cmd: &str) -> Result<()> {
+fn cell_style_fields(cs: &mut patronusdesign_doc::CellStyle, p: &Value, stroke: Option<CellStroke>, cmd: &str) -> Result<()> {
     if let Some(v) = p.get("basedOn") {
         cs.based_on = v.as_str().map(str::to_string);
     }
@@ -58,7 +58,7 @@ fn cell_style_fields(cs: &mut designcraft_doc::CellStyle, p: &Value, stroke: Opt
 
 pub(super) fn cell_style_create(s: &mut Session, p: &Value) -> Result<Value> {
     let base = str_param(p, "name").unwrap_or("Cell Style 1").to_string();
-    let mut cs = designcraft_doc::CellStyle::default();
+    let mut cs = patronusdesign_doc::CellStyle::default();
     if p.get("fromSelection").and_then(Value::as_bool).unwrap_or(false) {
         let g = target(s, p, "style.cell.create")?;
         let d = &s.doc()?.doc;
@@ -82,7 +82,7 @@ pub(super) fn cell_style_create(s: &mut Session, p: &Value) -> Result<Value> {
     let stroke = stroke_param(s, p.get("stroke"), "style.cell.create")?;
     cell_style_fields(&mut cs, p, stroke, "style.cell.create")?;
     s.edit(|d, _| {
-        let name = designcraft_doc::Styles::unique_name(|n| d.styles.cell.iter().any(|c| c.name == n), &base);
+        let name = patronusdesign_doc::Styles::unique_name(|n| d.styles.cell.iter().any(|c| c.name == n), &base);
         cs.name = name.clone();
         d.styles_mut().cell.push(cs);
         Ok(json!({"name": name}))
@@ -95,7 +95,7 @@ pub(super) fn cell_style_apply(s: &mut Session, p: &Value) -> Result<Value> {
     if !styles.iter().any(|c| c.name == name) {
         return Err(bad("style.cell.apply", format!("no cell style `{name}`")));
     }
-    let cs = designcraft_doc::resolve_cell_style(styles, &name);
+    let cs = patronusdesign_doc::resolve_cell_style(styles, &name);
     let g = target(s, p, "style.cell.apply")?;
     edit_table(s, &g, "style.cell.apply", |t| {
         let mut n = 0;
@@ -111,7 +111,7 @@ pub(super) fn cell_style_apply(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// Re-apply cell styles named in `names` to every cell using them (after a style edit).
 fn reapply_cell_styles(d: &mut Document, names: &[String]) {
-    let styles: Vec<_> = names.iter().map(|name| designcraft_doc::resolve_cell_style(&d.styles.cell, name)).collect();
+    let styles: Vec<_> = names.iter().map(|name| patronusdesign_doc::resolve_cell_style(&d.styles.cell, name)).collect();
     for sid in d.stories.keys().copied().collect::<Vec<_>>() {
         let Some(st) = d.story_mut(sid) else { continue };
         for t in st.tables.values_mut() {
@@ -168,7 +168,7 @@ pub(super) fn cell_style_edit(s: &mut Session, p: &Value) -> Result<Value> {
     })
 }
 
-fn table_style_fields(ts: &mut designcraft_doc::TableStyle, p: &Value, border: Option<CellStroke>) {
+fn table_style_fields(ts: &mut patronusdesign_doc::TableStyle, p: &Value, border: Option<CellStroke>) {
     if let Some(v) = p.get("basedOn") {
         ts.based_on = v.as_str().map(str::to_string);
     }
@@ -189,9 +189,9 @@ fn table_style_fields(ts: &mut designcraft_doc::TableStyle, p: &Value, border: O
     }
     if let Some(a) = p.get("altRows").and_then(Value::as_object) {
         let n = |k: &str, d: u32| a.get(k).and_then(Value::as_u64).map_or(d, |v| u32::try_from(v).unwrap_or(u32::MAX));
-        let c = |k: &str| a.get(k).and_then(Value::as_str).unwrap_or(designcraft_color::swatch::NONE).to_string();
+        let c = |k: &str| a.get(k).and_then(Value::as_str).unwrap_or(patronusdesign_color::swatch::NONE).to_string();
         let t = |k: &str| a.get(k).and_then(Value::as_f64).map_or(1.0, |v| v.clamp(0.0, 1.0) as f32);
-        ts.alt_rows = Some(designcraft_doc::AltFills {
+        ts.alt_rows = Some(patronusdesign_doc::AltFills {
             first: n("first", 1),
             first_color: c("firstColor"),
             first_tint: t("firstTint"),
@@ -212,11 +212,11 @@ fn table_style_fields(ts: &mut designcraft_doc::TableStyle, p: &Value, border: O
 
 pub(super) fn table_style_create(s: &mut Session, p: &Value) -> Result<Value> {
     let base = str_param(p, "name").unwrap_or("Table Style 1").to_string();
-    let mut ts = designcraft_doc::TableStyle::default();
+    let mut ts = patronusdesign_doc::TableStyle::default();
     let border = stroke_param(s, p.get("border"), "style.table.create")?;
     table_style_fields(&mut ts, p, border);
     s.edit(|d, _| {
-        let name = designcraft_doc::Styles::unique_name(|n| d.styles.table.iter().any(|c| c.name == n), &base);
+        let name = patronusdesign_doc::Styles::unique_name(|n| d.styles.table.iter().any(|c| c.name == n), &base);
         ts.name = name.clone();
         d.styles_mut().table.push(ts);
         Ok(json!({"name": name}))
@@ -295,18 +295,18 @@ mod style_tests {
         s.execute("style.cell.create", &json!({"name": "Leading", "firstBaseline": "leading"})).unwrap();
         s.execute("style.cell.apply", &json!({"name": "Leading", "row": 1, "col": 1})).unwrap();
         let d = &s.doc().unwrap().doc;
-        let t = d.story(designcraft_doc::StoryId(sid)).unwrap().tables.values().next().unwrap();
-        assert_eq!(t.cell(1, 1).unwrap().first_baseline, designcraft_doc::FirstBaseline::Leading);
-        assert_eq!(t.cell(1, 0).unwrap().first_baseline, designcraft_doc::FirstBaseline::Ascent);
+        let t = d.story(patronusdesign_doc::StoryId(sid)).unwrap().tables.values().next().unwrap();
+        assert_eq!(t.cell(1, 1).unwrap().first_baseline, patronusdesign_doc::FirstBaseline::Leading);
+        assert_eq!(t.cell(1, 0).unwrap().first_baseline, patronusdesign_doc::FirstBaseline::Ascent);
     }
 
     #[test]
     fn diagonal_lines_are_a_cell_option_of_the_target_cells() {
-        use designcraft_doc::DiagonalLines;
+        use patronusdesign_doc::DiagonalLines;
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let r = s.execute("frame.create", &json!({"rect": [72, 72, 500, 400], "content": "text", "text": ""})).unwrap();
-        let sid = designcraft_doc::StoryId(r["story"].as_u64().unwrap());
+        let sid = patronusdesign_doc::StoryId(r["story"].as_u64().unwrap());
         s.execute("text.select", &json!({"story": sid.0, "anchor": 0, "focus": 0})).unwrap();
         s.execute("table.insert", &json!({"rows": 2, "cols": 2})).unwrap();
         let fresh = s.execute("table.getCellDiagonal", &json!({})).unwrap();
@@ -319,7 +319,7 @@ mod style_tests {
         let d = cell(&s, 0, 1);
         assert_eq!(
             (d.lines, d.stroke.weight, d.stroke.color.as_str(), &d.stroke.kind, d.in_front),
-            (DiagonalLines::Crossed, 2.0, "[Paper]", &designcraft_doc::StrokeType::Dotted, false)
+            (DiagonalLines::Crossed, 2.0, "[Paper]", &patronusdesign_doc::StrokeType::Dotted, false)
         );
         assert!(cell(&s, 1, 0).is_default(), "other cells keep none");
         // Only the attributes given change.
@@ -362,9 +362,9 @@ mod style_tests {
         s.execute("style.table.create", &json!({"name": "Data", "header": "Head", "body": "Body", "border": {"weight": 2, "color": "[Black]"}}))
             .unwrap();
         s.execute("style.table.apply", &json!({"name": "Data"})).unwrap();
-        let t = |s: &Session| -> designcraft_doc::Table {
+        let t = |s: &Session| -> patronusdesign_doc::Table {
             let d = &s.doc().unwrap().doc;
-            (**d.story(designcraft_doc::StoryId(sid)).unwrap().tables.values().next().unwrap()).clone()
+            (**d.story(patronusdesign_doc::StoryId(sid)).unwrap().tables.values().next().unwrap()).clone()
         };
         let tb = t(&s);
         assert_eq!(tb.style, "Data");
@@ -391,7 +391,7 @@ mod style_alt_rows_tests {
 
     #[test]
     fn style_alt_rows_counts_saturate() {
-        let mut ts = designcraft_doc::TableStyle::default();
+        let mut ts = patronusdesign_doc::TableStyle::default();
         let p = json!({"altRows": {"first": 4294967297u64, "next": 4294967296u64, "skipFirst": 4294967295u64, "skipLast": 3}});
         table_style_fields(&mut ts, &p, None);
         let a = ts.alt_rows.unwrap();

@@ -26,7 +26,7 @@ pub(super) fn text_style_section(app: &mut DesignApp, ui: &mut Ui) {
         let Some(st) = app.session.active() else { return };
         if tab == 0 {
             (
-                st.doc.styles.paragraph.iter().map(|p| p.name.clone()).filter(|n| n != designcraft_doc::NO_PARA_STYLE).collect(),
+                st.doc.styles.paragraph.iter().map(|p| p.name.clone()).filter(|n| n != patronusdesign_doc::NO_PARA_STYLE).collect(),
                 a["paragraphStyle"].as_str().unwrap_or("").to_string(),
             )
         } else {
@@ -112,7 +112,7 @@ pub(super) fn text_appearance_section(app: &mut DesignApp, ui: &mut Ui) {
     let Some(doc) = app.session.active().map(|d| d.doc.clone()) else { return };
     let c = &a["chars"];
     for (k, (key, label)) in [("fill", "Fill"), ("stroke", "Stroke")].into_iter().enumerate() {
-        let sw = c[key].as_str().unwrap_or(designcraft_color::swatch::NONE).to_string();
+        let sw = c[key].as_str().unwrap_or(patronusdesign_color::swatch::NONE).to_string();
         let b = block(ui, FIELD_H);
         let (col, g) = widgets::swatch_colors(&doc, &sw, 1.0);
         let chip = sub(b, 4.0, 2.0, 17.0, 17.0);
@@ -441,8 +441,8 @@ fn paragraph_more(app: &mut DesignApp, ui: &mut Ui, p: &Value, fw: f32) {
     }
     let y = 3.0 * (FIELD_H + 5.0);
     for (right, icon, tip, key, max) in [
-        (false, "drop-lines", "Drop Cap Number of Lines", "dropCapLines", designcraft_compose::MAX_DROP_CAP_LINES),
-        (true, "drop-chars", "Drop Cap One or More Characters", "dropCapChars", designcraft_compose::MAX_DROP_CAP_CHARS),
+        (false, "drop-lines", "Drop Cap Number of Lines", "dropCapLines", patronusdesign_compose::MAX_DROP_CAP_LINES),
+        (true, "drop-chars", "Drop Cap One or More Characters", "dropCapChars", patronusdesign_compose::MAX_DROP_CAP_CHARS),
     ] {
         let field = NumField::number(key, p[key].as_f64(), "", 0).spinner().range(0.0, max as f64);
         if let Some(v) = half_field(ui, b, right, y, half, icon, &tr(tip), field) {
@@ -473,7 +473,7 @@ pub(super) fn bullets_section(app: &mut DesignApp, ui: &mut Ui) {
         ui.spacing_mut().item_spacing.x = 10.0;
         // As InDesign's: a list with the default hanging indent, or (pressed: every selected
         // paragraph has it, as Type › Apply Bullets shows) no list.
-        use designcraft_doc::ListType;
+        use patronusdesign_doc::ListType;
         for (icon, kind, cmd, tip) in
             [("bullets", ListType::Bullets, "list.bullets", "Bulleted List"), ("numbering", ListType::Numbers, "list.numbers", "Numbered List")]
         {
@@ -520,9 +520,9 @@ pub(super) fn quick_actions_text(app: &mut DesignApp, ui: &mut Ui) {
 /// frame, the frame that shows the caret, or the first frame holding selected text. Its id, its
 /// options, and whether its outline is not its own rectangle (an oval, a polygon or corner
 /// options), where the text keeps one inset from the outline. Type on a path is not shaped.
-pub(super) fn text_frame_target(app: &DesignApp) -> Option<(designcraft_doc::ItemId, designcraft_doc::TextFrameOptions, bool)> {
+pub(super) fn text_frame_target(app: &DesignApp) -> Option<(patronusdesign_doc::ItemId, patronusdesign_doc::TextFrameOptions, bool)> {
     let st = app.session.active()?;
-    let fid = designcraft_engine::cmd::text_frame_options_frames(&app.session).first().copied()?;
+    let fid = patronusdesign_engine::cmd::text_frame_options_frames(&app.session).first().copied()?;
     let item = st.doc.item(fid)?;
     let opts = item.text_frame()?.options.clone();
     Some((fid, opts, is_shaped(item)))
@@ -530,8 +530,8 @@ pub(super) fn text_frame_target(app: &DesignApp) -> Option<(designcraft_doc::Ite
 
 /// Whether a text frame's outline is not its own rectangle, where its text keeps one inset from
 /// the outline. Type on a path is not shaped.
-fn is_shaped(item: &designcraft_doc::Item) -> bool {
-    item.text_frame().is_some_and(|tf| tf.options.path.is_none()) && designcraft_compose::FrameOutline::of_item(item, 0.0).is_some()
+fn is_shaped(item: &patronusdesign_doc::Item) -> bool {
+    item.text_frame().is_some_and(|tf| tf.options.path.is_none()) && patronusdesign_compose::FrameOutline::of_item(item, 0.0).is_some()
 }
 
 /// Text Frame section: columns, gutter, [Options]; Inset Spacing (Top and Bottom, the link that
@@ -569,10 +569,10 @@ pub(super) fn text_frame_section(app: &mut DesignApp, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 4.0;
         for (vj, icon, tip) in [
-            (designcraft_doc::VerticalJustification::Top, "vjust-top", "Top"),
-            (designcraft_doc::VerticalJustification::Center, "vjust-center", "Center"),
-            (designcraft_doc::VerticalJustification::Bottom, "vjust-bottom", "Bottom"),
-            (designcraft_doc::VerticalJustification::Justify, "vjust-justify", "Justify"),
+            (patronusdesign_doc::VerticalJustification::Top, "vjust-top", "Top"),
+            (patronusdesign_doc::VerticalJustification::Center, "vjust-center", "Center"),
+            (patronusdesign_doc::VerticalJustification::Bottom, "vjust-bottom", "Bottom"),
+            (patronusdesign_doc::VerticalJustification::Justify, "vjust-justify", "Justify"),
         ] {
             if icon_toggle(ui, icon, cur == vj, crate::i18n::tr(&app.ui.language, tip)).clicked() {
                 let _ = app.run("object.textFrameOptions", json!({"verticalJustification": vj}));
@@ -584,7 +584,7 @@ pub(super) fn text_frame_section(app: &mut DesignApp, ui: &mut Ui) {
 /// Inset Spacing under the columns: Top and Bottom, the link that makes all four the same, then
 /// Left and Right, as the wrap offsets are laid out. A non-rectangular frame shows one Inset, the
 /// distance its text keeps from the outline.
-fn text_frame_insets(app: &mut DesignApp, ui: &mut Ui, fid: designcraft_doc::ItemId, opts: &designcraft_doc::TextFrameOptions, shaped: bool) {
+fn text_frame_insets(app: &mut DesignApp, ui: &mut Ui, fid: patronusdesign_doc::ItemId, opts: &patronusdesign_doc::TextFrameOptions, shaped: bool) {
     let t = Tokens::get(ui.ctx());
     let lang = app.ui.language.clone();
     let tr = |s: &str| crate::i18n::tr(&lang, s).to_string();
@@ -606,7 +606,7 @@ fn text_frame_insets(app: &mut DesignApp, ui: &mut Ui, fid: designcraft_doc::Ite
             // rectangular frame among them (part of the same selected text), only the top inset
             // changes and each frame keeps its other sides.
             let all_shaped = app.session.active().is_some_and(|st| {
-                designcraft_engine::cmd::text_frame_options_frames(&app.session)
+                patronusdesign_engine::cmd::text_frame_options_frames(&app.session)
                     .iter()
                     .filter_map(|id| st.doc.item(*id))
                     .filter(|it| it.text_frame().is_some_and(|tf| tf.options.path.is_none()))
@@ -623,7 +623,7 @@ fn text_frame_insets(app: &mut DesignApp, ui: &mut Ui, fid: designcraft_doc::Ite
     // every one of them has four equal insets, so a frame with uneven sides keeps them when one
     // side changes.
     let doc_epoch = app.session.active().map_or(0, |st| st.identity_epoch);
-    let targets = designcraft_engine::cmd::text_frame_options_frames(&app.session);
+    let targets = patronusdesign_engine::cmd::text_frame_options_frames(&app.session);
     let target_ids: Vec<u64> = targets.iter().map(|id| id.0).collect();
     let link_id = egui::Id::unique(("prop_tf_inset_linked", doc_epoch, fid.0, target_ids));
     let even = |i: &[f64; 4]| i.iter().all(|v| (v - i[0]).abs() < 1e-9);

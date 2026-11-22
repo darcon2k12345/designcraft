@@ -35,9 +35,9 @@ pub fn specs() -> Vec<CommandSpec> {
             ok()
         }),
         cmd!(noundo "file.open", "Open…", ["File"], Some("Cmd+O"),
-            "{path} — a DesignCraft or IDML file (recognised by its content, so the extension may be missing), or an InDesign .indd/.indt (recognised by its signature or extension, converted to IDML; its conversion warnings join `warnings`); the fonts in a `Document Fonts` folder beside it load first → {index, documentFonts: faces loaded, warnings: font files skipped, GREP styles whose pattern can't compile, Based on Parent links cleared and, for IDML and InDesign files, package parts missing; warningItems (IDML and InDesign files): per warning, the id of the frame it is about, or null}",
+            "{path} — a Patronus Design or IDML file (recognised by its content, so the extension may be missing), or an InDesign .indd/.indt (recognised by its signature or extension, converted to IDML; its conversion warnings join `warnings`); the fonts in a `Document Fonts` folder beside it load first → {index, documentFonts: faces loaded, warnings: font files skipped, GREP styles whose pattern can't compile, Based on Parent links cleared and, for IDML and InDesign files, package parts missing; warningItems (IDML and InDesign files): per warning, the id of the frame it is about, or null}",
             always, file_open),
-        cmd!(noundo "file.openBytes", "Open Bytes", [], None, "{name, base64} — DesignCraft JSON, an IDML package or an InDesign .indd/.indt → {index, warnings}", always, file_open_bytes),
+        cmd!(noundo "file.openBytes", "Open Bytes", [], None, "{name, base64} — Patronus Design JSON, an IDML package or an InDesign .indd/.indt → {index, warnings}", always, file_open_bytes),
         cmd!(noundo "file.openRecent", "Open Recent File", [], None,
             "{index} — reopen entry `index` of File › Open Recent (as file.open); a file that is gone is an error and stays listed",
             has_recent, file_open_recent),
@@ -104,7 +104,7 @@ pub fn specs() -> Vec<CommandSpec> {
         "{path | base64, name} → {paragraph: [name], character: [name], conflicts: [name]} — the styles a Word/RTF file brings (for styleMap / styleConflicts)",
         has_doc, |s, p| {
             let source = read_source(p)?;
-            let imp = designcraft_textimport::import(&source.name, &source.bytes).map_err(|e| bad("place.styles", e.to_string()))?;
+            let imp = patronusdesign_textimport::import(&source.name, &source.bytes).map_err(|e| bad("place.styles", e.to_string()))?;
             let st = &s.doc()?.doc.styles;
             let conflicts: Vec<&str> = imp
                 .para_styles

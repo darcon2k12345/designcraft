@@ -11,10 +11,10 @@ use std::sync::{Arc, Weak};
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::{Duration, Instant};
 
-use designcraft_compose::Cache;
-use designcraft_doc::Document;
-use designcraft_engine::cmd::LinkListChecks;
-use designcraft_engine::cmd::preflight::{Issue, check_document};
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::Document;
+use patronusdesign_engine::cmd::LinkListChecks;
+use patronusdesign_engine::cmd::preflight::{Issue, check_document};
 
 use crate::DesignApp;
 
@@ -346,10 +346,10 @@ impl Worker {
 }
 
 /// Whether checks run on the worker: not in tests (they can start one with [`start_worker`]) and
-/// not with `DESIGNCRAFT_SYNC_RENDER` set.
+/// not with `PATRONUSDESIGN_SYNC_RENDER` set.
 #[cfg(not(target_arch = "wasm32"))]
 fn background() -> bool {
-    !cfg!(test) && std::env::var_os("DESIGNCRAFT_SYNC_RENDER").is_none()
+    !cfg!(test) && std::env::var_os("PATRONUSDESIGN_SYNC_RENDER").is_none()
 }
 
 /// Counts a worker thread as alive until it ends, however it ends.
@@ -370,7 +370,7 @@ fn spawn(ctx: egui::Context, live: &Arc<std::sync::atomic::AtomicUsize>) -> Opti
     live.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let alive = Alive(Arc::clone(live));
     std::thread::Builder::new()
-        .name("designcraft-preflight".into())
+        .name("patronusdesign-preflight".into())
         .spawn(move || {
             let _alive = alive;
             let mut own = None;

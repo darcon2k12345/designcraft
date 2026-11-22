@@ -20,7 +20,7 @@ mod fonts;
 
 /// [`print_settings_and_profile`] without the ICC bytes, kept for tests.
 #[cfg(test)]
-pub(crate) fn print_settings_with(cms: &designcraft_color::cms::Cms, intent: bool) -> crate::Result<(krilla::SerializeSettings, Option<String>)> {
+pub(crate) fn print_settings_with(cms: &patronusdesign_color::cms::Cms, intent: bool) -> crate::Result<(krilla::SerializeSettings, Option<String>)> {
     let (settings, _, warning) = print_settings_and_profile_with(cms, intent)?;
     Ok((settings, warning))
 }
@@ -31,12 +31,12 @@ pub(crate) fn print_settings_with(cms: &designcraft_color::cms::Cms, intent: boo
 /// the working space is also the `GTS_PDFX` output intent, with `/Trapped /False`. The third
 /// value is a warning when the working space's profile was replaced.
 pub(crate) fn print_settings_and_profile(intent: bool) -> crate::Result<(krilla::SerializeSettings, Vec<u8>, Option<String>)> {
-    print_settings_and_profile_with(&designcraft_color::cms::active(), intent)
+    print_settings_and_profile_with(&patronusdesign_color::cms::active(), intent)
 }
 
 /// [`print_settings_and_profile`] for the working spaces of `cms`.
 pub(crate) fn print_settings_and_profile_with(
-    cms: &designcraft_color::cms::Cms,
+    cms: &patronusdesign_color::cms::Cms,
     intent: bool,
 ) -> crate::Result<(krilla::SerializeSettings, Vec<u8>, Option<String>)> {
     let write = |color: PrintColor<'_>| if intent { print::settings(color) } else { print::cmyk_blending(color.profile) };

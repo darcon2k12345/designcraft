@@ -20,7 +20,7 @@ A single selected file retains the normal Place behavior, including filling a se
 - One image dropped anywhere else is placed at once where it lands, at its natural size.
 - Several images dropped together load into the place cursor in the order they came, wherever they are dropped.
 - Images dropped while the cursor already holds some queue after them, a single one included.
-- DesignCraft, IDML and InDesign documents open; text files (.txt, .docx, .rtf, .md) and spreadsheets go into a new frame where they are dropped; a PDF is placed where it is dropped (or fills the frame under it); swatch exchange (.ase) files load their swatches.
+- Patronus Design, IDML and InDesign documents open; text files (.txt, .docx, .rtf, .md) and spreadsheets go into a new frame where they are dropped; a PDF is placed where it is dropped (or fills the frame under it); swatch exchange (.ase) files load their swatches.
 
 Each placed image links to its file (see [linked-artwork.md](linked-artwork.md)). Images supplied as `base64` bytes are embedded, as on the web.
 

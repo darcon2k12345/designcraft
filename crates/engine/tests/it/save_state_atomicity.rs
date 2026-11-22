@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use designcraft_engine::Session;
+use patronusdesign_engine::Session;
 use serde_json::json;
 
 fn linked_document(root: &Path) -> (Session, std::path::PathBuf) {
@@ -55,7 +55,7 @@ fn save_a_copy_rebases_its_data_source_without_changing_the_open_document() {
 
     session.execute("file.saveACopy", &json!({"path": destination})).unwrap();
 
-    let copy = designcraft_format::load(&std::fs::read(destination).unwrap()).unwrap();
+    let copy = patronusdesign_format::load(&std::fs::read(destination).unwrap()).unwrap();
     assert_eq!(copy.data_merge.sources[0].relative_path.as_deref().map(Path::new), Some(Path::new("../../source/contacts.csv")));
     let after = session.doc().unwrap();
     assert!(Arc::ptr_eq(&before.doc, &after.doc));

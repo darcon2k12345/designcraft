@@ -1,6 +1,6 @@
 //! Linked-story threading and text-color transaction safety.
-use designcraft_doc::{ParaFormat, Story, StoryId, table::Table};
-use designcraft_engine::Session;
+use patronusdesign_doc::{ParaFormat, Story, StoryId, table::Table};
+use patronusdesign_engine::Session;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
@@ -123,7 +123,7 @@ fn nested_story(depth: usize, name: &str) -> Story {
     let mut st = Story::with_text(StoryId(0), "leaf", ParaFormat::default());
     st.chars[0].format.over.fill = Some(name.into());
     for _ in 0..depth {
-        let mut outer = Story::with_text(StoryId(0), &designcraft_doc::TABLE_ANCHOR.to_string(), ParaFormat::default());
+        let mut outer = Story::with_text(StoryId(0), &patronusdesign_doc::TABLE_ANCHOR.to_string(), ParaFormat::default());
         let mut t = Table::new(1, 1, 1, 0, 0, 100.);
         t.cells[0].text = st;
         outer.tables.insert(1, Arc::new(t));
@@ -279,18 +279,18 @@ fn safety_thread_allows_unrelated_empty_frame_beside_linked_descendant() {
         let undo_len = s.doc().unwrap().history.undo.len();
         assert_eq!(before.story(leaf).unwrap().rev, 1);
         let (from, to) = if empty_first { (empty_frame, leaf_frame) } else { (leaf_frame, empty_frame) };
-        let frames = vec![designcraft_doc::ItemId(from), designcraft_doc::ItemId(to)];
+        let frames = vec![patronusdesign_doc::ItemId(from), patronusdesign_doc::ItemId(to)];
         let mut expected = (*before).clone();
         expected.stories.remove(&empty_story);
         let st = expected.story_mut(leaf).unwrap();
         st.frames = frames;
         st.rev = 2;
-        expected.item_mut(designcraft_doc::ItemId(empty_frame)).unwrap().text_frame_mut().unwrap().story = leaf;
+        expected.item_mut(patronusdesign_doc::ItemId(empty_frame)).unwrap().text_frame_mut().unwrap().story = leaf;
 
         s.execute("text.thread", &json!({"from": from, "to": to})).unwrap();
 
         assert_eq!(*s.doc().unwrap().doc, expected);
-        assert_eq!(s.doc().unwrap().selection, designcraft_doc::Selection::items(vec![designcraft_doc::ItemId(to)]));
+        assert_eq!(s.doc().unwrap().selection, patronusdesign_doc::Selection::items(vec![patronusdesign_doc::ItemId(to)]));
         assert_eq!(s.doc().unwrap().history.undo.len(), undo_len + 1);
         assert_eq!(link(&mut s, middle)["outOfDate"], false);
         assert_eq!(link(&mut s, leaf)["outOfDate"], false);

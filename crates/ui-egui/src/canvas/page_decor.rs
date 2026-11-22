@@ -18,7 +18,7 @@ pub(super) const PAGE_EDGE: Color32 = Color32::from_rgb(0x4a, 0x4a, 0x4a);
 pub(super) const MAX_BASELINES: usize = 216 * 72;
 
 /// Baseline grid lines inside a page, measured from its top: `start + n * increment` for n >= 0 (the bottom
-/// edge is not a line), `start` from [`BaselineGrid::origin`](designcraft_doc::BaselineGrid::origin). Lines
+/// edge is not a line), `start` from [`BaselineGrid::origin`](patronusdesign_doc::BaselineGrid::origin). Lines
 /// above the page are skipped without walking them, however far up the start is.
 pub(super) fn baseline_grid_lines(start: f64, increment: f64, height: f64) -> impl Iterator<Item = f64> {
     let step = increment.max(1.0);
@@ -85,7 +85,7 @@ pub(super) fn draw_guides(
 const GUIDE_MARGIN: f32 = 2.0;
 
 /// The bleed and slug outlines of a spread, in their own colours.
-fn draw_bleed_and_slug(painter: &egui::Painter, xf: &Xf, doc: &Document, slot: &SpreadSlot, sp: &designcraft_doc::Spread, clip: Rect) {
+fn draw_bleed_and_slug(painter: &egui::Painter, xf: &Xf, doc: &Document, slot: &SpreadSlot, sp: &patronusdesign_doc::Spread, clip: Rect) {
     let s = &doc.settings;
     let rect = |r: DRect| xf.rect(slot.xf.transform_rect_bbox(r));
     // Bleed, then slug: one rectangle each around the spread (the inside offset only applies
@@ -98,9 +98,9 @@ fn draw_bleed_and_slug(painter: &egui::Painter, xf: &Xf, doc: &Document, slot: &
 }
 
 /// The spine: a hairline at each edge where two pages of a spread meet
-/// ([`designcraft_doc::Spread::page_seams`]), in the spread edge's colour ([`PAGE_EDGE`]). Screen
+/// ([`patronusdesign_doc::Spread::page_seams`]), in the spread edge's colour ([`PAGE_EDGE`]). Screen
 /// only, like the other guides; the paper is one rectangle and exports never show a seam.
-fn draw_spine(painter: &egui::Painter, xf: &Xf, slot: &SpreadSlot, sp: &designcraft_doc::Spread) {
+fn draw_spine(painter: &egui::Painter, xf: &Xf, slot: &SpreadSlot, sp: &patronusdesign_doc::Spread) {
     let pt = |p: Point| xf.to_screen(slot.xf * p);
     for (x, y0, y1) in sp.page_seams() {
         painter.line_segment([pt(Point::new(x, y0)), pt(Point::new(x, y1))], Stroke::new(hair(painter), PAGE_EDGE));
@@ -108,7 +108,7 @@ fn draw_spine(painter: &egui::Painter, xf: &Xf, slot: &SpreadSlot, sp: &designcr
 }
 
 /// Page tool › Show Parent Page Overlay: the parent page's size over the page.
-fn draw_parent_overlay(painter: &egui::Painter, xf: &Xf, doc: &Document, slot: &SpreadSlot, pi: usize, p: &designcraft_doc::Page, pr: DRect) {
+fn draw_parent_overlay(painter: &egui::Painter, xf: &Xf, doc: &Document, slot: &SpreadSlot, pi: usize, p: &patronusdesign_doc::Page, pr: DRect) {
     let rect = |r: DRect| xf.rect(slot.xf.transform_rect_bbox(r));
     if p.show_parent_overlay
         && let SpreadRef::Doc(si) = slot.spread
@@ -126,7 +126,7 @@ fn draw_parent_overlay(painter: &egui::Painter, xf: &Xf, doc: &Document, slot: &
 
 /// A page's baseline grid (when `baseline` is on and the view is zoomed in far enough), margins
 /// and columns.
-fn draw_page_grids(painter: &egui::Painter, xf: &Xf, doc: &Document, slot: &SpreadSlot, p: &designcraft_doc::Page, pr: DRect, baseline: bool) {
+fn draw_page_grids(painter: &egui::Painter, xf: &Xf, doc: &Document, slot: &SpreadSlot, p: &patronusdesign_doc::Page, pr: DRect, baseline: bool) {
     let s = &doc.settings;
     let pt = |q: Point| xf.to_screen(slot.xf * q);
     let rect = |r: DRect| xf.rect(slot.xf.transform_rect_bbox(r));
@@ -162,7 +162,7 @@ struct GuideCtx<'a> {
     xf: &'a Xf,
     doc: &'a Document,
     slot: &'a SpreadSlot,
-    sp: &'a designcraft_doc::Spread,
+    sp: &'a patronusdesign_doc::Spread,
     pasteboard: DRect,
     /// The painter's clip rectangle: a guide outside it is not painted.
     clip: Rect,
@@ -172,7 +172,7 @@ struct GuideCtx<'a> {
 /// guides where they would be dropped. `page`: its index in the spread, the page, and its bounds.
 fn draw_page_guides(
     cx: &GuideCtx,
-    page: (usize, &designcraft_doc::Page, DRect),
+    page: (usize, &patronusdesign_doc::Page, DRect),
     moving: Option<&MovingGuides>,
     selection: &std::collections::HashSet<GuideSel>,
 ) {
@@ -188,8 +188,8 @@ fn draw_page_guides(
             && m.guides.contains(&key)
         {
             g.position += match g.orientation {
-                designcraft_doc::Orientation::Vertical => m.dx,
-                designcraft_doc::Orientation::Horizontal => m.dy,
+                patronusdesign_doc::Orientation::Vertical => m.dx,
+                patronusdesign_doc::Orientation::Horizontal => m.dy,
             };
         }
         draw_guide(cx, pr, &g, selected);
@@ -197,14 +197,14 @@ fn draw_page_guides(
 }
 
 /// One guide as a line: across the pasteboard for a spread guide, across its page otherwise.
-fn draw_guide(cx: &GuideCtx, pr: DRect, g: &designcraft_doc::Guide, selected: bool) {
+fn draw_guide(cx: &GuideCtx, pr: DRect, g: &patronusdesign_doc::Guide, selected: bool) {
     let GuideCtx { painter, xf, doc, slot, sp, pasteboard, clip } = *cx;
     let pt = |q: Point| xf.to_screen(slot.xf * q);
     // Spread guides cross the pasteboard; page guides their page.
     let span = if g.spread { pasteboard } else { pr };
     let (a, bb) = match g.orientation {
-        designcraft_doc::Orientation::Horizontal => (Point::new(span.x0, g.position), Point::new(span.x1, g.position)),
-        designcraft_doc::Orientation::Vertical => {
+        patronusdesign_doc::Orientation::Horizontal => (Point::new(span.x0, g.position), Point::new(span.x1, g.position)),
+        patronusdesign_doc::Orientation::Vertical => {
             let span = if g.spread { sp.bounds().inflate(0.0, 36.0) } else { pr };
             (Point::new(g.position, span.y0), Point::new(g.position, span.y1))
         }
@@ -236,7 +236,7 @@ pub(super) fn draw_flattener_preview(painter: &egui::Painter, xf: &Xf, doc: &Doc
     for slot in &layout.slots {
         let Some(sp) = doc.spread(slot.spread) else { continue };
         for it in sp.items.iter().filter(|it| !it.hidden && transparent(it)) {
-            let r = it.bounds().inflate(designcraft_render::effect_outset(it), designcraft_render::effect_outset(it));
+            let r = it.bounds().inflate(patronusdesign_render::effect_outset(it), patronusdesign_render::effect_outset(it));
             let r = slot.xf.transform_rect_bbox(r);
             if in_view(xf, painter.clip_rect(), r, 0.0) {
                 painter.rect_filled(xf.rect(r), 0.0, red);

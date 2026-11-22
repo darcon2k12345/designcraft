@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use designcraft_doc::{CharFormat, ParaFormat, Story, StoryId, Table};
+use patronusdesign_doc::{CharFormat, ParaFormat, Story, StoryId, Table};
 
 use crate::{ImportError, Imported};
 

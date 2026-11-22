@@ -229,7 +229,7 @@ impl Default for TextFrameOptions {
             auto_size_no_line_breaks: false,
             column_rule: false,
             column_rule_weight: 1.0,
-            column_rule_color: designcraft_color::swatch::BLACK.into(),
+            column_rule_color: patronusdesign_color::swatch::BLACK.into(),
             column_rule_tint: 1.0,
             column_rule_offset: 0.0,
             column_rule_top_inset: 0.0,
@@ -366,7 +366,7 @@ pub struct TextWrap {
     pub alpha_threshold: u8,
 }
 
-/// DesignCraft's default alpha threshold for Alpha Channel contour wraps.
+/// Patronus Design's default alpha threshold for Alpha Channel contour wraps.
 pub const DEFAULT_ALPHA_THRESHOLD: u8 = 25;
 
 fn is_default_alpha_threshold(t: &u8) -> bool {

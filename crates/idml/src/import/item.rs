@@ -78,7 +78,7 @@ impl<'r> Importer<'r> {
                     .cloned()
                     .unwrap_or_else(|| names::style_name_in(OBJECT_BUILTINS, &unescape_id(r.trim_start_matches("ObjectStyle/"))))
             })
-            .unwrap_or_else(|| designcraft_doc::NO_OBJECT_STYLE.into());
+            .unwrap_or_else(|| patronusdesign_doc::NO_OBJECT_STYLE.into());
         // Fill and stroke.
         if tag != "Group" {
             let style_chain = self.object_style_chain(e);
@@ -167,13 +167,13 @@ impl<'r> Importer<'r> {
             let story_self = tp.parent_story().unwrap_or("n").to_string();
             if let Some(story) = self.story_ids.get(&story_self).copied() {
                 let options = TextFrameOptions {
-                    path: Some(designcraft_doc::PathType {
+                    path: Some(patronusdesign_doc::PathType {
                         start: tp.start_bracket().unwrap_or(0.0).max(0.0),
                         // At (or past) the path's length it is the path's end: no end bracket.
                         end: tp
                             .end_bracket()
                             .filter(|e| e.is_finite() && *e >= 0.0)
-                            .filter(|e| *e < designcraft_geom::warp::PathWarp::new(&it.path.to_bezpath(), false).length() - 0.01),
+                            .filter(|e| *e < patronusdesign_geom::warp::PathWarp::new(&it.path.to_bezpath(), false).length() - 0.01),
                         flip: tp.flipped(),
                         align: names::path_align_in(tp.alignment().unwrap_or("")),
                     }),
@@ -211,14 +211,14 @@ impl<'r> Importer<'r> {
                 if let Some(g) = self.with_style(e, "BaselineFrameGridOption") {
                     let grid = craft_idml::model::BaselineFrameGridOption::from_el(&crate::xml::to_craft(&g));
                     if grid.use_custom {
-                        options.baseline_grid = Some(designcraft_doc::FrameBaselineGrid {
+                        options.baseline_grid = Some(patronusdesign_doc::FrameBaselineGrid {
                             start: grid.start,
                             increment: grid.increment,
                             relative_to: match grid.relative_to {
-                                craft_idml::model::BaselineFrameGridRelative::TopMargin => designcraft_doc::FrameGridRelative::TopMargin,
-                                craft_idml::model::BaselineFrameGridRelative::TopOfFrame => designcraft_doc::FrameGridRelative::TopOfFrame,
-                                craft_idml::model::BaselineFrameGridRelative::TopInset => designcraft_doc::FrameGridRelative::TopInset,
-                                craft_idml::model::BaselineFrameGridRelative::TopOfPage => designcraft_doc::FrameGridRelative::TopOfPage,
+                                craft_idml::model::BaselineFrameGridRelative::TopMargin => patronusdesign_doc::FrameGridRelative::TopMargin,
+                                craft_idml::model::BaselineFrameGridRelative::TopOfFrame => patronusdesign_doc::FrameGridRelative::TopOfFrame,
+                                craft_idml::model::BaselineFrameGridRelative::TopInset => patronusdesign_doc::FrameGridRelative::TopInset,
+                                craft_idml::model::BaselineFrameGridRelative::TopOfPage => patronusdesign_doc::FrameGridRelative::TopOfPage,
                             },
                         });
                     }
@@ -257,9 +257,9 @@ impl<'r> Importer<'r> {
                         gr.fit_align = fitting.alignment.as_deref().map_or(4, names::anchor_in);
                         if fitting.auto_fit {
                             gr.auto_fit =
-                                fitting.fitting_on_empty_frame.as_deref().map_or(designcraft_doc::Fitting::FillProportionally, names::fitting_in);
-                            if gr.auto_fit == designcraft_doc::Fitting::None {
-                                gr.auto_fit = designcraft_doc::Fitting::FillProportionally;
+                                fitting.fitting_on_empty_frame.as_deref().map_or(patronusdesign_doc::Fitting::FillProportionally, names::fitting_in);
+                            if gr.auto_fit == patronusdesign_doc::Fitting::None {
+                                gr.auto_fit = patronusdesign_doc::Fitting::FillProportionally;
                             }
                         }
                     }
@@ -292,13 +292,17 @@ impl<'r> Importer<'r> {
     }
 
     fn graphic(&mut self, g: &El, model: &craft_idml::model::Graphic) -> Content {
-        let layer_options = model.layer_options().map(|options| designcraft_doc::GraphicLayerOptions {
+        let layer_options = model.layer_options().map(|options| patronusdesign_doc::GraphicLayerOptions {
             attributes: options.attributes.into_iter().collect(),
             layers: options.layers.into_iter().map(IntoIterator::into_iter).map(Iterator::collect).collect(),
             parents: options.parents,
         });
-        if layer_options.as_ref().is_some_and(designcraft_doc::GraphicLayerOptions::has_visibility_overrides) {
-            self.warnings.push(format!("graphic {}: {}", model.self_id().unwrap_or("(unnamed)"), designcraft_doc::GRAPHIC_LAYER_RENDERING_WARNING));
+        if layer_options.as_ref().is_some_and(patronusdesign_doc::GraphicLayerOptions::has_visibility_overrides) {
+            self.warnings.push(format!(
+                "graphic {}: {}",
+                model.self_id().unwrap_or("(unnamed)"),
+                patronusdesign_doc::GRAPHIC_LAYER_RENDERING_WARNING
+            ));
         }
         let gxf = Affine::new(model.item_transform());
         let [l, t, r, b] = model.bounds();
@@ -309,7 +313,7 @@ impl<'r> Importer<'r> {
         let clip = clipping_path(g, Affine::translate((-l, -t)));
         let uri = model.link().and_then(|link| link.uri()).map(uri_to_path);
         let graphic = |asset, size| {
-            Content::Graphic(designcraft_doc::Graphic {
+            Content::Graphic(patronusdesign_doc::Graphic {
                 layer_options: layer_options.clone(),
                 asset,
                 size,
@@ -329,7 +333,7 @@ impl<'r> Importer<'r> {
         let page = pdf_attribute.as_ref().map(craft_idml::model::PdfAttribute::page_index).unwrap_or(0);
         // Where the box sits on the page needs the PDF parsed: the engine finds it after import.
         let pdf_crop =
-            pdf_attribute.as_ref().and_then(craft_idml::model::PdfAttribute::crop).map_or(designcraft_doc::PdfCrop::Crop, names::pdf_crop_in);
+            pdf_attribute.as_ref().and_then(craft_idml::model::PdfAttribute::crop).map_or(patronusdesign_doc::PdfCrop::Crop, names::pdf_crop_in);
         let mut read_from = None;
         if data.is_empty()
             && let Some(p) = &uri
@@ -354,7 +358,7 @@ impl<'r> Importer<'r> {
         // file can't be read; the engine makes one from the bytes when there is none.
         let proxy = read_from.as_ref().and(stored_preview).and_then(|p| {
             let (mime, px) = sniff_image(p);
-            Some(designcraft_doc::Proxy { mime: mime?.to_string(), pixels: px?, data: designcraft_doc::AssetData::embedded(Arc::clone(p)) })
+            Some(patronusdesign_doc::Proxy { mime: mime?.to_string(), pixels: px?, data: patronusdesign_doc::AssetData::embedded(Arc::clone(p)) })
         });
         // InDesign draws a viewBox-only SVG at one unit to the point: its GraphicBounds are the
         // art's bounds, which can overhang the viewBox, so they must not size the viewBox.
@@ -377,7 +381,7 @@ impl<'r> Importer<'r> {
                 name,
                 mime,
                 link: link_path,
-                data: designcraft_doc::AssetData::embedded(preview.cloned().unwrap_or_else(|| Arc::new(data))),
+                data: patronusdesign_doc::AssetData::embedded(preview.cloned().unwrap_or_else(|| Arc::new(data))),
                 pixels,
                 pdf_crop,
                 proxy,
@@ -394,8 +398,8 @@ impl<'r> Importer<'r> {
 /// A graphic's `ClippingPathSettings` with its saved geometry, moved into graphic space by
 /// `to_graphic`. `None` for type None, an unknown type, or no geometry (the outline is never
 /// traced here).
-fn clipping_path(g: &El, to_graphic: Affine) -> Option<Arc<designcraft_doc::ClippingPath>> {
-    let settings = craft_idml::model::ClippingPathValues::from_graphic(&crate::xml::to_craft(g), designcraft_doc::MAX_CLIP_ANCHORS)?;
+fn clipping_path(g: &El, to_graphic: Affine) -> Option<Arc<patronusdesign_doc::ClippingPath>> {
+    let settings = craft_idml::model::ClippingPathValues::from_graphic(&crate::xml::to_craft(g), patronusdesign_doc::MAX_CLIP_ANCHORS)?;
     let kind = names::clipping_kind_in(settings.clipping_type.as_deref().unwrap_or("None"))?;
     let mut path = path_from_model(settings.geometry);
     path.subpaths.retain(|sp| sp.anchors.len() > 1 && sp.anchors.iter().all(|a| a.p.is_finite() && a.h_in.is_finite() && a.h_out.is_finite()));
@@ -403,7 +407,7 @@ fn clipping_path(g: &El, to_graphic: Affine) -> Option<Arc<designcraft_doc::Clip
         return None;
     }
     path.transform(to_graphic);
-    let mut c = designcraft_doc::ClippingPath::new(kind, path);
+    let mut c = patronusdesign_doc::ClippingPath::new(kind, path);
     c.invert = settings.invert.unwrap_or(false);
     c.include_inside_edges = settings.include_inside_edges.unwrap_or(false);
     c.restrict_to_frame = settings.restrict_to_frame.unwrap_or(false);

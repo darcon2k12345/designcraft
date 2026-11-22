@@ -7,7 +7,7 @@
 //! parts.
 //!
 //! ## Coordinates
-//! DesignCraft spreads have their origin at the top-left of the first page (y down). IDML spread
+//! Patronus Design spreads have their origin at the top-left of the first page (y down). IDML spread
 //! coordinates have their origin at the binding spine (facing pages) or the spread centre
 //! (single-sided documents), vertically centred on the pages; pages are placed by their
 //! `ItemTransform` and every page item's geometry is `PathGeometry` in inner coordinates mapped by
@@ -85,9 +85,9 @@ pub(crate) fn sniff_image(b: &[u8]) -> (Option<&'static str>, Option<(u32, u32)>
     let Some(format) = craft_file_formats::detect("", b) else { return (None, None) };
     let mime = format.mime_type();
     let pixels = if format == craft_file_formats::Format::Eps {
-        designcraft_images::eps_pixel_size(b)
+        patronusdesign_images::eps_pixel_size(b)
     } else if mime.is_some_and(|mime| mime.starts_with("image/")) {
-        designcraft_images::pixel_size(b)
+        patronusdesign_images::pixel_size(b)
     } else {
         None
     };

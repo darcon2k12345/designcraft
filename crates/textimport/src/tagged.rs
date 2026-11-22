@@ -1,6 +1,6 @@
-//! DesignCraft model adapter for the shared Tagged Text codec.
+//! Patronus Design model adapter for the shared Tagged Text codec.
 
-use designcraft_doc::{CharFormat, Document, Story, StoryId, attrs::CharAttrs, story::NO_CHAR_STYLE};
+use patronusdesign_doc::{CharFormat, Document, Story, StoryId, attrs::CharAttrs, story::NO_CHAR_STYLE};
 
 use crate::{ImportError, Imported, ImportedStyle};
 
@@ -54,7 +54,7 @@ pub fn import(bytes: &[u8]) -> Result<Imported, ImportError> {
                 over: CharAttrs {
                     font_family: run.format.font.clone(),
                     font_style: run.format.typeface.clone(),
-                    size: run.format.size.and_then(designcraft_doc::attrs::imported_type_size),
+                    size: run.format.size.and_then(patronusdesign_doc::attrs::imported_type_size),
                     ..Default::default()
                 },
             };

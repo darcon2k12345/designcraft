@@ -724,8 +724,8 @@ mod tests {
 
     #[test]
     fn inline_resources_inherited_pages_preserved_existing_and_cyclic_forms() {
-        let generic = designcraft_color::cms::Cms::new(&designcraft_color::cms::ColorSettings {
-            cmyk: designcraft_color::cms::GENERIC_CMYK.into(),
+        let generic = patronusdesign_color::cms::Cms::new(&patronusdesign_color::cms::ColorSettings {
+            cmyk: patronusdesign_color::cms::GENERIC_CMYK.into(),
             ..Default::default()
         })
         .unwrap();

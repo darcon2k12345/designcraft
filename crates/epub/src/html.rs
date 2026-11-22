@@ -24,7 +24,7 @@ pub fn reading_order(doc: &Document) -> Vec<Block> {
                 // top-level item's: pages draw a group's members on the group's layer.
                 if doc.find(*id).is_some_and(|loc| {
                     (1..=loc.path.len()).any(|n| {
-                        doc.item_at(&designcraft_doc::ItemLoc { spread: loc.spread, path: loc.path[..n].to_vec() })
+                        doc.item_at(&patronusdesign_doc::ItemLoc { spread: loc.spread, path: loc.path[..n].to_vec() })
                             .is_some_and(|g| g.hidden || n == 1 && hidden_layers.contains(&g.layer))
                     })
                 }) {
@@ -106,7 +106,7 @@ pub fn reading_order(doc: &Document) -> Vec<Block> {
 }
 
 /// The items the page shows: not hidden themselves, in a hidden group, or (top level) on a hidden layer.
-fn shown_items(doc: &Document, hidden_layers: &[designcraft_doc::LayerId]) -> std::collections::HashSet<ItemId> {
+fn shown_items(doc: &Document, hidden_layers: &[patronusdesign_doc::LayerId]) -> std::collections::HashSet<ItemId> {
     let mut shown = std::collections::HashSet::new();
     for sp in &doc.spreads {
         let mut stack: Vec<(&Item, bool)> = sp.items.iter().map(|i| (&**i, true)).collect();
@@ -124,7 +124,7 @@ fn shown_items(doc: &Document, hidden_layers: &[designcraft_doc::LayerId]) -> st
 /// Package path of an asset: `{dir}/{name}-{id}.{ext}`, the name from its original file name
 /// (lowercase ASCII, so the package stays readable) and the id keeping two assets of the same
 /// name apart.
-pub(crate) fn asset_path(dir: &str, a: &designcraft_doc::Asset, mime: &str) -> String {
+pub(crate) fn asset_path(dir: &str, a: &patronusdesign_doc::Asset, mime: &str) -> String {
     let stem = a.name.rsplit(['/', '\\']).next().unwrap_or("");
     let stem = stem.rsplit_once('.').map_or(stem, |(s, _)| s);
     let name: String = stem.chars().map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
@@ -260,7 +260,7 @@ pub fn export_html(doc: &Document, opts: &HtmlOptions) -> String {
     })
     .html;
     format!(
-        "<!DOCTYPE html>\n<html lang=\"{lang}\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<meta name=\"generator\" content=\"DesignCraft\">\n<title>{}</title>\n<style>\nbody {{ max-width: 40em; margin: 2em auto; padding: 0 1em; }}\nfigure {{ margin: 1em 0; }} figure img {{ max-width: 100%; height: auto; }}\n{}</style>\n</head>\n<body>\n{body}</body>\n</html>\n",
+        "<!DOCTYPE html>\n<html lang=\"{lang}\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<meta name=\"generator\" content=\"Patronus Design\">\n<title>{}</title>\n<style>\nbody {{ max-width: 40em; margin: 2em auto; padding: 0 1em; }}\nfigure {{ margin: 1em 0; }} figure img {{ max-width: 100%; height: auto; }}\n{}</style>\n</head>\n<body>\n{body}</body>\n</html>\n",
         xml_text(&title),
         stylesheet_with(doc, &opts.generic_families, &[])
     )

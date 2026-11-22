@@ -423,7 +423,7 @@ impl Document {
 mod tests {
     use super::*;
     use crate::{Graphic, ItemId, LayerId, Shape, StoryId};
-    use designcraft_geom::{Affine, Rect, shapes};
+    use patronusdesign_geom::{Affine, Rect, shapes};
 
     fn asset(id: u64, data: &[u8]) -> Asset {
         Asset {

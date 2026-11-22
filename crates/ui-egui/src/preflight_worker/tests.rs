@@ -10,7 +10,7 @@ use crate::test_window;
 /// A document whose one text frame is too small for its text (one preflight error), with the
 /// frame's id.
 fn overset_app() -> (crate::DesignApp, u64) {
-    let mut app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+    let mut app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"pages": 3})).unwrap();
     let text = "Words that do not fit the frame. ".repeat(40);
     let r = app.run("frame.create", json!({"rect": [72, 72, 200, 100], "content": "text", "text": text})).unwrap();
@@ -80,7 +80,7 @@ fn a_new_save_path_or_font_reload_is_checked_again() {
     app.run("file.saveAs", json!({"path": dir.path().join("a.designcraft").to_string_lossy()})).unwrap();
     assert!(super::issues(&mut app, &ctx).is_some());
     assert_eq!(app.preflight.inline_checks, 2, "saved under a path");
-    app.session.cache = Arc::new(designcraft_compose::Cache::new());
+    app.session.cache = Arc::new(patronusdesign_compose::Cache::new());
     assert!(super::issues(&mut app, &ctx).is_some());
     assert_eq!(app.preflight.inline_checks, 3, "new compositions");
     if let Some(st) = app.session.active_mut() {
@@ -243,7 +243,7 @@ fn a_check_of_an_older_state_keeps_the_current_compositions() {
     let (of, doc) = Checked::new(&app).unwrap();
     super::check(&mut own, &mut Default::default(), super::Job { of, doc, cache: Arc::clone(&cache) });
     assert!(Arc::ptr_eq(&own.as_ref().unwrap().1.get(&older_doc, sid, None), &earlier), "kept for the next check");
-    let reloaded = Arc::new(designcraft_compose::Cache::new());
+    let reloaded = Arc::new(patronusdesign_compose::Cache::new());
     let (of, doc) = Checked::new(&app).unwrap();
     super::check(&mut own, &mut Default::default(), super::Job { of, doc, cache: Arc::clone(&reloaded) });
     assert!(own.as_ref().unwrap().1.base().is_some_and(|b| Arc::ptr_eq(b, &reloaded)), "a new cache after a font reload");

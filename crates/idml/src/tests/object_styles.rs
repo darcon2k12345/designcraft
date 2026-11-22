@@ -1,6 +1,6 @@
 //! Page items take the values their object style chain gives wherever the item has none.
 
-use designcraft_geom::corners::CornerShape;
+use patronusdesign_geom::corners::CornerShape;
 
 use super::*;
 
@@ -43,7 +43,7 @@ fn fixture(styles: &str, items: &[(&str, &str)]) -> Document {
     import_idml(&zip_files(&[("designmap.xml", &designmap), ("Spreads/Spread_s.xml", &spread)])).unwrap()
 }
 
-fn assert_round(it: &designcraft_doc::Item, size: f64) {
+fn assert_round(it: &patronusdesign_doc::Item, size: f64) {
     for c in it.corners.corners {
         assert_eq!(c.shape, CornerShape::Rounded, "{:?}", it.corners);
         assert!((c.size - size).abs() < 1e-9, "{:?}", it.corners);
@@ -114,7 +114,7 @@ fn values_resolve_through_the_based_on_chain_attribute_by_attribute() {
     assert!(ds.on, "Mode from the grandparent style");
     assert!((ds.opacity - 0.5).abs() < 1e-6);
     assert!((ds.distance - 2.0f64.hypot(2.0)).abs() < 1e-9);
-    assert_eq!(it.wrap.mode, designcraft_doc::WrapMode::BoundingBox);
+    assert_eq!(it.wrap.mode, patronusdesign_doc::WrapMode::BoundingBox);
     assert_eq!(it.wrap.offsets, [9.0, 4.0, 4.0, 4.0]);
 }
 
@@ -154,16 +154,16 @@ fn item_overrides_and_disabled_categories_turn_style_effects_off() {
 fn object_style_apply_next_style_round_trips() {
     let mut d = small_doc();
     let styles = std::sync::Arc::make_mut(&mut d.styles);
-    styles.paragraph.push(designcraft_doc::ParagraphStyle {
+    styles.paragraph.push(patronusdesign_doc::ParagraphStyle {
         name: "Opener".into(),
         based_on: None,
-        next_style: Some(designcraft_doc::BASIC_PARAGRAPH.into()),
+        next_style: Some(patronusdesign_doc::BASIC_PARAGRAPH.into()),
         para: Default::default(),
         chars: Default::default(),
         shortcut: String::new(),
     });
     for (name, next) in [("Chained", true), ("Single", false)] {
-        styles.object.push(designcraft_doc::ObjectStyle {
+        styles.object.push(patronusdesign_doc::ObjectStyle {
             name: name.into(),
             paragraph_style: Some("Opener".into()),
             apply_next_style: next,
@@ -182,10 +182,10 @@ fn object_style_apply_next_style_round_trips() {
 #[test]
 fn a_style_without_corners_keeps_none_over_its_based_on_style() {
     let mut d = small_doc();
-    let rounded = Some(designcraft_geom::corners::CornerOptions::uniform(CornerShape::Rounded, 12.0));
+    let rounded = Some(patronusdesign_geom::corners::CornerOptions::uniform(CornerShape::Rounded, 12.0));
     let styles = std::sync::Arc::make_mut(&mut d.styles);
-    styles.object.push(designcraft_doc::ObjectStyle { name: "Round".into(), corners: rounded, ..Default::default() });
-    styles.object.push(designcraft_doc::ObjectStyle { name: "Square".into(), based_on: Some("Round".into()), ..Default::default() });
+    styles.object.push(patronusdesign_doc::ObjectStyle { name: "Round".into(), corners: rounded, ..Default::default() });
+    styles.object.push(patronusdesign_doc::ObjectStyle { name: "Square".into(), based_on: Some("Round".into()), ..Default::default() });
     let back = import_idml(&export_idml(&d)).unwrap();
     assert_eq!(back.styles.object_style("Round").and_then(|s| s.corners), rounded);
     assert_eq!(back.styles.object_style("Square").and_then(|s| s.corners), None);
@@ -218,7 +218,7 @@ fn object_style_text_frame_options_inherit_from_the_based_on_style() {
     </ObjectStyle>"#;
     let d = fixture(styles, &[]);
     let tf = d.styles.object_style("Inset").and_then(|s| s.text_frame.clone()).expect("Inset sets text frame options");
-    assert_eq!((tf.inset, tf.columns, tf.vertical_justification), ([9.0; 4], 2, designcraft_doc::VerticalJustification::Center));
+    assert_eq!((tf.inset, tf.columns, tf.vertical_justification), ([9.0; 4], 2, patronusdesign_doc::VerticalJustification::Center));
     let bare = d.styles.object_style("Bare").and_then(|s| s.text_frame.clone()).expect("Bare sets text frame options");
     assert_eq!((bare.inset, bare.columns), ([3.0; 4], 2), "a BasedOn given as a bare name");
     let on_off = d.styles.object_style("OnOff").and_then(|s| s.text_frame.clone()).expect("OnOff sets text frame options");
@@ -231,8 +231,8 @@ fn object_style_text_frame_options_inherit_from_the_based_on_style() {
 #[test]
 fn exported_frames_keep_their_own_values_over_their_object_style() {
     let mut d = small_doc();
-    let style = designcraft_doc::TextFrameOptions { columns: 2, column_rule: true, column_rule_weight: 3.0, ..Default::default() };
-    std::sync::Arc::make_mut(&mut d.styles).object.push(designcraft_doc::ObjectStyle {
+    let style = patronusdesign_doc::TextFrameOptions { columns: 2, column_rule: true, column_rule_weight: 3.0, ..Default::default() };
+    std::sync::Arc::make_mut(&mut d.styles).object.push(patronusdesign_doc::ObjectStyle {
         name: "Ruled".into(),
         text_frame: Some(style),
         ..Default::default()
@@ -252,23 +252,25 @@ fn exported_frames_keep_their_own_values_over_their_object_style() {
 fn exported_frames_keep_no_corners_over_their_object_style() {
     let mut d = small_doc();
     let lid = d.default_layer();
-    let id = designcraft_doc::ItemId(d.alloc());
-    let rect = designcraft_doc::Item::new(id, lid, Shape::Rectangle, shapes::rectangle(Rect::new(40.0, 420.0, 200.0, 500.0)));
+    let id = patronusdesign_doc::ItemId(d.alloc());
+    let rect = patronusdesign_doc::Item::new(id, lid, Shape::Rectangle, shapes::rectangle(Rect::new(40.0, 420.0, 200.0, 500.0)));
     d.insert_item(SpreadRef::Doc(0), rect, None).unwrap();
-    let rounded = Some(designcraft_geom::corners::CornerOptions {
-        corners: [designcraft_geom::corners::Corner { shape: CornerShape::Rounded, size: 12.0 }; 4],
+    let rounded = Some(patronusdesign_geom::corners::CornerOptions {
+        corners: [patronusdesign_geom::corners::Corner { shape: CornerShape::Rounded, size: 12.0 }; 4],
     });
     let styles = std::sync::Arc::make_mut(&mut d.styles);
-    styles.object.push(designcraft_doc::ObjectStyle { name: "Round".into(), corners: rounded, ..Default::default() });
-    styles.object.push(designcraft_doc::ObjectStyle { name: "Child".into(), based_on: Some("Round".into()), ..Default::default() });
-    match styles.object.iter_mut().find(|o| o.name == designcraft_doc::NO_OBJECT_STYLE) {
+    styles.object.push(patronusdesign_doc::ObjectStyle { name: "Round".into(), corners: rounded, ..Default::default() });
+    styles.object.push(patronusdesign_doc::ObjectStyle { name: "Child".into(), based_on: Some("Round".into()), ..Default::default() });
+    match styles.object.iter_mut().find(|o| o.name == patronusdesign_doc::NO_OBJECT_STYLE) {
         Some(none) => none.corners = rounded,
-        None => {
-            styles.object.push(designcraft_doc::ObjectStyle { name: designcraft_doc::NO_OBJECT_STYLE.into(), corners: rounded, ..Default::default() })
-        }
+        None => styles.object.push(patronusdesign_doc::ObjectStyle {
+            name: patronusdesign_doc::NO_OBJECT_STYLE.into(),
+            corners: rounded,
+            ..Default::default()
+        }),
     }
-    styles.object.push(designcraft_doc::ObjectStyle { name: "Plain".into(), ..Default::default() });
-    let names = ["Round", "Child", designcraft_doc::NO_OBJECT_STYLE, "Plain"];
+    styles.object.push(patronusdesign_doc::ObjectStyle { name: "Plain".into(), ..Default::default() });
+    let names = ["Round", "Child", patronusdesign_doc::NO_OBJECT_STYLE, "Plain"];
     let ids: Vec<_> = d.spreads.iter().flat_map(|s| s.items.iter().map(|i| i.id)).take(4).collect();
     assert_eq!(ids.len(), 4);
     for (id, style) in ids.iter().zip(names) {
@@ -297,14 +299,14 @@ fn text_wrap_side_and_contour_come_from_the_style_for_frames_and_placed_graphics
         </Image>"#;
     let d = fixture(styles, &[(r#"AppliedObjectStyle="ObjectStyle/Contour""#, ""), ("", image)]);
     let frame = &d.spreads[0].items[0].wrap;
-    assert_eq!(frame.mode, designcraft_doc::WrapMode::Contour);
-    assert_eq!(frame.side, designcraft_doc::WrapSide::LeftSide);
-    assert_eq!(frame.contour, designcraft_doc::ContourType::BoundingBox);
+    assert_eq!(frame.mode, patronusdesign_doc::WrapMode::Contour);
+    assert_eq!(frame.side, patronusdesign_doc::WrapSide::LeftSide);
+    assert_eq!(frame.contour, patronusdesign_doc::ContourType::BoundingBox);
     assert_eq!(frame.offsets, [3.0; 4]);
-    let designcraft_doc::Content::Graphic(g) = &d.spreads[0].items[1].content else { panic!("{:?}", d.spreads[0].items[1].content) };
-    assert_eq!(g.wrap.mode, designcraft_doc::WrapMode::Contour);
-    assert_eq!(g.wrap.side, designcraft_doc::WrapSide::RightSide, "the graphic's own side wins");
-    assert_eq!(g.wrap.contour, designcraft_doc::ContourType::BoundingBox);
+    let patronusdesign_doc::Content::Graphic(g) = &d.spreads[0].items[1].content else { panic!("{:?}", d.spreads[0].items[1].content) };
+    assert_eq!(g.wrap.mode, patronusdesign_doc::WrapMode::Contour);
+    assert_eq!(g.wrap.side, patronusdesign_doc::WrapSide::RightSide, "the graphic's own side wins");
+    assert_eq!(g.wrap.contour, patronusdesign_doc::ContourType::BoundingBox);
 }
 
 #[test]
@@ -334,7 +336,7 @@ fn feathers_come_from_the_object_style_unless_its_category_turns_them_off() {
             ),
         ],
     );
-    let fx: Vec<&designcraft_doc::Effects> = d.spreads[0].items.iter().map(|i| &i.effects).collect();
+    let fx: Vec<&patronusdesign_doc::Effects> = d.spreads[0].items.iter().map(|i| &i.effects).collect();
     assert!(fx[0].gradient_feather.on && fx[0].gradient_feather.radial, "{:?}", fx[0]);
     assert!(fx[0].directional_feather.on);
     assert_eq!(fx[0].directional_feather.widths, [5.0, 3.0, 6.0, 4.0]);
@@ -411,7 +413,7 @@ fn a_style_without_category_flags_takes_them_from_its_based_on_style() {
     for n in ["OffKid", "Bare"] {
         assert!(style(n).corners.is_none() && style(n).text_frame.is_none(), "{n}: {:?}", style(n));
     }
-    assert!(style(designcraft_doc::NO_OBJECT_STYLE).corners.is_some(), "[None] keeps the corners it sets itself");
+    assert!(style(patronusdesign_doc::NO_OBJECT_STYLE).corners.is_some(), "[None] keeps the corners it sets itself");
 }
 
 /// An object style giving its corners only with the legacy all-corners `CornerOption` and

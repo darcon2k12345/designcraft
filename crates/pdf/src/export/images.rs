@@ -93,7 +93,7 @@ pub(super) fn lossless(data: &Arc<Vec<u8>>, fmt: Option<craft_image_codecs::Form
     // krilla reads PNG, GIF and WebP lazily: a damaged file is accepted here and fails the whole
     // export when the PDF is written. Decoding it first means it is skipped, like any other
     // image that can't be decoded.
-    let rgba = designcraft_images::decode_rgba(data)?;
+    let rgba = patronusdesign_images::decode_rgba(data)?;
     let i = mode.interpolate;
     let direct = match fmt {
         Some(craft_image_codecs::Format::Png | craft_image_codecs::Format::Gif | craft_image_codecs::Format::WebP)
@@ -145,11 +145,11 @@ pub(super) struct GreyImage {
 /// the output intent's press, and tagging them with another CMYK profile would let a RIP
 /// convert 100% K to four-colour black.
 #[derive(Clone, Hash)]
-pub(super) struct CmykImage(pub(super) Arc<designcraft_images::CmykRaster>);
+pub(super) struct CmykImage(pub(super) Arc<patronusdesign_images::CmykRaster>);
 
 /// A CMYK TIFF as a DeviceCMYK image. `None` when it can't be read as CMYK.
 pub(super) fn cmyk_tiff(data: &[u8], mode: RasterMode) -> Option<Image> {
-    let r = designcraft_images::decode_cmyk_tiff(data)?;
+    let r = patronusdesign_images::decode_cmyk_tiff(data)?;
     // krilla panics when the channel lengths don't match the size.
     let pixels = usize::try_from(r.width).ok()?.checked_mul(usize::try_from(r.height).ok()?)?;
     if r.cmyk.len() != pixels.checked_mul(4)? || r.alpha.as_ref().is_some_and(|a| a.len() != pixels) {
@@ -167,7 +167,7 @@ thread_local! {
 /// Opaque raster → JPEG (quality 90). `None` when the image has transparency, is too large or
 /// can't be decoded. With `tag_rgb`, the JPEG keeps the source's RGB profile, or gets sRGB.
 pub(super) fn recompress(data: &[u8], mode: RasterMode) -> Option<Image> {
-    if designcraft_images::too_large_to_decode(data) {
+    if patronusdesign_images::too_large_to_decode(data) {
         return None;
     }
     #[cfg(test)]
@@ -194,7 +194,7 @@ pub(super) fn recompress(data: &[u8], mode: RasterMode) -> Option<Image> {
 #[cfg(test)]
 mod image_content_cache_tests {
     use super::*;
-    use designcraft_doc::Asset;
+    use patronusdesign_doc::Asset;
 
     fn png(w: u32, h: u32, color: [u8; 4]) -> Vec<u8> {
         let image = image::RgbaImage::from_pixel(w, h, image::Rgba(color));
@@ -210,7 +210,7 @@ mod image_content_cache_tests {
                 id,
                 name: name.into(),
                 mime: "image/png".into(),
-                data: designcraft_doc::AssetData::embedded(bytes),
+                data: patronusdesign_doc::AssetData::embedded(bytes),
                 ..Default::default()
             }),
         );
@@ -269,7 +269,7 @@ mod image_content_cache_tests {
         let mut page = writer.document_mut().start_page_with(PageSettings::new(Size::from_wh(100.0, 100.0).unwrap()));
         let mut surface = page.surface();
         for (id, hidden, count) in [(a, None, 1), (a, None, 1), (a, Some(vec!["Hidden".into()]), 2), (b, None, 3), (a, None, 3)] {
-            let graphic = designcraft_doc::Graphic {
+            let graphic = patronusdesign_doc::Graphic {
                 asset: id,
                 size: (100.0, 100.0),
                 xf: Affine::IDENTITY,
@@ -364,9 +364,9 @@ mod image_content_cache_tests {
     #[test]
     fn successful_cmyk_fallback_replays_each_asset_name_once_and_converts_once() {
         let bytes = crate::image_fixtures::cmyk_tiff(None, true);
-        assert!(designcraft_images::is_cmyk_tiff(&bytes));
-        assert!(designcraft_images::decode_cmyk_tiff(&bytes).is_none());
-        assert!(designcraft_images::decode_rgba(&bytes).is_some());
+        assert!(patronusdesign_images::is_cmyk_tiff(&bytes));
+        assert!(patronusdesign_images::decode_cmyk_tiff(&bytes).is_none());
+        assert!(patronusdesign_images::decode_rgba(&bytes).is_some());
         let mut d = Document::new(&Default::default());
         let a = asset(&mut d, bytes.clone(), "ink-a.tif");
         let b = asset(&mut d, bytes, "ink-b.tif");
@@ -391,7 +391,7 @@ mod image_content_cache_tests {
             let bytes = crate::image_fixtures::cmyk_tiff(alpha, false);
             // RGB-only exports get the RGB the screen shows.
             let screen_rgb: Vec<u8> =
-                designcraft_images::decode_rgba(&bytes).map_or_else(Vec::new, |img| img.pixels().flat_map(|p| [p[0], p[1], p[2]]).collect());
+                patronusdesign_images::decode_rgba(&bytes).map_or_else(Vec::new, |img| img.pixels().flat_map(|p| [p[0], p[1], p[2]]).collect());
             let a = asset(&mut d, bytes.clone(), "a.tif");
             let b = asset(&mut d, bytes, "b.tif");
             for standard in [Standard::None, Standard::PdfA2b, Standard::PdfX4, Standard::PdfA2b, Standard::None] {
@@ -482,29 +482,29 @@ mod eps_tests {
         eps.extend([0xFF, 0xFF]);
         eps.extend_from_slice(ps);
         eps.extend_from_slice(&tiff);
-        assert_eq!(designcraft_images::eps_proxy(&eps).unwrap().0, tiff);
-        let mut doc = Document::new(&designcraft_doc::build::NewDocument::default());
+        assert_eq!(patronusdesign_images::eps_proxy(&eps).unwrap().0, tiff);
+        let mut doc = Document::new(&patronusdesign_doc::build::NewDocument::default());
         let aid = AssetId(doc.alloc());
         doc.assets.insert(
             aid,
-            Arc::new(designcraft_doc::Asset {
+            Arc::new(patronusdesign_doc::Asset {
                 id: aid,
                 name: "cmyk.eps".into(),
                 mime: "application/postscript".into(),
                 link: None,
-                data: designcraft_doc::AssetData::embedded(eps),
+                data: patronusdesign_doc::AssetData::embedded(eps),
                 pixels: Some((2, 1)),
                 page: 0,
                 ..Default::default()
             }),
         );
         let mut item = Item::new(
-            designcraft_doc::ItemId(doc.alloc()),
+            patronusdesign_doc::ItemId(doc.alloc()),
             doc.default_layer(),
-            designcraft_doc::Shape::Rectangle,
-            designcraft_geom::shapes::rectangle(Rect::new(72.0, 72.0, 272.0, 172.0)),
+            patronusdesign_doc::Shape::Rectangle,
+            patronusdesign_geom::shapes::rectangle(Rect::new(72.0, 72.0, 272.0, 172.0)),
         );
-        item.content = Content::Graphic(designcraft_doc::Graphic {
+        item.content = Content::Graphic(patronusdesign_doc::Graphic {
             layer_options: None,
             asset: aid,
             size: (2.0, 1.0),
@@ -516,7 +516,7 @@ mod eps_tests {
             wrap: Default::default(),
             fill: Default::default(),
         });
-        doc.insert_item(designcraft_doc::SpreadRef::Doc(0), item, None).unwrap();
+        doc.insert_item(patronusdesign_doc::SpreadRef::Doc(0), item, None).unwrap();
         for standard in [Standard::None, Standard::PdfX4] {
             let report = export_pdf_with_report(&doc, &Cache::new(), &PdfOptions { standard, ..Default::default() }).unwrap();
             assert!(report.warnings.is_empty(), "{:?}", report.warnings);

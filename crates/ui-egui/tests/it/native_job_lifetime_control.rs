@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use designcraft_doc::StoryId;
-use designcraft_engine::Session;
-use designcraft_geom::Affine;
-use designcraft_render::RenderOptions;
-use designcraft_ui_egui::render_worker::Job;
+use patronusdesign_doc::StoryId;
+use patronusdesign_engine::Session;
+use patronusdesign_geom::Affine;
+use patronusdesign_render::RenderOptions;
+use patronusdesign_ui_egui::render_worker::Job;
 use serde_json::json;
 
 #[test]

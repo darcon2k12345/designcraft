@@ -1,12 +1,12 @@
-//! Name and enumeration mappings between the DesignCraft model and IDML.
+//! Name and enumeration mappings between the Patronus Design model and IDML.
 
-use designcraft_color::BlendMode;
-use designcraft_doc::{
+use patronusdesign_color::BlendMode;
+use patronusdesign_doc::{
     Align, Arrowhead, AutoSize, Cap, Capitalization, ClippingKind, ContourType, FirstBaseline, Join, Leading, NumberStyle, Position, StartParagraph,
     StrokeAlign, StrokeType, TabAlign, VerticalJustification, WrapMode, WrapSide,
 };
-use designcraft_geom::Unit;
-use designcraft_geom::corners::CornerShape;
+use patronusdesign_geom::Unit;
+use patronusdesign_geom::corners::CornerShape;
 
 /// `%` → `%25`, `:` → `%3a` (IDML Self-id escaping).
 const ANCHORS: [&str; 9] = [
@@ -21,8 +21,8 @@ const ANCHORS: [&str; 9] = [
     "BottomRightAnchor",
 ];
 
-pub fn anchor_rel_out(r: designcraft_doc::anchored::AnchorRelative, vertical: bool) -> &'static str {
-    use designcraft_doc::anchored::AnchorRelative as R;
+pub fn anchor_rel_out(r: patronusdesign_doc::anchored::AnchorRelative, vertical: bool) -> &'static str {
+    use patronusdesign_doc::anchored::AnchorRelative as R;
     match r {
         R::Anchor if vertical => "LineBaseline",
         R::Anchor => "AnchorLocation",
@@ -33,8 +33,8 @@ pub fn anchor_rel_out(r: designcraft_doc::anchored::AnchorRelative, vertical: bo
     }
 }
 
-pub fn anchor_rel_in(s: &str) -> designcraft_doc::anchored::AnchorRelative {
-    use designcraft_doc::anchored::AnchorRelative as R;
+pub fn anchor_rel_in(s: &str) -> patronusdesign_doc::anchored::AnchorRelative {
+    use patronusdesign_doc::anchored::AnchorRelative as R;
     match s {
         "TextFrame" => R::TextFrame,
         "ColumnEdge" => R::ColumnEdge,
@@ -45,8 +45,8 @@ pub fn anchor_rel_in(s: &str) -> designcraft_doc::anchored::AnchorRelative {
 }
 
 /// `PDFAttribute` `PDFCrop` for a placed PDF's crop choice.
-pub fn pdf_crop_out(c: designcraft_doc::PdfCrop) -> &'static str {
-    use designcraft_doc::PdfCrop as C;
+pub fn pdf_crop_out(c: patronusdesign_doc::PdfCrop) -> &'static str {
+    use patronusdesign_doc::PdfCrop as C;
     match c {
         C::Crop => "CropPDF",
         C::Art => "CropArt",
@@ -59,8 +59,8 @@ pub fn pdf_crop_out(c: designcraft_doc::PdfCrop) -> &'static str {
 }
 
 /// A placed PDF's crop choice from `PDFCrop` (the crop box when unknown).
-pub fn pdf_crop_in(s: &str) -> designcraft_doc::PdfCrop {
-    use designcraft_doc::PdfCrop as C;
+pub fn pdf_crop_in(s: &str) -> patronusdesign_doc::PdfCrop {
+    use patronusdesign_doc::PdfCrop as C;
     C::ALL.into_iter().find(|c| pdf_crop_out(*c) == s).unwrap_or(C::Crop)
 }
 
@@ -72,8 +72,8 @@ pub fn anchor_in(s: &str) -> u8 {
     ANCHORS.iter().position(|a| *a == s).unwrap_or(4) as u8
 }
 
-pub fn fitting_out(f: designcraft_doc::Fitting) -> &'static str {
-    use designcraft_doc::Fitting as F;
+pub fn fitting_out(f: patronusdesign_doc::Fitting) -> &'static str {
+    use patronusdesign_doc::Fitting as F;
     match f {
         F::None => "None",
         F::FillProportionally => "FillProportionally",
@@ -83,8 +83,8 @@ pub fn fitting_out(f: designcraft_doc::Fitting) -> &'static str {
     }
 }
 
-pub fn fitting_in(s: &str) -> designcraft_doc::Fitting {
-    use designcraft_doc::Fitting as F;
+pub fn fitting_in(s: &str) -> patronusdesign_doc::Fitting {
+    use patronusdesign_doc::Fitting as F;
     match s {
         "FillProportionally" => F::FillProportionally,
         "Proportionally" => F::FitProportionally,
@@ -94,8 +94,8 @@ pub fn fitting_in(s: &str) -> designcraft_doc::Fitting {
     }
 }
 
-pub fn liquid_rule_out(rule: designcraft_doc::LiquidRule) -> &'static str {
-    use designcraft_doc::LiquidRule as R;
+pub fn liquid_rule_out(rule: patronusdesign_doc::LiquidRule) -> &'static str {
+    use patronusdesign_doc::LiquidRule as R;
     match rule {
         R::Off => "Off",
         R::Scale => "Scale",
@@ -106,8 +106,8 @@ pub fn liquid_rule_out(rule: designcraft_doc::LiquidRule) -> &'static str {
     }
 }
 
-pub fn liquid_rule_in(s: &str) -> designcraft_doc::LiquidRule {
-    use designcraft_doc::LiquidRule as R;
+pub fn liquid_rule_in(s: &str) -> patronusdesign_doc::LiquidRule {
+    use patronusdesign_doc::LiquidRule as R;
     match s {
         "Off" => R::Off,
         "Scale" => R::Scale,
@@ -384,60 +384,60 @@ pub fn arrow_in(s: &str) -> Arrowhead {
     .unwrap_or(Arrowhead::None)
 }
 
-pub fn box_width_out(w: designcraft_doc::BoxWidth) -> &'static str {
+pub fn box_width_out(w: patronusdesign_doc::BoxWidth) -> &'static str {
     match w {
-        designcraft_doc::BoxWidth::Column => "ColumnWidth",
-        designcraft_doc::BoxWidth::Text => "TextWidth",
+        patronusdesign_doc::BoxWidth::Column => "ColumnWidth",
+        patronusdesign_doc::BoxWidth::Text => "TextWidth",
     }
 }
-pub fn box_width_in(s: &str) -> designcraft_doc::BoxWidth {
-    if s == "TextWidth" { designcraft_doc::BoxWidth::Text } else { designcraft_doc::BoxWidth::Column }
+pub fn box_width_in(s: &str) -> patronusdesign_doc::BoxWidth {
+    if s == "TextWidth" { patronusdesign_doc::BoxWidth::Text } else { patronusdesign_doc::BoxWidth::Column }
 }
 
-pub fn box_top_out(t: designcraft_doc::BoxTop) -> &'static str {
+pub fn box_top_out(t: patronusdesign_doc::BoxTop) -> &'static str {
     match t {
-        designcraft_doc::BoxTop::Ascent => "AscentTopOrigin",
-        designcraft_doc::BoxTop::Baseline => "BaselineTopOrigin",
-        designcraft_doc::BoxTop::EmBox => "EmBoxTopOrigin",
-        designcraft_doc::BoxTop::Leading => "LeadingTopOrigin",
+        patronusdesign_doc::BoxTop::Ascent => "AscentTopOrigin",
+        patronusdesign_doc::BoxTop::Baseline => "BaselineTopOrigin",
+        patronusdesign_doc::BoxTop::EmBox => "EmBoxTopOrigin",
+        patronusdesign_doc::BoxTop::Leading => "LeadingTopOrigin",
     }
 }
-pub fn box_top_in(s: &str) -> designcraft_doc::BoxTop {
+pub fn box_top_in(s: &str) -> patronusdesign_doc::BoxTop {
     match s {
-        "BaselineTopOrigin" => designcraft_doc::BoxTop::Baseline,
-        "EmBoxTopOrigin" => designcraft_doc::BoxTop::EmBox,
-        "LeadingTopOrigin" => designcraft_doc::BoxTop::Leading,
-        _ => designcraft_doc::BoxTop::Ascent,
+        "BaselineTopOrigin" => patronusdesign_doc::BoxTop::Baseline,
+        "EmBoxTopOrigin" => patronusdesign_doc::BoxTop::EmBox,
+        "LeadingTopOrigin" => patronusdesign_doc::BoxTop::Leading,
+        _ => patronusdesign_doc::BoxTop::Ascent,
     }
 }
 
-pub fn box_bottom_out(b: designcraft_doc::BoxBottom) -> &'static str {
+pub fn box_bottom_out(b: patronusdesign_doc::BoxBottom) -> &'static str {
     match b {
-        designcraft_doc::BoxBottom::Descent => "DescentBottomOrigin",
-        designcraft_doc::BoxBottom::Baseline => "BaselineBottomOrigin",
-        designcraft_doc::BoxBottom::EmBox => "EmBoxBottomOrigin",
+        patronusdesign_doc::BoxBottom::Descent => "DescentBottomOrigin",
+        patronusdesign_doc::BoxBottom::Baseline => "BaselineBottomOrigin",
+        patronusdesign_doc::BoxBottom::EmBox => "EmBoxBottomOrigin",
     }
 }
-pub fn box_bottom_in(s: &str) -> designcraft_doc::BoxBottom {
+pub fn box_bottom_in(s: &str) -> patronusdesign_doc::BoxBottom {
     match s {
-        "BaselineBottomOrigin" => designcraft_doc::BoxBottom::Baseline,
-        "EmBoxBottomOrigin" => designcraft_doc::BoxBottom::EmBox,
-        _ => designcraft_doc::BoxBottom::Descent,
+        "BaselineBottomOrigin" => patronusdesign_doc::BoxBottom::Baseline,
+        "EmBoxBottomOrigin" => patronusdesign_doc::BoxBottom::EmBox,
+        _ => patronusdesign_doc::BoxBottom::Descent,
     }
 }
 
-pub fn list_align_out(a: designcraft_doc::ListAlign) -> &'static str {
+pub fn list_align_out(a: patronusdesign_doc::ListAlign) -> &'static str {
     match a {
-        designcraft_doc::ListAlign::Left => "LeftAlign",
-        designcraft_doc::ListAlign::Center => "CenterAlign",
-        designcraft_doc::ListAlign::Right => "RightAlign",
+        patronusdesign_doc::ListAlign::Left => "LeftAlign",
+        patronusdesign_doc::ListAlign::Center => "CenterAlign",
+        patronusdesign_doc::ListAlign::Right => "RightAlign",
     }
 }
-pub fn list_align_in(s: &str) -> designcraft_doc::ListAlign {
+pub fn list_align_in(s: &str) -> patronusdesign_doc::ListAlign {
     match s {
-        "CenterAlign" => designcraft_doc::ListAlign::Center,
-        "RightAlign" => designcraft_doc::ListAlign::Right,
-        _ => designcraft_doc::ListAlign::Left,
+        "CenterAlign" => patronusdesign_doc::ListAlign::Center,
+        "RightAlign" => patronusdesign_doc::ListAlign::Right,
+        _ => patronusdesign_doc::ListAlign::Left,
     }
 }
 
@@ -632,7 +632,7 @@ pub fn number_style_in(s: &str) -> NumberStyle {
     }
 }
 
-/// IDML `MeasurementUnits` of a unit. Q is `Q`; `U` is a different unit, which DesignCraft
+/// IDML `MeasurementUnits` of a unit. Q is `Q`; `U` is a different unit, which Patronus Design
 /// doesn't have.
 pub fn unit_out(u: Unit) -> &'static str {
     match u {
@@ -649,7 +649,7 @@ pub fn unit_out(u: Unit) -> &'static str {
         Unit::Ha => "Ha",
     }
 }
-/// The unit an IDML `MeasurementUnits` value names, if DesignCraft has it (not `U`, `Bai`,
+/// The unit an IDML `MeasurementUnits` value names, if Patronus Design has it (not `U`, `Bai`,
 /// `Mils`, `AmericanPoints` or `Custom`).
 pub fn unit_in(s: &str) -> Option<Unit> {
     Unit::ALL.into_iter().find(|u| unit_out(*u) == s)
@@ -657,10 +657,10 @@ pub fn unit_in(s: &str) -> Option<Unit> {
 
 /// IDML layer colour enumeration names for our layer colour table.
 pub fn layer_color_out(c: [u8; 3]) -> Option<String> {
-    designcraft_doc::LAYER_COLORS.iter().find(|(_, v)| *v == c).map(|(n, _)| n.replace(' ', ""))
+    patronusdesign_doc::LAYER_COLORS.iter().find(|(_, v)| *v == c).map(|(n, _)| n.replace(' ', ""))
 }
 pub fn layer_color_in(s: &str) -> Option<[u8; 3]> {
-    designcraft_doc::LAYER_COLORS.iter().find(|(n, _)| n.replace(' ', "") == s).map(|(_, v)| *v)
+    patronusdesign_doc::LAYER_COLORS.iter().find(|(n, _)| n.replace(' ', "") == s).map(|(_, v)| *v)
 }
 
 /// Format a number compactly (no trailing zeros, no `-0`).
@@ -726,17 +726,17 @@ pub fn note_style_in(s: &str) -> NumberStyle {
         s => number_style_in(s),
     }
 }
-pub const NOTE_RESTART: [(designcraft_doc::notes::NoteRestart, &str); 4] = [
-    (designcraft_doc::notes::NoteRestart::Never, "DontRestart"),
-    (designcraft_doc::notes::NoteRestart::Page, "PageRestart"),
-    (designcraft_doc::notes::NoteRestart::Spread, "SpreadRestart"),
-    (designcraft_doc::notes::NoteRestart::Section, "SectionRestart"),
+pub const NOTE_RESTART: [(patronusdesign_doc::notes::NoteRestart, &str); 4] = [
+    (patronusdesign_doc::notes::NoteRestart::Never, "DontRestart"),
+    (patronusdesign_doc::notes::NoteRestart::Page, "PageRestart"),
+    (patronusdesign_doc::notes::NoteRestart::Spread, "SpreadRestart"),
+    (patronusdesign_doc::notes::NoteRestart::Section, "SectionRestart"),
 ];
-pub const NOTE_AFFIX: [(designcraft_doc::notes::AffixIn, &str); 4] = [
-    (designcraft_doc::notes::AffixIn::None, "NoPrefixSuffix"),
-    (designcraft_doc::notes::AffixIn::Reference, "PrefixSuffixReference"),
-    (designcraft_doc::notes::AffixIn::Text, "PrefixSuffixMarker"),
-    (designcraft_doc::notes::AffixIn::Both, "PrefixSuffixBoth"),
+pub const NOTE_AFFIX: [(patronusdesign_doc::notes::AffixIn, &str); 4] = [
+    (patronusdesign_doc::notes::AffixIn::None, "NoPrefixSuffix"),
+    (patronusdesign_doc::notes::AffixIn::Reference, "PrefixSuffixReference"),
+    (patronusdesign_doc::notes::AffixIn::Text, "PrefixSuffixMarker"),
+    (patronusdesign_doc::notes::AffixIn::Both, "PrefixSuffixBoth"),
 ];
 pub fn note_marker_out(p: Position) -> &'static str {
     match p {
@@ -754,8 +754,8 @@ pub fn note_marker_in(s: &str) -> Position {
 }
 
 /// Nested-style delimiter → (property type, value).
-pub fn nested_until_out(u: &designcraft_doc::NestedUntil) -> (&'static str, String) {
-    use designcraft_doc::NestedUntil as N;
+pub fn nested_until_out(u: &patronusdesign_doc::NestedUntil) -> (&'static str, String) {
+    use patronusdesign_doc::NestedUntil as N;
     let e = |v: &str| ("enumeration", v.to_string());
     match u {
         N::Sentences => e("Sentence"),
@@ -772,8 +772,8 @@ pub fn nested_until_out(u: &designcraft_doc::NestedUntil) -> (&'static str, Stri
     }
 }
 
-pub fn nested_until_in(ty: &str, v: &str) -> designcraft_doc::NestedUntil {
-    use designcraft_doc::NestedUntil as N;
+pub fn nested_until_in(ty: &str, v: &str) -> patronusdesign_doc::NestedUntil {
+    use patronusdesign_doc::NestedUntil as N;
     if ty == "string" {
         return N::Chars(v.to_string());
     }
@@ -791,26 +791,26 @@ pub fn nested_until_in(ty: &str, v: &str) -> designcraft_doc::NestedUntil {
     }
 }
 
-pub fn path_align_out(a: designcraft_doc::PathAlign) -> &'static str {
+pub fn path_align_out(a: patronusdesign_doc::PathAlign) -> &'static str {
     match a {
-        designcraft_doc::PathAlign::Baseline => "BaselineAlignment",
-        designcraft_doc::PathAlign::Ascender => "AscenderAlignment",
-        designcraft_doc::PathAlign::Descender => "DescenderAlignment",
-        designcraft_doc::PathAlign::Center => "CenterAlignment",
+        patronusdesign_doc::PathAlign::Baseline => "BaselineAlignment",
+        patronusdesign_doc::PathAlign::Ascender => "AscenderAlignment",
+        patronusdesign_doc::PathAlign::Descender => "DescenderAlignment",
+        patronusdesign_doc::PathAlign::Center => "CenterAlignment",
     }
 }
 
-pub fn path_align_in(v: &str) -> designcraft_doc::PathAlign {
+pub fn path_align_in(v: &str) -> patronusdesign_doc::PathAlign {
     match v {
-        "AscenderAlignment" => designcraft_doc::PathAlign::Ascender,
-        "DescenderAlignment" => designcraft_doc::PathAlign::Descender,
-        "CenterAlignment" => designcraft_doc::PathAlign::Center,
-        _ => designcraft_doc::PathAlign::Baseline,
+        "AscenderAlignment" => patronusdesign_doc::PathAlign::Ascender,
+        "DescenderAlignment" => patronusdesign_doc::PathAlign::Descender,
+        "CenterAlignment" => patronusdesign_doc::PathAlign::Center,
+        _ => patronusdesign_doc::PathAlign::Baseline,
     }
 }
 
-pub fn digits_out(d: designcraft_doc::Digits) -> &'static str {
-    use designcraft_doc::Digits;
+pub fn digits_out(d: patronusdesign_doc::Digits) -> &'static str {
+    use patronusdesign_doc::Digits;
     match d {
         Digits::Default => "DefaultDigits",
         Digits::Arabic => "ArabicDigits",
@@ -819,18 +819,18 @@ pub fn digits_out(d: designcraft_doc::Digits) -> &'static str {
         Digits::Native => "NativeDigits",
     }
 }
-pub fn digits_in(s: &str) -> Option<designcraft_doc::Digits> {
-    use designcraft_doc::Digits;
+pub fn digits_in(s: &str) -> Option<patronusdesign_doc::Digits> {
+    use patronusdesign_doc::Digits;
     [Digits::Default, Digits::Arabic, Digits::Hindi, Digits::Farsi, Digits::Native].into_iter().find(|d| digits_out(*d) == s)
 }
 
 /// A TOC separator in IDML's special-character notation.
 pub fn toc_separator_out(s: &str) -> String {
-    designcraft_doc::story::toc_separator_notation(s)
+    patronusdesign_doc::story::toc_separator_notation(s)
 }
 /// IDML may prefix a separator with its localized-string marker.
 pub fn toc_separator_in(s: &str) -> String {
-    designcraft_doc::story::toc_separator_text(s.strip_prefix("$ID/").unwrap_or(s))
+    patronusdesign_doc::story::toc_separator_text(s.strip_prefix("$ID/").unwrap_or(s))
 }
 
 #[cfg(test)]

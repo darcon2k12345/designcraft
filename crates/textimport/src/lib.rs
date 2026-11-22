@@ -26,7 +26,7 @@ pub fn xlsx_records(bytes: &[u8], sheet: Option<&str>) -> Result<Vec<Vec<String>
     xlsx::records(bytes, sheet)
 }
 
-use designcraft_doc::{CharAttrs, ParaAttrs, Story};
+use patronusdesign_doc::{CharAttrs, ParaAttrs, Story};
 
 /// A paragraph or character style found in the source.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -96,7 +96,7 @@ pub fn import(name: &str, bytes: &[u8]) -> Result<Imported, ImportError> {
 pub fn plain(text: &str) -> Imported {
     let t = text.trim_start_matches('\u{FEFF}').replace("\r\n", "\n").replace('\r', "\n");
     let t: String = t.chars().filter(|c| !('\u{E000}'..='\u{E1FF}').contains(c)).collect();
-    let story = Story::with_text(designcraft_doc::StoryId(0), &t, Default::default());
+    let story = Story::with_text(patronusdesign_doc::StoryId(0), &t, Default::default());
     Imported { story, para_styles: vec![], char_styles: vec![], warnings: vec![] }
 }
 

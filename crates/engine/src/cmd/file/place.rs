@@ -32,7 +32,7 @@ pub(super) fn file_place(s: &mut Session, p: &Value) -> Result<Value> {
     {
         return Err(bad("file.place", "the frame is locked"));
     }
-    // A page of another layout (IDML or DesignCraft): its objects, as one group.
+    // A page of another layout (IDML or Patronus Design): its objects, as one group.
     let format = craft_file_formats::detect(&name, &bytes);
     if matches!(format, Some(craft_file_formats::Format::Idml | craft_file_formats::Format::DesignCraft)) {
         return place_layout_page(s, p, &bytes, format);
@@ -43,7 +43,7 @@ pub(super) fn file_place(s: &mut Session, p: &Value) -> Result<Value> {
     let embed = p.get("embed").and_then(Value::as_bool) == Some(true);
     let document = document_of(s);
     // Video and sound: a media frame (Window › Interactive › Media).
-    if let Some(mime) = designcraft_doc::media_mime(&name) {
+    if let Some(mime) = patronusdesign_doc::media_mime(&name) {
         let file = link.as_deref().map(|l| FileLink::of(std::path::Path::new(l), before));
         let mut asset = Asset { name, mime: mime.to_string(), ..Default::default() };
         let pending = give_placed(&mut asset, bytes, file, embed, document.as_deref());
@@ -52,7 +52,7 @@ pub(super) fn file_place(s: &mut Session, p: &Value) -> Result<Value> {
         return Ok(r);
     }
     // Text files (plain, Word, RTF) flow into frames.
-    if designcraft_textimport::is_text_file(&name) {
+    if patronusdesign_textimport::is_text_file(&name) {
         return crate::cmd::place_text::place_text(s, p, &name, &bytes, link, before);
     }
     let want_w = p
@@ -67,11 +67,11 @@ pub(super) fn file_place(s: &mut Session, p: &Value) -> Result<Value> {
         .transpose()?;
     // Image Import Options: which page of a PDF (1-based).
     if format == Some(craft_file_formats::Format::Pdf) {
-        designcraft_render::check_pdf_input_size(bytes.len()).map_err(|e| bad("file.place", e.to_string()))?;
+        patronusdesign_render::check_pdf_input_size(bytes.len()).map_err(|e| bad("file.place", e.to_string()))?;
     }
     let pdf_page = match p.get("pdfPage").and_then(Value::as_u64) {
         Some(n) if format == Some(craft_file_formats::Format::Pdf) => {
-            let count = designcraft_render::pdf_page_count(&bytes).unwrap_or(1);
+            let count = patronusdesign_render::pdf_page_count(&bytes).unwrap_or(1);
             let invalid_page = || bad("file.place", format!("the PDF has {count} page(s)"));
             let one_based = usize::try_from(n).map_err(|_| invalid_page())?;
             if one_based == 0 || one_based > count {
@@ -83,14 +83,14 @@ pub(super) fn file_place(s: &mut Session, p: &Value) -> Result<Value> {
         _ => 0,
     };
     let (pw, ph) = match pdf_page {
-        0 => designcraft_render::image_size(&bytes).ok_or_else(|| bad("file.place", "unsupported or corrupt image"))?,
-        n => designcraft_render::pdf_page_size(&bytes, n as usize)
+        0 => patronusdesign_render::image_size(&bytes).ok_or_else(|| bad("file.place", "unsupported or corrupt image"))?,
+        n => patronusdesign_render::pdf_page_size(&bytes, n as usize)
             .map(|(w, h)| (w.round().max(1.0) as u32, h.round().max(1.0) as u32))
             .ok_or_else(|| bad("file.place", "can't read that PDF page"))?,
     };
     // 72 ppi by default unless the file says otherwise; scale so it fits the page when huge. PDF pages
     // and SVGs keep their exact size: rounding it to whole points would stretch them unevenly.
-    let (nw, nh) = eps_size.or_else(|| designcraft_render::natural_size(&bytes, pdf_page as usize)).unwrap_or((pw as f64, ph as f64));
+    let (nw, nh) = eps_size.or_else(|| patronusdesign_render::natural_size(&bytes, pdf_page as usize)).unwrap_or((pw as f64, ph as f64));
     // Image Import Options › Crop to: the graphic spans that box of the PDF page.
     let is_pdf = format == Some(craft_file_formats::Format::Pdf);
     let pdf_crop = match str_param(p, "pdfCrop") {
@@ -98,7 +98,7 @@ pub(super) fn file_place(s: &mut Session, p: &Value) -> Result<Value> {
             .ok_or_else(|| bad("file.place", format!("unknown pdfCrop `{k}` (crop, art, trim, bleed, media, contentVisible, contentAll)")))?,
         _ => PdfCrop::Crop,
     };
-    let mime = designcraft_render::image_mime(&bytes).to_string();
+    let mime = patronusdesign_render::image_mime(&bytes).to_string();
     let file = link.as_deref().map(|l| FileLink::of(std::path::Path::new(l), before));
     let mut asset = Asset { page: pdf_page, name, mime, pixels: Some((pw, ph)), pdf_crop, ..Default::default() };
     // The graphic's natural size: the box in points (the whole page when the box can't be found,
@@ -124,7 +124,7 @@ pub(super) fn file_place(s: &mut Session, p: &Value) -> Result<Value> {
     });
     // `"spread": null` counts as omitted, like the other placement parameters.
     let spread = match p.get("spread") {
-        Some(Value::Null) => designcraft_doc::SpreadRef::Doc(0),
+        Some(Value::Null) => patronusdesign_doc::SpreadRef::Doc(0),
         _ => crate::cmd::spread_param(p, "file.place")?,
     };
     let lid = s.doc()?.active_layer;
@@ -147,7 +147,7 @@ pub(super) fn file_place(s: &mut Session, p: &Value) -> Result<Value> {
             }
         };
         let id = if let Some(fid) = target_frame {
-            let it = d.item_mut(fid).ok_or(designcraft_doc::DocError::NoItem(fid))?;
+            let it = d.item_mut(fid).ok_or(patronusdesign_doc::DocError::NoItem(fid))?;
             let r = it.inner_bounds();
             // Fill the frame proportionally once. Auto-Fit stays off, so resizing the frame crops.
             let k = (r.width() / bw).max(r.height() / bh);
@@ -227,10 +227,10 @@ pub(crate) fn crop_pdf(a: &mut Asset) -> Option<(f64, f64)> {
 /// [`crop_pdf`] with `a`'s bytes, `bytes`, in hand.
 pub(crate) fn crop_pdf_from(a: &mut Asset, bytes: &[u8]) -> Option<(f64, f64)> {
     a.pdf_box = None;
-    if !crops_pdf(a) || !designcraft_render::is_pdf(bytes) {
+    if !crops_pdf(a) || !patronusdesign_render::is_pdf(bytes) {
         return None;
     }
-    let (frac, size) = designcraft_render::pdf_crop_box(bytes, a.page as usize, a.pdf_crop)?;
+    let (frac, size) = patronusdesign_render::pdf_crop_box(bytes, a.page as usize, a.pdf_crop)?;
     a.pdf_box = Some(frac);
     Some(size)
 }
@@ -282,10 +282,10 @@ pub(crate) fn read_source(p: &Value) -> Result<Source> {
 }
 
 fn eps_size(bytes: &[u8], command: &str) -> Result<Option<(f64, f64)>> {
-    if !designcraft_images::is_eps(bytes) {
+    if !patronusdesign_images::is_eps(bytes) {
         return Ok(None);
     }
-    designcraft_images::eps_size(bytes)
+    patronusdesign_images::eps_size(bytes)
         .map(Some)
         .ok_or_else(|| bad(command, "the EPS has a missing or invalid bounding box (dimensions must be 0.001–20,000 points)"))
 }
@@ -314,11 +314,11 @@ pub(super) fn place_load(s: &mut Session, p: &Value) -> Result<Value> {
     if p.get("files").is_none() {
         let source = read_source(p)?;
         let bytes = &source.bytes;
-        let (pw, ph) = designcraft_render::image_size(bytes).ok_or_else(|| bad("place.load", "unsupported or corrupt image"))?;
-        let natural = eps_size(bytes, "place.load")?.or_else(|| designcraft_render::natural_size(bytes, 0)).unwrap_or((pw as f64, ph as f64));
+        let (pw, ph) = patronusdesign_render::image_size(bytes).ok_or_else(|| bad("place.load", "unsupported or corrupt image"))?;
+        let natural = eps_size(bytes, "place.load")?.or_else(|| patronusdesign_render::natural_size(bytes, 0)).unwrap_or((pw as f64, ph as f64));
         let mut asset = Asset {
             name: source.name.clone(),
-            mime: designcraft_render::image_mime(bytes).to_string(),
+            mime: patronusdesign_render::image_mime(bytes).to_string(),
             pixels: Some((pw, ph)),
             ..Default::default()
         };
@@ -339,12 +339,12 @@ pub(super) fn place_load(s: &mut Session, p: &Value) -> Result<Value> {
         source.embed |= embed;
         let bytes = &source.bytes;
         let (pw, ph) =
-            designcraft_render::image_size(bytes).ok_or_else(|| bad("place.load", format!("unsupported or corrupt image: {}", source.name)))?;
-        let size = eps_size(bytes, "place.load")?.or_else(|| designcraft_render::natural_size(bytes, 0)).unwrap_or((pw as f64, ph as f64));
+            patronusdesign_render::image_size(bytes).ok_or_else(|| bad("place.load", format!("unsupported or corrupt image: {}", source.name)))?;
+        let size = eps_size(bytes, "place.load")?.or_else(|| patronusdesign_render::natural_size(bytes, 0)).unwrap_or((pw as f64, ph as f64));
         validate_placement(size, Rect::new(0.0, 0.0, size.0, size.1), Affine::IDENTITY, "place.load")?;
         let mut asset = Asset {
             name: source.name.clone(),
-            mime: designcraft_render::image_mime(bytes).to_string(),
+            mime: patronusdesign_render::image_mime(bytes).to_string(),
             pixels: Some((pw, ph)),
             ..Default::default()
         };
@@ -433,7 +433,7 @@ pub(super) fn place_drop(s: &mut Session, p: &Value) -> Result<Value> {
     let (x, y) = (crate::cmd::f64_or(p, "x", 0.0), crate::cmd::f64_or(p, "y", 0.0));
     let d = &s.doc()?.doc;
     let (frame_rect, xf, auto_fit) = if let Some(fid) = frame {
-        let r = d.item(fid).ok_or(designcraft_doc::DocError::NoItem(fid))?.inner_bounds();
+        let r = d.item(fid).ok_or(patronusdesign_doc::DocError::NoItem(fid))?.inner_bounds();
         let k = (r.width() / nw).max(r.height() / nh);
         let xf = Affine::translate((r.x0 + (r.width() - nw * k) / 2.0, r.y0 + (r.height() - nh * k) / 2.0)) * Affine::scale(k);
         // Fill the frame proportionally once. Auto-Fit stays off, so resizing the frame crops.
@@ -444,7 +444,7 @@ pub(super) fn place_drop(s: &mut Session, p: &Value) -> Result<Value> {
         }
         // Drag: fit proportionally; click: actual size at the point.
         let (r, k) = match rect {
-            Some(r) if r.width() > designcraft_tools::PLACE_DRAG_MIN && r.height() > designcraft_tools::PLACE_DRAG_MIN => {
+            Some(r) if r.width() > patronusdesign_tools::PLACE_DRAG_MIN && r.height() > patronusdesign_tools::PLACE_DRAG_MIN => {
                 let k = (r.width() / nw).min(r.height() / nh);
                 (Rect::new(r.x0, r.y0, r.x0 + nw * k, r.y0 + nh * k), k)
             }
@@ -467,7 +467,7 @@ pub(super) fn place_drop(s: &mut Session, p: &Value) -> Result<Value> {
             fill: Default::default(),
         });
         let id = if let Some(fid) = frame {
-            d.item_mut(fid).ok_or(designcraft_doc::DocError::NoItem(fid))?.content = graphic;
+            d.item_mut(fid).ok_or(patronusdesign_doc::DocError::NoItem(fid))?.content = graphic;
             fid
         } else {
             let id = ItemId(d.alloc());
@@ -560,9 +560,9 @@ fn grid_cells(rect: Rect, columns: usize, rows: usize, gutter: f64, command: &st
 
 /// Insert a proportionally fitted image into one grid cell.
 fn insert_grid_image(
-    d: &mut designcraft_doc::Document,
-    spread: designcraft_doc::SpreadRef,
-    layer: designcraft_doc::LayerId,
+    d: &mut patronusdesign_doc::Document,
+    spread: patronusdesign_doc::SpreadRef,
+    layer: patronusdesign_doc::LayerId,
     image: crate::LoadedGraphic,
     rect: Rect,
     command: &str,
@@ -585,7 +585,7 @@ fn insert_grid_image(
         asset,
         size: (nw, nh),
         xf,
-        auto_fit: designcraft_doc::Fitting::FitProportionally,
+        auto_fit: patronusdesign_doc::Fitting::FitProportionally,
         fit_align: 4,
         crop: [0.0; 4],
         clip: None,
@@ -649,7 +649,7 @@ pub(super) fn place_contact_sheet(s: &mut Session, p: &Value) -> Result<Value> {
             let b = d.spreads.get(si).and_then(|sp| sp.pages.get(pi)).ok_or_else(|| bad(ID, "missing page"))?.bounds();
             let cells = grid_cells(Rect::new(b.x0 + margin, b.y0 + margin, b.x1 - margin, b.y1 - margin), columns, rows, gutter, ID)?;
             for (image, rect) in chunk.iter().zip(cells) {
-                ids.push(insert_grid_image(d, designcraft_doc::SpreadRef::Doc(si), layer, *image, rect, ID)?);
+                ids.push(insert_grid_image(d, patronusdesign_doc::SpreadRef::Doc(si), layer, *image, rect, ID)?);
             }
         }
         *sel = Selection::items(ids.clone());
@@ -661,7 +661,7 @@ pub(super) fn place_contact_sheet(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({"pages": count, "images": ids.len()}))
 }
 
-/// File › Place of an IDML or DesignCraft document: the objects of one page (`layoutPage`,
+/// File › Place of an IDML or Patronus Design document: the objects of one page (`layoutPage`,
 /// 1-based) grouped, top-left at x/y (default: the source position on the first page).
 fn place_layout_page(s: &mut Session, p: &Value, bytes: &[u8], format: Option<craft_file_formats::Format>) -> Result<Value> {
     const ID: &str = "file.place";
@@ -684,8 +684,8 @@ fn place_layout_page(s: &mut Session, p: &Value, bytes: &[u8], format: Option<cr
     }
     let to = crate::cmd::spread_param(p, ID)?;
     let off = match (p.get("x").and_then(Value::as_f64), p.get("y").and_then(Value::as_f64)) {
-        (Some(x), Some(y)) => designcraft_geom::Vec2::new(x - pr.x0, y - pr.y0),
-        _ => designcraft_geom::Vec2::new(-pr.x0, -pr.y0),
+        (Some(x), Some(y)) => patronusdesign_geom::Vec2::new(x - pr.x0, y - pr.y0),
+        _ => patronusdesign_geom::Vec2::new(-pr.x0, -pr.y0),
     };
     let placed = s.edit(|d, sel| {
         for sw in &src.swatches {
@@ -713,8 +713,8 @@ fn place_layout_page(s: &mut Session, p: &Value, bytes: &[u8], format: Option<cr
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 pub(super) mod image_place_tests {
-    use designcraft_doc::{AssetId, Content, ItemId};
-    use designcraft_geom::Rect;
+    use patronusdesign_doc::{AssetId, Content, ItemId};
+    use patronusdesign_geom::Rect;
     use serde_json::{Value, json};
 
     use crate::Session;
@@ -725,7 +725,7 @@ pub(super) mod image_place_tests {
 
     fn image_file_with_color(red: u8) -> std::io::Result<tempfile::NamedTempFile> {
         let file = tempfile::Builder::new().suffix(".png").tempfile()?;
-        let png = designcraft_render::Rendered { width: 40, height: 20, pixels: [red, 90, 180, 255].repeat(800) }.to_png();
+        let png = patronusdesign_render::Rendered { width: 40, height: 20, pixels: [red, 90, 180, 255].repeat(800) }.to_png();
         std::fs::write(file.path(), png)?;
         Ok(file)
     }
@@ -747,7 +747,7 @@ pub(super) mod image_place_tests {
     }
 
     fn test_png(shade: u8) -> String {
-        let png = designcraft_render::Rendered { width: 4, height: 4, pixels: vec![shade; 4 * 4 * 4] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 4, height: 4, pixels: vec![shade; 4 * 4 * 4] }.to_png();
         crate::cmd::base64_encode(&png)
     }
 
@@ -913,15 +913,15 @@ pub(super) mod image_place_tests {
         let selected = session.execute(command, &params)?;
         session.execute("object.stroke", &json!({"weight": 6}))?;
         let id = ItemId(selected["id"].as_u64().ok_or("missing selected item id")?);
-        let original = serde_json::to_value(session.doc()?.doc.item(id).ok_or(designcraft_doc::DocError::NoItem(id))?)?;
+        let original = serde_json::to_value(session.doc()?.doc.item(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?)?;
 
         let placed = session.execute("file.place", &json!({"path": image.path()}))?;
 
         assert_ne!(placed["id"], selected["id"], "{command}");
         let document = &session.doc()?.doc;
-        assert_eq!(serde_json::to_value(document.item(id).ok_or(designcraft_doc::DocError::NoItem(id))?)?, original, "{command}");
+        assert_eq!(serde_json::to_value(document.item(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?)?, original, "{command}");
         let placed_id = ItemId(placed["id"].as_u64().ok_or("missing placed item id")?);
-        let item = document.item(placed_id).ok_or(designcraft_doc::DocError::NoItem(placed_id))?;
+        let item = document.item(placed_id).ok_or(patronusdesign_doc::DocError::NoItem(placed_id))?;
         assert_eq!(item.bounds(), Rect::new(36.0, 36.0, 76.0, 56.0));
         assert!(matches!(item.content, Content::Graphic(_)));
         assert_eq!(document.spreads[0].items.len(), 2);
@@ -976,7 +976,7 @@ pub(super) mod image_place_tests {
             !crc
         }
         let pixels = [30, 90, 180, 255].repeat((width * height) as usize);
-        let png = designcraft_render::Rendered { width, height, pixels }.to_png();
+        let png = patronusdesign_render::Rendered { width, height, pixels }.to_png();
         assert_eq!(&png[12..16], b"IHDR");
         let mut bytes = png[..33].to_vec();
         if let Some(ppm) = ppm {
@@ -1152,7 +1152,7 @@ pub(super) mod image_place_tests {
             }
             let document = &session.doc()?.doc;
             let id = ItemId(selected["id"].as_u64().ok_or_else(|| crate::EngineError::Other("frame.create returned no numeric id".into()))?);
-            let item = document.item(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+            let item = document.item(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
             assert_eq!(item.bounds(), Rect::new(100.0, 120.0, 200.0, 220.0));
             assert!(matches!(&item.content, Content::Graphic(_)), "placed frame must be graphic");
             let Content::Graphic(content) = &item.content else {
@@ -1232,7 +1232,7 @@ mod pdf_crop_tests {
         let size = |t: &mut Session, crop: &str| {
             t.execute("edit.deselectAll", &json!({})).unwrap();
             let r = t.execute("file.place", &json!({"base64": b64, "name": "a.pdf", "pdfCrop": crop, "width": 630, "x": 0, "y": 0})).unwrap();
-            let id = designcraft_doc::ItemId(r["id"].as_u64().unwrap());
+            let id = patronusdesign_doc::ItemId(r["id"].as_u64().unwrap());
             t.doc().unwrap().doc.item(id).unwrap().bounds()
         };
         let full = size(&mut t, "crop");
@@ -1260,17 +1260,17 @@ mod pdf_crop_tests {
         t.execute("file.new", &json!({})).unwrap();
         // `width` is the whole page's (630 pt with its bleed): half size.
         let r = t.execute("file.place", &json!({"base64": b64, "name": "a.pdf", "pdfCrop": "trim", "width": 315, "x": 100, "y": 100})).unwrap();
-        let id = designcraft_doc::ItemId(r["id"].as_u64().unwrap());
+        let id = patronusdesign_doc::ItemId(r["id"].as_u64().unwrap());
         let d = t.doc().unwrap().doc.clone();
         let it = d.item(id).unwrap();
         let g = it.graphic().unwrap().clone();
         let a = &d.assets[&g.asset];
-        assert_eq!(a.pdf_crop, designcraft_doc::PdfCrop::Trim);
+        assert_eq!(a.pdf_crop, patronusdesign_doc::PdfCrop::Trim);
         let b = a.shown_box().unwrap();
         let want = [9.0 / 630.0, 9.0 / 810.0, 621.0 / 630.0, 801.0 / 810.0];
         assert!(b.iter().zip(want).all(|(x, y)| (x - y).abs() < 1e-4), "{b:?}");
         assert!((g.size.0 - 612.0).abs() < 1e-3 && (g.size.1 - 792.0).abs() < 1e-3, "{:?}", g.size);
-        let shown = (it.xf * g.xf).transform_rect_bbox(designcraft_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1));
+        let shown = (it.xf * g.xf).transform_rect_bbox(patronusdesign_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1));
         let fb = it.bounds();
         for (x, y) in [(shown.x0, 100.0), (shown.y0, 100.0), (shown.x1, 406.0), (shown.y1, 496.0), (fb.x1, 406.0), (fb.y1, 496.0)] {
             assert!((x - y).abs() < 1e-3, "{shown:?} {fb:?}");
@@ -1278,12 +1278,12 @@ mod pdf_crop_tests {
 
         // A frame larger than the graphic still shows only the trim box.
         t.edit(|d, _| {
-            d.item_mut(id).unwrap().path = designcraft_geom::shapes::rectangle(designcraft_geom::Rect::new(90.0, 90.0, 416.0, 506.0));
+            d.item_mut(id).unwrap().path = patronusdesign_geom::shapes::rectangle(patronusdesign_geom::Rect::new(90.0, 90.0, 416.0, 506.0));
             Ok(())
         })
         .unwrap();
         let d = t.doc().unwrap().doc.clone();
-        let mut rr = designcraft_render::Renderer::new();
+        let mut rr = patronusdesign_render::Renderer::new();
         rr.threads = 0;
         let img = rr.render_page(&d, &t.cache, 0, 1.0, false, &Default::default()).unwrap();
         let dark = |x: u32, y: u32| img.pixel(x, y)[0] < 60;
@@ -1303,12 +1303,12 @@ mod pdf_crop_tests {
         let mut t = Session::new();
         t.execute("file.new", &json!({})).unwrap();
         let r = t.execute("file.place", &json!({"base64": b64, "name": "a.pdf", "width": 100.4, "x": 0, "y": 0})).unwrap();
-        let id = designcraft_doc::ItemId(r["id"].as_u64().unwrap());
+        let id = patronusdesign_doc::ItemId(r["id"].as_u64().unwrap());
         let d = &t.doc().unwrap().doc;
         let it = d.item(id).unwrap();
         let b = it.bounds();
         assert!((b.width() - 100.4).abs() < 1e-3 && (b.height() - 50.4).abs() < 1e-3, "{b:?}");
-        let designcraft_doc::Content::Graphic(g) = &it.content else { panic!("not a graphic") };
+        let patronusdesign_doc::Content::Graphic(g) = &it.content else { panic!("not a graphic") };
         assert!((g.size.0 - 100.4).abs() < 1e-3 && (g.size.1 - 50.4).abs() < 1e-3, "{:?}", g.size);
     }
 }
@@ -1325,14 +1325,14 @@ mod layout_place_tests {
         a.execute("file.new", &json!({"pages": 2})).unwrap();
         a.execute("frame.create", &json!({"rect": [100, 100, 200, 150], "content": "text", "text": "From page one", "caret": false})).unwrap();
         a.execute("frame.create", &json!({"rect": [300, 400, 350, 450]})).unwrap();
-        let idml = designcraft_idml::export_idml(&a.doc().unwrap().doc);
+        let idml = patronusdesign_idml::export_idml(&a.doc().unwrap().doc);
         let b64 = super::base64_encode(&idml);
         let mut b = Session::new();
         b.execute("file.new", &json!({})).unwrap();
         let r = b.execute("file.place", &json!({"base64": b64, "name": "src.idml", "layoutPage": 1, "x": 0, "y": 0})).unwrap();
         assert_eq!(r["items"], 2);
         let d = &b.doc().unwrap().doc;
-        let g = d.item(designcraft_doc::ItemId(r["id"].as_u64().unwrap())).unwrap();
+        let g = d.item(patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())).unwrap();
         assert_eq!(g.children().len(), 2, "one group");
         let bb = g.bounds();
         assert!((bb.x0 - 100.0).abs() < 1e-6 && (bb.y0 - 100.0).abs() < 1e-6, "page top-left at 0,0: {bb:?}");
@@ -1345,14 +1345,14 @@ mod layout_place_tests {
 mod nested_frame_tests {
     use std::sync::Arc;
 
-    use designcraft_doc::{Content, Item, ItemId, Shape, SpreadRef};
-    use designcraft_geom::{Affine, Rect, shapes};
+    use patronusdesign_doc::{Content, Item, ItemId, Shape, SpreadRef};
+    use patronusdesign_geom::{Affine, Rect, shapes};
     use serde_json::json;
 
     use crate::Session;
 
     fn png(red: u8) -> String {
-        let png = designcraft_render::Rendered { width: 40, height: 20, pixels: [red, 90, 30, 255].repeat(800) }.to_png();
+        let png = patronusdesign_render::Rendered { width: 40, height: 20, pixels: [red, 90, 30, 255].repeat(800) }.to_png();
         super::super::base64_encode(&png)
     }
 
@@ -1396,7 +1396,7 @@ mod cursor_cap_tests {
     use crate::Session;
 
     fn png() -> String {
-        let png = designcraft_render::Rendered { width: 4, height: 4, pixels: [200, 90, 30, 255].repeat(16) }.to_png();
+        let png = patronusdesign_render::Rendered { width: 4, height: 4, pixels: [200, 90, 30, 255].repeat(16) }.to_png();
         super::super::base64_encode(&png)
     }
 

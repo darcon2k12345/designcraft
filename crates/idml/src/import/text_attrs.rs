@@ -12,15 +12,15 @@ fn tab_list_repaired(read: &[TabStop], sanitized: &[TabStop]) -> bool {
         sanitized.iter().any(|o| {
             o.position == t.position
                 && o.leader == t.leader
-                && (o.align_on == t.align_on || (t.align_on.is_empty() && o.align == designcraft_doc::TabAlign::Char))
+                && (o.align_on == t.align_on || (t.align_on.is_empty() && o.align == patronusdesign_doc::TabAlign::Char))
         })
     };
     read.len() != sanitized.len() || !read.iter().all(kept)
 }
 
-pub(super) fn mojikumi_row(e: &El) -> Result<designcraft_doc::cjk::MojikumiAki> {
+pub(super) fn mojikumi_row(e: &El) -> Result<patronusdesign_doc::cjk::MojikumiAki> {
     let model = craft_idml::model::MojikumiRow::from_el(&crate::xml::to_craft(e)).map_err(IdmlError::Invalid)?;
-    Ok(designcraft_doc::cjk::MojikumiAki {
+    Ok(patronusdesign_doc::cjk::MojikumiAki {
         target_class: model.target_class,
         side_class: model.side_class,
         after: model.after,
@@ -161,9 +161,9 @@ impl<'r> Importer<'r> {
         let list = craft_idml::model::ParagraphListValues::from_el(&crate::xml::to_craft(e));
         a.align = alignment.justification.as_deref().and_then(|v| names::align_in(v.trim()));
         a.kinsoku_hang = cjk.kinsoku_hang.as_deref().and_then(|v| match v {
-            "None" => Some(designcraft_doc::cjk::KinsokuHang::None),
-            "KinsokuHangRegular" => Some(designcraft_doc::cjk::KinsokuHang::Regular),
-            "KinsokuHangForce" => Some(designcraft_doc::cjk::KinsokuHang::Force),
+            "None" => Some(patronusdesign_doc::cjk::KinsokuHang::None),
+            "KinsokuHangRegular" => Some(patronusdesign_doc::cjk::KinsokuHang::Regular),
+            "KinsokuHangForce" => Some(patronusdesign_doc::cjk::KinsokuHang::Force),
             _ => None,
         });
         a.mojikumi = cjk.mojikumi.map(|name| self.mojikumi_names.get(&name).cloned().unwrap_or_else(|| unescape_id(&name)));
@@ -182,12 +182,16 @@ impl<'r> Importer<'r> {
                 a.kinsoku = Some(Some(Default::default()));
             } else if let Some(set) = self.kinsoku.get(&k) {
                 a.kinsoku = Some(Some(set.clone()));
-            } else if let Some(set) = designcraft_doc::cjk::Kinsoku::named(&k) {
+            } else if let Some(set) = patronusdesign_doc::cjk::Kinsoku::named(&k) {
                 a.kinsoku = Some(Some(set));
             }
         }
         a.direction = alignment.direction.map(|v| {
-            if v.trim() == "RightToLeftDirection" { designcraft_doc::TextDirection::RightToLeft } else { designcraft_doc::TextDirection::LeftToRight }
+            if v.trim() == "RightToLeftDirection" {
+                patronusdesign_doc::TextDirection::RightToLeft
+            } else {
+                patronusdesign_doc::TextDirection::LeftToRight
+            }
         });
         a.kashidas = alignment.kashidas.as_deref().and_then(crate::arabic::kashidas_in);
         a.arabic_justification = alignment.paragraph_justification;
@@ -308,7 +312,7 @@ impl<'r> Importer<'r> {
         a.border_cap = boxes.border_cap.as_deref().map(|value| names::cap_in(value.trim()));
         a.border_join = boxes.border_join.as_deref().map(|value| names::join_in(value.trim()));
         let map_corners = |values: Option<[(String, f64); 4]>| {
-            values.map(|values| values.map(|(shape, size)| designcraft_geom::corners::Corner { shape: names::corner_in(shape.trim()), size }))
+            values.map(|values| values.map(|(shape, size)| patronusdesign_geom::corners::Corner { shape: names::corner_in(shape.trim()), size }))
         };
         a.border_corners = map_corners(boxes.border_corners);
         a.border_width = boxes.border_width.as_deref().map(|value| names::box_width_in(value.trim()));
@@ -327,7 +331,7 @@ impl<'r> Importer<'r> {
         a.shading_nonprinting = boxes.shading_nonprinting;
         a.span_space_before = span.space_before;
         a.span_space_after = span.space_after;
-        a.list_level = list.level.map(|value| value.round().clamp(1.0, designcraft_doc::LIST_LEVELS as f64) as u32);
+        a.list_level = list.level.map(|value| value.round().clamp(1.0, patronusdesign_doc::LIST_LEVELS as f64) as u32);
         if let Some(style) = list.bullet_character_style {
             a.bullet_char_style = Some(self.char_style_ref(style.trim()));
         }
@@ -356,9 +360,9 @@ impl<'r> Importer<'r> {
     fn read_nested_styles(&self, e: &El, attrs: &mut ParaAttrs) {
         let lists = craft_idml::model::NestedStyleValues::from_el(&crate::xml::to_craft(e));
         if let Some(values) = lists.nested {
-            let styles: Vec<designcraft_doc::NestedStyle> = values
+            let styles: Vec<patronusdesign_doc::NestedStyle> = values
                 .into_iter()
-                .map(|value| designcraft_doc::NestedStyle {
+                .map(|value| patronusdesign_doc::NestedStyle {
                     style: self.listed_char_style_ref(&value.character_style),
                     through: value.inclusive,
                     count: value.repetition,
@@ -374,7 +378,7 @@ impl<'r> Importer<'r> {
             attrs.nested_line_styles = Some(
                 values
                     .into_iter()
-                    .map(|value| designcraft_doc::NestedLineStyle {
+                    .map(|value| patronusdesign_doc::NestedLineStyle {
                         style: self.listed_char_style_ref(&value.character_style),
                         lines: value.line_count,
                     })
@@ -385,7 +389,10 @@ impl<'r> Importer<'r> {
             attrs.grep_styles = Some(
                 values
                     .into_iter()
-                    .map(|value| designcraft_doc::GrepStyle { style: self.listed_char_style_ref(&value.character_style), pattern: value.expression })
+                    .map(|value| patronusdesign_doc::GrepStyle {
+                        style: self.listed_char_style_ref(&value.character_style),
+                        pattern: value.expression,
+                    })
                     .collect(),
             );
         }
@@ -422,8 +429,8 @@ pub(super) fn ace_char(v: &str) -> Option<char> {
 }
 
 /// `HL Composer` and `HL Single`, their World-Ready (`… Optyca`) and Japanese (`… J`) forms.
-fn composer_in(name: &str) -> designcraft_doc::Composer {
-    use designcraft_doc::Composer as C;
+fn composer_in(name: &str) -> patronusdesign_doc::Composer {
+    use patronusdesign_doc::Composer as C;
     let name = name.trim().trim_start_matches("$ID/");
     match (name.contains("Single"), name.ends_with(" J") || name.contains("Japanese")) {
         (false, false) => C::Paragraph,

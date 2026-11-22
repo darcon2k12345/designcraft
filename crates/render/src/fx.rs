@@ -22,14 +22,14 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use designcraft_doc::{Asset, AssetId, DocSettings, Document, InkManager, Item, ItemId, Layer, StrokeStyleDef};
-use designcraft_geom::{Affine, BezPath, Rect, Shape, Vec2};
+use patronusdesign_doc::{Asset, AssetId, DocSettings, Document, InkManager, Item, ItemId, Layer, StrokeStyleDef};
+use patronusdesign_geom::{Affine, BezPath, Rect, Shape, Vec2};
 use vello_common::filter_effects::{EdgeMode, Filter, FilterPrimitive};
 use vello_cpu::peniko::{self, BlendMode, Compose, Mix};
 use vello_cpu::{Pixmap, RenderContext, kurbo};
 
 use crate::{Frame, RenderOptions, Renderer, color_of};
-use designcraft_compose::ShownOn;
+use patronusdesign_compose::ShownOn;
 
 /// Shadow offset (spread units) for an InDesign angle (degrees, light direction) and distance.
 pub(crate) fn offset(angle: f64, distance: f64) -> Vec2 {
@@ -147,7 +147,7 @@ impl Renderer {
         let reach = xf.transform_rect_bbox(bp.bounding_box()).inflate(sw + 1.0, sw + 1.0);
         // The silhouette is the shape when the object paints its area (fill / image); text frames
         // without a fill cast the shadow of their text only, which can't be grown.
-        let solid = !it.fill.is_none() || matches!(it.content, designcraft_doc::Content::Graphic(_)) || it.has_nested_items();
+        let solid = !it.fill.is_none() || matches!(it.content, patronusdesign_doc::Content::Graphic(_)) || it.has_nested_items();
         let mut below = vec![];
         if e.outer_glow.on {
             let g = &e.outer_glow;
@@ -226,7 +226,7 @@ impl Renderer {
         let fade = fading.then_some(it);
         // An image's edge is where it is opaque, not the frame: inner shadows, glows and bevels
         // follow what is painted when the frame holds a graphic.
-        let painted = matches!(it.content, designcraft_doc::Content::Graphic(_)).then_some((it, page));
+        let painted = matches!(it.content, patronusdesign_doc::Content::Graphic(_)).then_some((it, page));
         // Inner shadow, clipped to the shape.
         if e.inner_shadow.on
             && let Some(c) = doc.resolve_color(&e.inner_shadow.color, 1.0)
@@ -256,7 +256,7 @@ impl Renderer {
             let g = &e.inner_glow;
             let (sigma, choke) = split(g.size, g.choke);
             // Precise keeps the glow close to the edge: a tighter blur.
-            let sigma = if g.technique == designcraft_doc::GlowTechnique::Precise { sigma * 0.4 } else { sigma };
+            let sigma = if g.technique == patronusdesign_doc::GlowTechnique::Precise { sigma * 0.4 } else { sigma };
             let mix = crate::blend_mode(g.mode).mix;
             let paint = color_of(&c, g.opacity.clamp(0.0, 1.0));
             if g.center
@@ -527,9 +527,9 @@ impl Renderer {
             let fo = &e.feather_options;
             let w = bound(e.feather) * (1.0 - fo.choke.clamp(0.0, 100.0) / 100.0).max(0.01);
             let (sigma, join) = match fo.corners {
-                designcraft_doc::FeatherCorners::Diffused => (w / 4.0, kurbo::Join::Round),
-                designcraft_doc::FeatherCorners::Rounded => (w / 3.0, kurbo::Join::Round),
-                designcraft_doc::FeatherCorners::Sharp => (w / 6.0, kurbo::Join::Miter),
+                patronusdesign_doc::FeatherCorners::Diffused => (w / 4.0, kurbo::Join::Round),
+                patronusdesign_doc::FeatherCorners::Rounded => (w / 3.0, kurbo::Join::Round),
+                patronusdesign_doc::FeatherCorners::Sharp => (w / 6.0, kurbo::Join::Miter),
             };
             // Keep what was drawn where the blurred inset silhouette is.
             ctx.set_transform(Affine::IDENTITY);
@@ -775,8 +775,8 @@ struct Kept {
 
 /// What every kept image depends on besides its object.
 struct Deps {
-    colors: designcraft_color::cms::ColorSettings,
-    swatches: Vec<designcraft_color::Swatch>,
+    colors: patronusdesign_color::cms::ColorSettings,
+    swatches: Vec<patronusdesign_color::Swatch>,
     settings: DocSettings,
     inks: InkManager,
     stroke_styles: Vec<StrokeStyleDef>,
@@ -788,7 +788,7 @@ struct Deps {
 impl Deps {
     fn of(doc: &Document) -> Self {
         Deps {
-            colors: designcraft_color::cms::active_settings(),
+            colors: patronusdesign_color::cms::active_settings(),
             swatches: doc.swatches.clone(),
             settings: doc.settings.clone(),
             inks: doc.inks.clone(),
@@ -798,7 +798,7 @@ impl Deps {
         }
     }
     fn same(&self, doc: &Document) -> bool {
-        self.colors == designcraft_color::cms::active_settings()
+        self.colors == patronusdesign_color::cms::active_settings()
             && self.swatches == doc.swatches
             && self.settings == doc.settings
             && self.inks == doc.inks
@@ -1204,39 +1204,39 @@ mod tests {
 
     /// A 200 pt frame at (100, 100) holding a 20 × 20 image with a transparent left half and an
     /// opaque white right half, in a new document.
-    fn half_image_frame() -> (designcraft_doc::Document, Item) {
+    fn half_image_frame() -> (patronusdesign_doc::Document, Item) {
         image_frame(|x| if x < 10 { image::Rgba([0, 0, 0, 0]) } else { image::Rgba([255, 255, 255, 255]) })
     }
 
     /// A 200 pt frame at (100, 100) holding a 20 × 20 image whose pixels in column x are
     /// `pixel(x)`, in a new document.
-    fn image_frame(pixel: impl Fn(u32) -> image::Rgba<u8>) -> (designcraft_doc::Document, Item) {
-        use designcraft_doc::Document;
-        use designcraft_doc::build::NewDocument;
+    fn image_frame(pixel: impl Fn(u32) -> image::Rgba<u8>) -> (patronusdesign_doc::Document, Item) {
+        use patronusdesign_doc::Document;
+        use patronusdesign_doc::build::NewDocument;
         let mut d = Document::new(&NewDocument::default());
         let lid = d.default_layer();
         let img = image::RgbaImage::from_fn(20, 20, |x, _| pixel(x));
         let mut png = Vec::new();
         img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-        let aid = designcraft_doc::AssetId(d.alloc());
+        let aid = patronusdesign_doc::AssetId(d.alloc());
         d.assets.insert(
             aid,
-            std::sync::Arc::new(designcraft_doc::Asset {
+            std::sync::Arc::new(patronusdesign_doc::Asset {
                 id: aid,
                 name: "half.png".into(),
                 mime: "image/png".into(),
-                data: designcraft_doc::AssetData::embedded(png),
+                data: patronusdesign_doc::AssetData::embedded(png),
                 pixels: Some((20, 20)),
                 ..Default::default()
             }),
         );
         let mut it = Item::new(
-            designcraft_doc::ItemId(d.alloc()),
+            patronusdesign_doc::ItemId(d.alloc()),
             lid,
-            designcraft_doc::Shape::Rectangle,
-            designcraft_geom::shapes::rectangle(Rect::new(100.0, 100.0, 300.0, 300.0)),
+            patronusdesign_doc::Shape::Rectangle,
+            patronusdesign_geom::shapes::rectangle(Rect::new(100.0, 100.0, 300.0, 300.0)),
         );
-        it.content = designcraft_doc::Content::Graphic(designcraft_doc::Graphic {
+        it.content = patronusdesign_doc::Content::Graphic(patronusdesign_doc::Graphic {
             layer_options: None,
             asset: aid,
             size: (200.0, 200.0),
@@ -1252,8 +1252,8 @@ mod tests {
     }
 
     /// The first page with `it` added, rendered at 100%: the sum of R, G and B at x on row 200.
-    fn render_row(mut d: designcraft_doc::Document, it: Item) -> impl Fn(u32) -> u32 {
-        d.insert_item(designcraft_doc::SpreadRef::Doc(0), it, None).unwrap();
+    fn render_row(mut d: patronusdesign_doc::Document, it: Item) -> impl Fn(u32) -> u32 {
+        d.insert_item(patronusdesign_doc::SpreadRef::Doc(0), it, None).unwrap();
         let cache = crate::Cache::new();
         let mut r = Renderer::new();
         r.threads = 0;
@@ -1265,30 +1265,31 @@ mod tests {
     }
 
     /// A document with one image frame casting a drop shadow, and the frame's id.
-    fn shadowed_image() -> (designcraft_doc::Document, designcraft_doc::ItemId) {
-        use designcraft_doc::build::NewDocument;
-        use designcraft_doc::{Document, SpreadRef};
+    fn shadowed_image() -> (patronusdesign_doc::Document, patronusdesign_doc::ItemId) {
+        use patronusdesign_doc::build::NewDocument;
+        use patronusdesign_doc::{Document, SpreadRef};
         let mut d = Document::new(&NewDocument::default());
         let lid = d.default_layer();
         let img = image::RgbaImage::from_fn(64, 48, |x, y| image::Rgba([(x * 4) as u8, (y * 5) as u8, 128, 255]));
         let mut png = Vec::new();
         img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-        let aid = designcraft_doc::AssetId(d.alloc());
+        let aid = patronusdesign_doc::AssetId(d.alloc());
         d.assets.insert(
             aid,
-            Arc::new(designcraft_doc::Asset {
+            Arc::new(patronusdesign_doc::Asset {
                 id: aid,
                 name: "photo.png".into(),
                 mime: "image/png".into(),
-                data: designcraft_doc::AssetData::embedded(png),
+                data: patronusdesign_doc::AssetData::embedded(png),
                 pixels: Some((64, 48)),
                 ..Default::default()
             }),
         );
-        let id = designcraft_doc::ItemId(d.alloc());
-        let mut it = Item::new(id, lid, designcraft_doc::Shape::Rectangle, designcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 160.0, 120.0)));
+        let id = patronusdesign_doc::ItemId(d.alloc());
+        let mut it =
+            Item::new(id, lid, patronusdesign_doc::Shape::Rectangle, patronusdesign_geom::shapes::rectangle(Rect::new(0.0, 0.0, 160.0, 120.0)));
         it.xf = Affine::translate((100.0, 100.0));
-        it.content = designcraft_doc::Content::Graphic(designcraft_doc::Graphic {
+        it.content = patronusdesign_doc::Content::Graphic(patronusdesign_doc::Graphic {
             layer_options: None,
             asset: aid,
             size: (160.0, 120.0),
@@ -1311,7 +1312,7 @@ mod tests {
     /// A new effect setting, zoom, colour or a move by part of a pixel draws it again.
     #[test]
     fn a_moved_shadow_is_drawn_once_and_placed_again() {
-        use designcraft_doc::SpreadRef;
+        use patronusdesign_doc::SpreadRef;
         let (mut d, id) = shadowed_image();
         let cache = crate::Cache::new();
         let placed = [crate::Placed { spread: SpreadRef::Doc(0), xf: Affine::IDENTITY }];
@@ -1319,8 +1320,8 @@ mod tests {
         let mut kept = Renderer::new();
         kept.threads = 2;
         let render =
-            |r: &mut Renderer, d: &designcraft_doc::Document, size: (u32, u32), view: Affine| r.render(d, &cache, &placed, size, view, &opts);
-        let fresh = |d: &designcraft_doc::Document, size: (u32, u32), view: Affine| {
+            |r: &mut Renderer, d: &patronusdesign_doc::Document, size: (u32, u32), view: Affine| r.render(d, &cache, &placed, size, view, &opts);
+        let fresh = |d: &patronusdesign_doc::Document, size: (u32, u32), view: Affine| {
             let mut r = Renderer::new();
             r.threads = 2;
             r.render(d, &crate::Cache::new(), &placed, size, view, &opts)
@@ -1355,7 +1356,7 @@ mod tests {
         d.item_mut(id).unwrap().effects.drop_shadow.size = 20.0;
         close(&render(&mut kept, &d, (500, 450), view), &fresh(&d, (500, 450), view), "a new size");
         assert_eq!(kept.kept.drawn, 4);
-        d.swatches.push(designcraft_color::Swatch::color("Extra", designcraft_color::Color::rgb8(1, 2, 3)));
+        d.swatches.push(patronusdesign_color::Swatch::color("Extra", patronusdesign_color::Color::rgb8(1, 2, 3)));
         render(&mut kept, &d, (500, 450), view);
         assert_eq!(kept.kept.drawn, 5, "a swatch change drops kept images");
         // An image changed in place (its only document owner editing it).
@@ -1374,7 +1375,7 @@ mod tests {
     /// isn't kept, and the render once the image is decoded draws it again.
     #[test]
     fn a_shadow_drawn_while_its_image_decodes_is_not_kept() {
-        use designcraft_doc::SpreadRef;
+        use patronusdesign_doc::SpreadRef;
         let (d, _) = shadowed_image();
         let cache = crate::Cache::new();
         let placed = [crate::Placed { spread: SpreadRef::Doc(0), xf: Affine::IDENTITY }];
@@ -1398,9 +1399,9 @@ mod tests {
     /// In the CMYK blend space view the ink passes keep an image per plate, placed again on a move.
     #[test]
     fn the_ink_passes_keep_their_shadows() {
-        use designcraft_doc::SpreadRef;
+        use patronusdesign_doc::SpreadRef;
         let (mut d, id) = shadowed_image();
-        d.settings.blend_space = designcraft_doc::BlendSpace::Cmyk;
+        d.settings.blend_space = patronusdesign_doc::BlendSpace::Cmyk;
         let cache = crate::Cache::new();
         let placed = [crate::Placed { spread: SpreadRef::Doc(0), xf: Affine::IDENTITY }];
         let opts = crate::RenderOptions { blend_space_view: true, background: Some([255, 255, 255, 255]), ..Default::default() };
@@ -1428,7 +1429,7 @@ mod tests {
     /// device, but turns the shadow's offset: the shadow is drawn again.
     #[test]
     fn a_turned_view_draws_the_shadow_again() {
-        use designcraft_doc::SpreadRef;
+        use patronusdesign_doc::SpreadRef;
         let (mut d, id) = shadowed_image();
         let cache = crate::Cache::new();
         let placed = [crate::Placed { spread: SpreadRef::Doc(0), xf: Affine::IDENTITY }];
@@ -1457,42 +1458,42 @@ mod tests {
     /// the feather shows what is behind the object, the highlight and shadow leave it as it is.
     #[test]
     fn feathers_fade_the_inner_effects_with_the_object() {
-        use designcraft_doc::build::NewDocument;
-        use designcraft_doc::{Document, Fill, SpreadRef};
+        use patronusdesign_doc::build::NewDocument;
+        use patronusdesign_doc::{Document, Fill, SpreadRef};
         let doc = |image: bool, feather: u8, inner: u8| {
             let mut d = Document::new(&NewDocument::default());
             let lid = d.default_layer();
             let mut back = Item::new(
-                designcraft_doc::ItemId(d.alloc()),
+                patronusdesign_doc::ItemId(d.alloc()),
                 lid,
-                designcraft_doc::Shape::Rectangle,
-                designcraft_geom::shapes::rectangle(Rect::new(50.0, 50.0, 350.0, 350.0)),
+                patronusdesign_doc::Shape::Rectangle,
+                patronusdesign_geom::shapes::rectangle(Rect::new(50.0, 50.0, 350.0, 350.0)),
             );
             back.fill = Fill::swatch("C=0 M=100 Y=0 K=0");
             d.insert_item(SpreadRef::Doc(0), back, None).unwrap();
             let mut it = Item::new(
-                designcraft_doc::ItemId(d.alloc()),
+                patronusdesign_doc::ItemId(d.alloc()),
                 lid,
-                designcraft_doc::Shape::Rectangle,
-                designcraft_geom::shapes::rectangle(Rect::new(100.0, 100.0, 300.0, 300.0)),
+                patronusdesign_doc::Shape::Rectangle,
+                patronusdesign_geom::shapes::rectangle(Rect::new(100.0, 100.0, 300.0, 300.0)),
             );
             if image {
                 let img = image::RgbaImage::from_pixel(20, 20, image::Rgba([40, 160, 90, 255]));
                 let mut png = Vec::new();
                 img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-                let aid = designcraft_doc::AssetId(d.alloc());
+                let aid = patronusdesign_doc::AssetId(d.alloc());
                 d.assets.insert(
                     aid,
-                    std::sync::Arc::new(designcraft_doc::Asset {
+                    std::sync::Arc::new(patronusdesign_doc::Asset {
                         id: aid,
                         name: "green.png".into(),
                         mime: "image/png".into(),
-                        data: designcraft_doc::AssetData::embedded(png),
+                        data: patronusdesign_doc::AssetData::embedded(png),
                         pixels: Some((20, 20)),
                         ..Default::default()
                     }),
                 );
-                it.content = designcraft_doc::Content::Graphic(designcraft_doc::Graphic {
+                it.content = patronusdesign_doc::Content::Graphic(patronusdesign_doc::Graphic {
                     layer_options: None,
                     asset: aid,
                     size: (200.0, 200.0),
@@ -1574,20 +1575,20 @@ mod tests {
     /// and that reach scales too.
     #[test]
     fn a_scaled_items_hard_glow_is_not_cropped() {
-        use designcraft_doc::build::NewDocument;
-        use designcraft_doc::{Document, SpreadRef};
+        use patronusdesign_doc::build::NewDocument;
+        use patronusdesign_doc::{Document, SpreadRef};
         let mut d = Document::new(&NewDocument::default());
         let lid = d.default_layer();
         let mut it = Item::new(
-            designcraft_doc::ItemId(d.alloc()),
+            patronusdesign_doc::ItemId(d.alloc()),
             lid,
-            designcraft_doc::Shape::Rectangle,
-            designcraft_geom::shapes::rectangle(Rect::new(50.0, 50.0, 90.0, 90.0)),
+            patronusdesign_doc::Shape::Rectangle,
+            patronusdesign_geom::shapes::rectangle(Rect::new(50.0, 50.0, 90.0, 90.0)),
         );
         it.xf = Affine::scale(3.0);
-        it.fill = designcraft_doc::Fill::swatch(designcraft_color::swatch::BLACK);
+        it.fill = patronusdesign_doc::Fill::swatch(patronusdesign_color::swatch::BLACK);
         let g = &mut it.effects.outer_glow;
-        (g.on, g.color, g.opacity, g.size, g.spread) = (true, designcraft_color::swatch::BLACK.into(), 1.0, 20.0, 100.0);
+        (g.on, g.color, g.opacity, g.size, g.spread) = (true, patronusdesign_color::swatch::BLACK.into(), 1.0, 20.0, 100.0);
         // max_scale's own cases: a plain scale, a rotation and a shear.
         assert_eq!(max_scale(it.xf), Some(3.0));
         assert!((max_scale(Affine::rotate(0.7)).unwrap() - 1.0).abs() < 1e-12);
@@ -1611,24 +1612,24 @@ mod tests {
     /// transform, so a view (or a repaint patch) that shows only that part still draws it.
     #[test]
     fn a_scaled_items_hard_glow_and_stroke_are_not_culled() {
-        use designcraft_doc::build::NewDocument;
-        use designcraft_doc::{Document, SpreadRef};
+        use patronusdesign_doc::build::NewDocument;
+        use patronusdesign_doc::{Document, SpreadRef};
         let square = |glow: bool| {
             let mut d = Document::new(&NewDocument::default());
             let lid = d.default_layer();
             let mut it = Item::new(
-                designcraft_doc::ItemId(d.alloc()),
+                patronusdesign_doc::ItemId(d.alloc()),
                 lid,
-                designcraft_doc::Shape::Rectangle,
-                designcraft_geom::shapes::rectangle(Rect::new(50.0, 50.0, 90.0, 90.0)),
+                patronusdesign_doc::Shape::Rectangle,
+                patronusdesign_geom::shapes::rectangle(Rect::new(50.0, 50.0, 90.0, 90.0)),
             );
             it.xf = Affine::scale(3.0);
-            it.fill = designcraft_doc::Fill::swatch(designcraft_color::swatch::BLACK);
+            it.fill = patronusdesign_doc::Fill::swatch(patronusdesign_color::swatch::BLACK);
             if glow {
                 let g = &mut it.effects.outer_glow;
-                (g.on, g.color, g.opacity, g.size, g.spread) = (true, designcraft_color::swatch::BLACK.into(), 1.0, 20.0, 100.0);
+                (g.on, g.color, g.opacity, g.size, g.spread) = (true, patronusdesign_color::swatch::BLACK.into(), 1.0, 20.0, 100.0);
             } else {
-                (it.stroke.swatch, it.stroke.weight) = (designcraft_color::swatch::BLACK.into(), 20.0);
+                (it.stroke.swatch, it.stroke.weight) = (patronusdesign_color::swatch::BLACK.into(), 20.0);
             }
             d.insert_item(SpreadRef::Doc(0), it, None).unwrap();
             d

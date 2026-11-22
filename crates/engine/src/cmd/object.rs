@@ -4,12 +4,12 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use designcraft_color::BlendMode;
-use designcraft_doc::{
+use patronusdesign_color::BlendMode;
+use patronusdesign_doc::{
     AssetId, Content, Document, Effects, Fill, Item, ItemId, ItemLoc, ParaFormat, Selection, Shape, SpreadRef, Story, StoryId, Stroke, TextFrame,
     TextFrameOptions, TextSel,
 };
-use designcraft_geom::{Affine, Point, Rect, Vec2, shapes};
+use patronusdesign_geom::{Affine, Point, Rect, Vec2, shapes};
 use serde_json::{Value, json};
 
 use super::{CommandSpec, bad, bool_or, cmd, f64_or, has_doc, has_selection, ok, point_param, rect_param, spread_param, str_param, targets};
@@ -17,7 +17,7 @@ use crate::{Result, Session};
 
 /// `name` must be a swatch of the document: an unknown name would paint nothing. The error names
 /// the swatch it was probably meant to be (`Paper` → `[Paper]`, a different case).
-pub(crate) fn known_swatch(doc: &designcraft_doc::Document, name: &str, cmd: &str, key: &str) -> Result<()> {
+pub(crate) fn known_swatch(doc: &patronusdesign_doc::Document, name: &str, cmd: &str, key: &str) -> Result<()> {
     if doc.swatch(name).is_some() {
         return Ok(());
     }
@@ -264,7 +264,7 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             |s, p| {
                 if nothing_targeted(s, p)? {
-                    return set_new_object(s, |c| *c = designcraft_doc::NewObjectColors::default());
+                    return set_new_object(s, |c| *c = patronusdesign_doc::NewObjectColors::default());
                 }
                 has_editable_selection(s).map_err(|e| bad("object.defaultFillStroke", e))?;
                 edit_unlocked(s, p, default_fill_stroke)
@@ -278,7 +278,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "{swatch?, tint?: 0–1, weight?: 0–1000 pt, align?: center|inside|outside, type?: {kind: solid|dashed|dotted|thickThin|thinThick|thinThin|thickThick|thinThickThin|thickThinThick|wavy|hashed|stripes|style, pattern?: [dash, gap, …] (dashed: required, points), bands?: [[start, width], …] (stripes: required, fractions of stroke weight), name?: string (style: required, document stroke style name)} (other kinds take no extra fields; unknown type fields are errors), cap?: butt|round|projecting, join?: miter|round|bevel, miterLimit?: 1–500, start?, end?: none|simple|simpleWide|triangle|triangleWide|barbed|curved|circle|circleSolid|square|squareSolid|bar, gapSwatch?, gapTint?: 0–1, gapOverprint?: bool, ids?} (a value out of range or not listed is an error)",
             has_doc,
             |s, p| {
-                let kind: Option<designcraft_doc::StrokeType> = p
+                let kind: Option<patronusdesign_doc::StrokeType> = p
                     .get("type")
                     .map(|v| {
                         check_stroke_type_fields(v, None, "object.stroke")?;
@@ -787,7 +787,7 @@ pub fn specs() -> Vec<CommandSpec> {
                     }
                 }
                 let sel: Vec<ItemId> = ids.iter().filter_map(Value::as_u64).map(ItemId).collect();
-                s.doc_mut()?.selection = designcraft_doc::Selection::items(sel);
+                s.doc_mut()?.selection = patronusdesign_doc::Selection::items(sel);
                 Ok(json!({"ids": ids}))
             }
         ),
@@ -979,7 +979,7 @@ pub(crate) fn nothing_targeted(s: &Session, p: &Value) -> Result<bool> {
 }
 
 /// Change the colours new shapes are drawn with (one undo step).
-pub(crate) fn set_new_object(s: &mut Session, f: impl FnOnce(&mut designcraft_doc::NewObjectColors)) -> Result<Value> {
+pub(crate) fn set_new_object(s: &mut Session, f: impl FnOnce(&mut patronusdesign_doc::NewObjectColors)) -> Result<Value> {
     s.edit(|d, _| {
         f(&mut d.settings.new_object);
         let c = &d.settings.new_object;
@@ -989,9 +989,9 @@ pub(crate) fn set_new_object(s: &mut Session, f: impl FnOnce(&mut designcraft_do
 
 /// A new shape's fill and stroke: the document's colours for new objects (a swatch deleted
 /// since leaves the shape's own).
-fn new_object_colors(d: &designcraft_doc::Document, it: &mut Item) {
+fn new_object_colors(d: &patronusdesign_doc::Document, it: &mut Item) {
     let c = &d.settings.new_object;
-    let known = |sw: &str| sw == designcraft_color::swatch::NONE || d.swatches.iter().any(|w| w.name == sw);
+    let known = |sw: &str| sw == patronusdesign_color::swatch::NONE || d.swatches.iter().any(|w| w.name == sw);
     if known(&c.fill) {
         it.fill = Fill { swatch: c.fill.clone(), tint: c.fill_tint, ..it.fill.clone() };
     }
@@ -1056,7 +1056,7 @@ fn frame_create(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// A polygon (or, with a star inset, a star with `sides` points) fitted to `r`.
-pub(crate) fn polygon_in(r: Rect, sides: u32, inset: f64) -> designcraft_geom::PathData {
+pub(crate) fn polygon_in(r: Rect, sides: u32, inset: f64) -> patronusdesign_geom::PathData {
     let c = r.center();
     let mut p =
         if inset > 0.0 { shapes::star(Point::ZERO, 1.0, (1.0 - inset).max(0.0), sides, 0.0) } else { shapes::polygon(Point::ZERO, 1.0, sides, 0.0) };
@@ -1095,7 +1095,7 @@ pub fn duplicate_from(dst: &mut Document, src: &Document, ids: &[ItemId], to: Sp
         let mut copy = it.clone();
         copy.xf = Affine::translate(off) * copy.xf;
         if !renumber(dst, src, &mut copy, &mut story_map) {
-            return Err(designcraft_doc::DocError::Invalid(format!("{id} nests groups or tables too deeply to copy")).into());
+            return Err(patronusdesign_doc::DocError::Invalid(format!("{id} nests groups or tables too deeply to copy")).into());
         }
         if dst.layer(copy.layer).is_none() {
             copy.layer = dst.default_layer();
@@ -1151,13 +1151,13 @@ fn renumber_in(dst: &mut Document, src: &Document, it: &mut Item, stories: &mut 
                     st.id = n;
                     let marked = renumber_marks(dst, &mut st);
                     let mut assets = HashMap::new();
-                    for a in designcraft_doc::story_asset_refs(&st) {
+                    for a in patronusdesign_doc::story_asset_refs(&st) {
                         let na = adopt_or_dangle(dst, src, a);
                         if na != a {
                             assets.insert(a, na);
                         }
                     }
-                    designcraft_doc::remap_story_assets(&mut st, &assets);
+                    patronusdesign_doc::remap_story_assets(&mut st, &assets);
                     st.frames.clear();
                     // Mapped first: the map is the seen-set that stops story recursion.
                     stories.insert(tf.story, n);
@@ -1365,7 +1365,7 @@ fn transform_move(s: &mut Session, p: &Value) -> Result<Value> {
             }
             // A nested item moves in its container's space.
             let v = d.find(*id).map_or(Vec2::new(dx, dy), |l| linear_inverse(d.parent_xf(&l), Vec2::new(dx, dy)));
-            let it = d.item_mut(*id).ok_or(designcraft_doc::DocError::NoItem(*id))?;
+            let it = d.item_mut(*id).ok_or(patronusdesign_doc::DocError::NoItem(*id))?;
             if it.locked {
                 continue;
             }
@@ -1400,9 +1400,9 @@ fn move_content(s: &mut Session, ids: &[ItemId], d: Vec2) -> Result<Value> {
     s.edit(|doc, _| {
         let mut moved = Vec::new();
         for id in ids {
-            let loc = doc.find(*id).ok_or(designcraft_doc::DocError::NoItem(*id))?;
+            let loc = doc.find(*id).ok_or(patronusdesign_doc::DocError::NoItem(*id))?;
             let parent = doc.parent_xf(&loc);
-            let it = doc.item_mut(*id).ok_or(designcraft_doc::DocError::NoItem(*id))?;
+            let it = doc.item_mut(*id).ok_or(patronusdesign_doc::DocError::NoItem(*id))?;
             if it.locked {
                 continue;
             }
@@ -1440,7 +1440,7 @@ fn transform_resize(s: &mut Session, p: &Value) -> Result<Value> {
     let strokes = s.prefs.scale_strokes;
     s.edit(|d, _| {
         for id in &ids {
-            let it = d.item_mut(*id).ok_or(designcraft_doc::DocError::NoItem(*id))?;
+            let it = d.item_mut(*id).ok_or(patronusdesign_doc::DocError::NoItem(*id))?;
             if it.locked {
                 continue;
             }
@@ -1479,10 +1479,10 @@ fn resize_container(it: &mut Item, m: Affine) {
     let after = it.inner_bounds();
     if let Some(f) = it.flex.as_mut() {
         if (after.width() - before.width()).abs() > 1e-6 {
-            f.width = designcraft_doc::FlexSize::Fixed;
+            f.width = patronusdesign_doc::FlexSize::Fixed;
         }
         if (after.height() - before.height()).abs() > 1e-6 {
-            f.height = designcraft_doc::FlexSize::Fixed;
+            f.height = patronusdesign_doc::FlexSize::Fixed;
         }
     }
 }
@@ -1601,8 +1601,8 @@ fn scale_text_frame(d: &mut Document, id: ItemId, m: Affine, k: f64, strokes: bo
         st.format_chars(r, |f| {
             let o = &mut f.over;
             o.size = Some(cp.size * sy);
-            if let designcraft_doc::Leading::Points(v) = cp.leading {
-                o.leading = Some(designcraft_doc::Leading::Points(v * sy));
+            if let patronusdesign_doc::Leading::Points(v) = cp.leading {
+                o.leading = Some(patronusdesign_doc::Leading::Points(v * sy));
             }
             if cp.baseline_shift != 0.0 {
                 o.baseline_shift = Some(cp.baseline_shift * sy);
@@ -1696,7 +1696,7 @@ fn apply_about_ref(s: &mut Session, p: &Value, a: Affine) -> Result<Value> {
     let ids = targets(s, p)?;
     let rf = p.get("ref").and_then(Value::as_u64).unwrap_or(4).min(8) as usize;
     s.edit(|d, _| {
-        let c = designcraft_geom::reference_point(union_bounds(d, &ids), rf);
+        let c = patronusdesign_geom::reference_point(union_bounds(d, &ids), rf);
         let m = Affine::translate(c.to_vec2()) * a * Affine::translate(-c.to_vec2());
         for id in &ids {
             if let Some(it) = d.item_mut(*id) {
@@ -1714,7 +1714,7 @@ fn transform_rotate(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// The transform an item's panel values are measured from: its own (relative to its container)
 /// or, with Transformations are Totals, the whole chain to the pasteboard.
-fn measured_xf(d: &designcraft_doc::Document, id: ItemId, totals: bool) -> Option<(Affine, Affine)> {
+fn measured_xf(d: &patronusdesign_doc::Document, id: ItemId, totals: bool) -> Option<(Affine, Affine)> {
     let loc = d.find(id)?;
     let it = d.item_at(&loc)?;
     let parent = if totals { d.parent_xf(&loc) } else { Affine::IDENTITY };
@@ -1722,7 +1722,7 @@ fn measured_xf(d: &designcraft_doc::Document, id: ItemId, totals: bool) -> Optio
 }
 
 fn values_json(m: Affine) -> Value {
-    let v = designcraft_geom::decompose::decompose(m);
+    let v = patronusdesign_geom::decompose::decompose(m);
     let r = |x: f64| (x * 1e4).round() / 1e4;
     json!({"scaleX": r(v.scale_x * 100.0), "scaleY": r(v.scale_y * 100.0), "rotation": r(v.rotation), "shear": r(v.shear)})
 }
@@ -1772,9 +1772,9 @@ fn transform_values(s: &mut Session, p: &Value, ids: &[ItemId], rf: usize) -> Re
             let Some(it) = d.item(*id) else { continue };
             // The reference point, on the pasteboard, then in the measuring space.
             let full = d.find(*id).map_or(Affine::IDENTITY, |l| d.parent_xf(&l));
-            let spread_a = designcraft_geom::reference_point((full * it.xf).transform_rect_bbox(it.inner_bounds()), rf);
+            let spread_a = patronusdesign_geom::reference_point((full * it.xf).transform_rect_bbox(it.inner_bounds()), rf);
             let a = if totals { spread_a } else { full.inverse() * spread_a };
-            let v = designcraft_geom::decompose::decompose(cur);
+            let v = patronusdesign_geom::decompose::decompose(cur);
             let mut t = v;
             if let Some(r) = rot {
                 t.rotation = r;
@@ -1786,10 +1786,10 @@ fn transform_values(s: &mut Session, p: &Value, ids: &[ItemId], rf: usize) -> Re
                 let c = m.as_coeffs();
                 Affine::new([c[0], c[1], c[2], c[3], 0.0, 0.0])
             };
-            let delta = designcraft_geom::decompose::compose(&t) * lin(cur).inverse();
+            let delta = patronusdesign_geom::decompose::compose(&t) * lin(cur).inverse();
             // Δ in measuring space about `a`, brought into the item's container space.
             let m = parent.inverse() * Affine::translate(a.to_vec2()) * delta * Affine::translate(-a.to_vec2()) * parent;
-            let it = d.item_mut(*id).ok_or(designcraft_doc::DocError::NoItem(*id))?;
+            let it = d.item_mut(*id).ok_or(patronusdesign_doc::DocError::NoItem(*id))?;
             it.xf = m * it.xf;
             // Scale: relative to what is shown (frames show 100% — their scale lives in the geometry).
             if sx.is_some() || sy.is_some() {
@@ -1833,7 +1833,7 @@ fn transform_set(s: &mut Session, p: &Value) -> Result<Value> {
         let pad = (geom.x0 - from.x0, geom.y0 - from.y0, from.x1 - geom.x1, from.y1 - geom.y1);
         let w = f64_or(p, "width", from.width()).max(0.01);
         let h = f64_or(p, "height", from.height()).max(0.01);
-        let anchor = designcraft_geom::reference_point(from, rf);
+        let anchor = patronusdesign_geom::reference_point(from, rf);
         // New rect keeping the reference point fixed, then moved so the ref point lands on x/y.
         let fx = [0.0, 0.5, 1.0][rf % 3];
         let fy = [0.0, 0.5, 1.0][(rf / 3).min(2)];
@@ -1917,8 +1917,8 @@ fn transform_content(s: &mut Session, p: &Value, ids: &[ItemId]) -> Result<Value
                 Affine::new([c[0], c[1], c[2], c[3], 0.0, 0.0])
             };
             if rot.is_some() || shear.is_some() || sx.is_some() || sy.is_some() {
-                let a = designcraft_geom::reference_point(cur.transform_rect_bbox(rect), rf).to_vec2();
-                let v = designcraft_geom::decompose::decompose(cur);
+                let a = patronusdesign_geom::reference_point(cur.transform_rect_bbox(rect), rf).to_vec2();
+                let v = patronusdesign_geom::decompose::decompose(cur);
                 let mut t = v;
                 if let Some(r) = rot {
                     t.rotation = r;
@@ -1932,7 +1932,7 @@ fn transform_content(s: &mut Session, p: &Value, ids: &[ItemId]) -> Result<Value
                 if let Some(y) = sy {
                     t.scale_y = y / 100.0;
                 }
-                let delta = designcraft_geom::decompose::compose(&t) * lin(cur).inverse();
+                let delta = patronusdesign_geom::decompose::compose(&t) * lin(cur).inverse();
                 cur = Affine::translate(a) * delta * Affine::translate(-a) * cur;
             }
             let mut gx = q.inverse() * cur;
@@ -1950,7 +1950,7 @@ fn transform_content(s: &mut Session, p: &Value, ids: &[ItemId]) -> Result<Value
             // Position and size: the graphic's bounds on the page.
             if x.is_some() || y.is_some() || w.is_some() || h.is_some() {
                 let b = (frame * gx).transform_rect_bbox(rect);
-                let a = designcraft_geom::reference_point(b, rf);
+                let a = patronusdesign_geom::reference_point(b, rf);
                 let (fx, fy) = (w.map_or(1.0, |w| w / b.width().max(1e-9)), h.map_or(1.0, |h| h / b.height().max(1e-9)));
                 // x/y are measured from the rulers' zero point, as for a frame.
                 let o = d.ruler_origin(loc.spread, b.center().x).unwrap_or(Point::ORIGIN);
@@ -2054,7 +2054,7 @@ fn reorder(s: &mut Session, p: &Value) -> Result<Value> {
     let above = opt_u64(p, C, "above")?.map(ItemId);
     let below = opt_u64(p, C, "below")?.map(ItemId);
     let index = opt_u64(p, C, "index")?;
-    let layer = opt_u64(p, C, "layer")?.map(designcraft_doc::LayerId);
+    let layer = opt_u64(p, C, "layer")?.map(patronusdesign_doc::LayerId);
     if [above.is_some(), below.is_some(), index.is_some()].into_iter().filter(|b| *b).count() > 1 {
         return Err(bad(C, "give only one of above, below and index"));
     }
@@ -2076,7 +2076,7 @@ fn reorder(s: &mut Session, p: &Value) -> Result<Value> {
         }
         let in_group = !parent.is_empty();
         let group_layer = if in_group {
-            let g = d.item_at(&designcraft_doc::ItemLoc { spread: loc.spread, path: parent.clone() }).ok_or_else(|| no_object(first))?;
+            let g = d.item_at(&patronusdesign_doc::ItemLoc { spread: loc.spread, path: parent.clone() }).ok_or_else(|| no_object(first))?;
             if !g.states.is_empty() {
                 return Err(bad(C, "the states of a multi-state object are reordered in the Object States panel"));
             }
@@ -2157,7 +2157,7 @@ fn reorder(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// Sets the layer of `it` and its group members (nesting is bounded).
-fn set_layer_deep(it: &mut Item, l: designcraft_doc::LayerId, depth: usize) {
+fn set_layer_deep(it: &mut Item, l: patronusdesign_doc::LayerId, depth: usize) {
     it.layer = l;
     if depth < 64
         && let Some(kids) = it.children_mut()
@@ -2171,7 +2171,7 @@ fn set_layer_deep(it: &mut Item, l: designcraft_doc::LayerId, depth: usize) {
 /// `object.setLayer`: moves the objects, or the top-level groups of group members, to a layer.
 fn set_layer(s: &mut Session, p: &Value) -> Result<Value> {
     const C: &str = "object.setLayer";
-    let l = designcraft_doc::LayerId(p.get("layer").and_then(Value::as_u64).ok_or_else(|| bad(C, "missing layer"))?);
+    let l = patronusdesign_doc::LayerId(p.get("layer").and_then(Value::as_u64).ok_or_else(|| bad(C, "missing layer"))?);
     let ids = targets(s, p)?;
     s.edit(|d, _| {
         if d.layer(l).is_none() {
@@ -2260,7 +2260,7 @@ fn group(s: &mut Session, p: &Value) -> Result<Value> {
         }
         kids.reverse();
         let gid = ItemId(d.alloc());
-        let mut g = Item::new(gid, layer, Shape::Group, designcraft_geom::PathData::default());
+        let mut g = Item::new(gid, layer, Shape::Group, patronusdesign_geom::PathData::default());
         let at = (front + 1).saturating_sub(kids.len());
         g.content = Content::Group { items: kids };
         let siblings = siblings_mut(d, plan.spread, &plan.parent).ok_or_else(missing)?;
@@ -2302,7 +2302,7 @@ fn ungroup(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn text_wrap(s: &mut Session, p: &Value) -> Result<Value> {
-    use designcraft_doc::{ContourType, WrapMode, WrapSide};
+    use patronusdesign_doc::{ContourType, WrapMode, WrapSide};
     let side: Option<WrapSide> = match p.get("side") {
         Some(v) => Some(serde_json::from_value(v.clone()).map_err(|_| bad("object.textWrap", "unknown side"))?),
         None => None,
@@ -2383,7 +2383,7 @@ fn text_wrap(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn corner_options(s: &mut Session, p: &Value) -> Result<Value> {
-    use designcraft_geom::corners::{Corner, CornerOptions, CornerShape};
+    use patronusdesign_geom::corners::{Corner, CornerOptions, CornerShape};
     let opts = match p.get("corners") {
         Some(v) => {
             let corners: [Option<Corner>; 4] = serde_json::from_value(v.clone())
@@ -2416,7 +2416,7 @@ fn corner_options(s: &mut Session, p: &Value) -> Result<Value> {
 /// `object.matchAttributes`: the selected objects (or `ids`) take `from`'s appearance.
 pub(super) fn match_attributes(s: &mut Session, p: &Value) -> Result<Value> {
     let from = super::id_param(p, "from").ok_or_else(|| bad("object.matchAttributes", "missing from"))?;
-    let src = s.doc()?.doc.item(from).cloned().ok_or(designcraft_doc::DocError::NoItem(from))?;
+    let src = s.doc()?.doc.item(from).cloned().ok_or(patronusdesign_doc::DocError::NoItem(from))?;
     set_flag(
         s,
         p,
@@ -2448,7 +2448,7 @@ fn merge_json(base: &mut Value, patch: &Value) {
 }
 
 /// Keep effect values in their ranges: opacities 0–1, sizes and distances ≥ 0, percentages 0–100.
-fn sanitize_effects(e: &mut designcraft_doc::Effects) -> Result<()> {
+fn sanitize_effects(e: &mut patronusdesign_doc::Effects) -> Result<()> {
     const ID: &str = "object.effects";
     let len = |v: &mut f64| -> Result<()> {
         if !v.is_finite() {
@@ -2567,7 +2567,7 @@ fn effects_all(s: &mut Session, p: &Value) -> Result<Value> {
                     }
                 }
                 merge_json(&mut cur, patch);
-                let mut fx: designcraft_doc::Effects = serde_json::from_value(cur).map_err(|e| bad(ID, format!("effects: {e}")))?;
+                let mut fx: patronusdesign_doc::Effects = serde_json::from_value(cur).map_err(|e| bad(ID, format!("effects: {e}")))?;
                 sanitize_effects(&mut fx)?;
                 it.effects = fx;
             }
@@ -2605,7 +2605,7 @@ fn unlocked(d: &Document, it: &Item) -> bool {
 
 /// Refuses a path edit on `id` when it, a group it sits in, or its layer is locked.
 pub(super) fn path_editable(d: &Document, id: ItemId, cmd: &str) -> Result<()> {
-    let loc = d.find(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+    let loc = d.find(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
     let mut items = d.spread(loc.spread).map(|sp| &sp.items[..]).unwrap_or_default();
     for &i in &loc.path {
         let Some(it) = items.get(i) else { break };
@@ -2646,7 +2646,7 @@ fn edit_unlocked(s: &mut Session, p: &Value, f: impl Fn(&mut Item)) -> Result<Va
 
 /// A stroke that gets a colour needs a weight to show it.
 fn visible_weight(st: &mut Stroke) {
-    if st.swatch != designcraft_color::swatch::NONE && st.weight <= 0.0 {
+    if st.swatch != patronusdesign_color::swatch::NONE && st.weight <= 0.0 {
         st.weight = Stroke::default().weight;
     }
 }
@@ -2660,8 +2660,8 @@ fn swap_fill_stroke(it: &mut Item) {
 }
 
 fn default_fill_stroke(it: &mut Item) {
-    it.fill = Fill { swatch: designcraft_color::swatch::NONE.into(), tint: 1.0, ..it.fill.clone() };
-    it.stroke.swatch = designcraft_color::swatch::BLACK.into();
+    it.fill = Fill { swatch: patronusdesign_color::swatch::NONE.into(), tint: 1.0, ..it.fill.clone() };
+    it.stroke.swatch = patronusdesign_color::swatch::BLACK.into();
     it.stroke.tint = 1.0;
     visible_weight(&mut it.stroke);
 }
@@ -2816,13 +2816,13 @@ fn text_frame_options(s: &mut Session, p: &Value) -> Result<Value> {
     let column_rule = flag("columnRule")?;
     let vertical = flag("vertical")?;
     let inset = frame_inset_param(p)?;
-    let vertical_justification: Option<designcraft_doc::VerticalJustification> =
+    let vertical_justification: Option<patronusdesign_doc::VerticalJustification> =
         frame_choice_param(p, "verticalJustification", "top|center|bottom|justify")?;
-    let first_baseline: Option<designcraft_doc::FirstBaseline> =
+    let first_baseline: Option<patronusdesign_doc::FirstBaseline> =
         frame_choice_param(p, "firstBaseline", "ascent|capHeight|leading|xHeight|fixed|emboxHeight")?;
-    let auto_size: Option<designcraft_doc::AutoSize> =
+    let auto_size: Option<patronusdesign_doc::AutoSize> =
         frame_choice_param(p, "autoSize", "off|heightOnly|widthOnly|heightAndWidth|heightAndWidthProportionally")?;
-    let columns_kind: Option<designcraft_doc::ColumnsKind> = frame_choice_param(p, "columnsKind", "fixedNumber|fixedWidth|flexibleWidth")?;
+    let columns_kind: Option<patronusdesign_doc::ColumnsKind> = frame_choice_param(p, "columnsKind", "fixedNumber|fixedWidth|flexibleWidth")?;
     let reference = match p.get("autoSizeReference") {
         None | Some(Value::Null) => None,
         Some(v) => Some(
@@ -2850,7 +2850,7 @@ fn text_frame_options(s: &mut Session, p: &Value) -> Result<Value> {
                 None | Some(Value::Null) => None,
                 Some(v) => Some(
                     v.as_str()
-                        .and_then(designcraft_doc::FrameGridRelative::from_name)
+                        .and_then(patronusdesign_doc::FrameGridRelative::from_name)
                         .ok_or_else(|| bad(ID, format!("baselineGrid.relativeTo must be page|margin|frame|inset, not {v}")))?,
                 ),
             };
@@ -2862,10 +2862,10 @@ fn text_frame_options(s: &mut Session, p: &Value) -> Result<Value> {
     let doc_grid = {
         let g = &st.doc.settings.baseline_grid;
         let relative_to = match g.relative_to {
-            designcraft_doc::GridRelative::TopOfPage => designcraft_doc::FrameGridRelative::TopOfPage,
-            designcraft_doc::GridRelative::TopMargin => designcraft_doc::FrameGridRelative::TopMargin,
+            patronusdesign_doc::GridRelative::TopOfPage => patronusdesign_doc::FrameGridRelative::TopOfPage,
+            patronusdesign_doc::GridRelative::TopMargin => patronusdesign_doc::FrameGridRelative::TopMargin,
         };
-        designcraft_doc::FrameBaselineGrid { start: g.start, increment: g.increment, relative_to }
+        patronusdesign_doc::FrameBaselineGrid { start: g.start, increment: g.increment, relative_to }
     };
     let rule_color = match p.get("columnRuleColor") {
         None | Some(Value::Null) => None,
@@ -2957,7 +2957,7 @@ fn text_frame_options(s: &mut Session, p: &Value) -> Result<Value> {
             apply_custom_frame_grid(o, custom_grid, doc_grid);
             // Fixed Width columns set the frame's width: n columns, the gutters between them and
             // the left and right insets.
-            let fixed_width = o.columns_kind == designcraft_doc::ColumnsKind::FixedWidth && o.column_width > 0.0;
+            let fixed_width = o.columns_kind == patronusdesign_doc::ColumnsKind::FixedWidth && o.column_width > 0.0;
             let width = f64::from(o.columns.max(1)) * o.column_width + f64::from(o.columns.max(1) - 1) * o.gutter + o.inset[1] + o.inset[3];
             if fixed_width
                 && ["columnsKind", "columnWidth", "columns", "gutter", "inset"].iter().any(|k| p.get(*k).is_some())
@@ -3011,11 +3011,11 @@ fn text_selection_frames(s: &Session, t: &TextSel) -> Vec<ItemId> {
     // frame that shows the footnote reference or the table's anchor character.
     if let Some(c) = t.cell {
         let (drawn, anchor) = match c.footnote_id() {
-            Some(id) => (designcraft_compose::find_note(&cs, id).map(|(fi, _)| fi), story.note_anchor(id)),
-            None => (designcraft_compose::find_cell(&cs, c.table, c.row, c.col).map(|(fi, ..)| fi), story.table_anchor(c.table)),
+            Some(id) => (patronusdesign_compose::find_note(&cs, id).map(|(fi, _)| fi), story.note_anchor(id)),
+            None => (patronusdesign_compose::find_cell(&cs, c.table, c.row, c.col).map(|(fi, ..)| fi), story.table_anchor(c.table)),
         };
         return drawn
-            .or_else(|| anchor.and_then(|a| designcraft_compose::caret(&cs, a)).map(|(fi, ..)| fi))
+            .or_else(|| anchor.and_then(|a| patronusdesign_compose::caret(&cs, a)).map(|(fi, ..)| fi))
             .and_then(|fi| cs.frames.get(fi))
             .map(|f| f.frame)
             .or_else(|| t.frame.filter(|f| story.frames.contains(f)))
@@ -3027,14 +3027,14 @@ fn text_selection_frames(s: &Session, t: &TextSel) -> Vec<ItemId> {
     // The frame the caret at the start is drawn in; the caret's stored frame only when no line
     // holds it.
     let caret_frame = || {
-        designcraft_compose::caret(&cs, r.start)
+        patronusdesign_compose::caret(&cs, r.start)
             .and_then(|(fi, ..)| cs.frames.get(fi))
             .map(|f| f.frame)
             .or_else(|| t.frame.filter(|f| story.frames.contains(f) && cs.overset_at.is_none_or(|o| r.start < o)))
     };
     // A frame's range stops before the paragraph return that ends its last line; the return
     // belongs to that frame.
-    let end_of = |f: &designcraft_compose::FrameText| f.range.end + usize::from(story.text.as_bytes().get(f.range.end) == Some(&b'\n'));
+    let end_of = |f: &patronusdesign_compose::FrameText| f.range.end + usize::from(story.text.as_bytes().get(f.range.end) == Some(&b'\n'));
     let mut frames: Vec<ItemId> = if t.is_caret() {
         caret_frame().into_iter().collect()
     } else {
@@ -3098,8 +3098,8 @@ fn stroke_choice_param<T: serde::de::DeserializeOwned>(p: &Value, key: &str, nam
 
 fn apply_custom_frame_grid(
     options: &mut TextFrameOptions,
-    custom: Option<Option<(Option<f64>, Option<f64>, Option<designcraft_doc::FrameGridRelative>)>>,
-    document_grid: designcraft_doc::FrameBaselineGrid,
+    custom: Option<Option<(Option<f64>, Option<f64>, Option<patronusdesign_doc::FrameGridRelative>)>>,
+    document_grid: patronusdesign_doc::FrameBaselineGrid,
 ) {
     match custom {
         Some(Some((start, increment, relative_to))) => {
@@ -3170,19 +3170,19 @@ fn clipping_path(s: &mut Session, p: &Value) -> Result<Value> {
     let threshold = p.get("threshold").and_then(Value::as_f64).unwrap_or(25.0).clamp(0.0, 255.0);
     let tol = p.get("tolerance").and_then(Value::as_f64).unwrap_or(2.0).max(0.1);
     // Trace each graphic (outside the edit: decoding is the slow part).
-    let mut paths: Vec<(ItemId, designcraft_geom::PathData)> = Vec::new();
+    let mut paths: Vec<(ItemId, patronusdesign_geom::PathData)> = Vec::new();
     {
         let d = &s.doc()?.doc;
         for id in &ids {
             let Some(it) = d.item(*id) else { continue };
             let Some(g) = it.graphic() else { continue };
             let Some(asset) = d.assets.get(&g.asset) else { continue };
-            let Some(px) = asset.data.load().ok().and_then(|b| designcraft_render::decode_pixmap_page(&b, asset.page)) else { continue };
+            let Some(px) = asset.data.load().ok().and_then(|b| patronusdesign_render::decode_pixmap_page(&b, asset.page)) else { continue };
             // A placed PDF cropped to a box: trace that box, which graphic space spans.
-            let px = match designcraft_render::shown_box(asset) {
+            let px = match patronusdesign_render::shown_box(asset) {
                 // A crop too big to trace is skipped, as a graphic that fails to decode is: tracing
                 // the whole page instead would trace something else than the box.
-                Some(frac) => match designcraft_render::crop_pixmap(&px, frac) {
+                Some(frac) => match patronusdesign_render::crop_pixmap(&px, frac) {
                     Some(cropped) => cropped,
                     None => continue,
                 },
@@ -3207,7 +3207,7 @@ fn clipping_path(s: &mut Session, p: &Value) -> Result<Value> {
                 })
                 .collect();
             // The tolerance is in image pixels; the grid cells are `step` pixels.
-            let rings = designcraft_geom::trace::trace(&mask, w, h, tol / step, 4.0);
+            let rings = patronusdesign_geom::trace::trace(&mask, w, h, tol / step, 4.0);
             if rings.is_empty() {
                 return Err(bad(ID, "nothing to trace (the image is empty at this threshold)"));
             }
@@ -3216,10 +3216,10 @@ fn clipping_path(s: &mut Session, p: &Value) -> Result<Value> {
                 .into_iter()
                 .map(|r| {
                     let pts: Vec<Point> = r.into_iter().map(|q| g.xf * Point::new(q.x * sx, q.y * sy)).collect();
-                    designcraft_geom::path::SubPath::polyline(&pts, true)
+                    patronusdesign_geom::path::SubPath::polyline(&pts, true)
                 })
                 .collect();
-            paths.push((*id, designcraft_geom::PathData::new(subpaths)));
+            paths.push((*id, patronusdesign_geom::PathData::new(subpaths)));
         }
     }
     if paths.is_empty() {
@@ -3233,7 +3233,7 @@ fn clipping_path(s: &mut Session, p: &Value) -> Result<Value> {
                 it.shape = Shape::Path;
                 it.corners = Default::default();
                 if let Content::Graphic(g) = &mut it.content {
-                    g.auto_fit = designcraft_doc::Fitting::None;
+                    g.auto_fit = patronusdesign_doc::Fitting::None;
                 }
             }
         }
@@ -3298,8 +3298,8 @@ fn clipping_path_options(s: &mut Session, p: &Value) -> Result<Value> {
     })
 }
 
-fn fitting_mode(s: &str) -> Option<designcraft_doc::Fitting> {
-    use designcraft_doc::Fitting as F;
+fn fitting_mode(s: &str) -> Option<patronusdesign_doc::Fitting> {
+    use patronusdesign_doc::Fitting as F;
     Some(match s {
         "none" => F::None,
         "fillProportionally" => F::FillProportionally,
@@ -3341,11 +3341,11 @@ fn fitting_options(s: &mut Session, p: &Value) -> Result<Value> {
             let mode = fitting.unwrap_or(g.auto_fit);
             if let Some(a) = auto {
                 g.auto_fit = if a {
-                    if mode == designcraft_doc::Fitting::None { designcraft_doc::Fitting::FillProportionally } else { mode }
+                    if mode == patronusdesign_doc::Fitting::None { patronusdesign_doc::Fitting::FillProportionally } else { mode }
                 } else {
-                    designcraft_doc::Fitting::None
+                    patronusdesign_doc::Fitting::None
                 };
-            } else if fitting.is_some() && g.auto_fit != designcraft_doc::Fitting::None {
+            } else if fitting.is_some() && g.auto_fit != patronusdesign_doc::Fitting::None {
                 g.auto_fit = mode;
             }
             // Turning Auto-Fit off alone leaves the picture where the user put it.
@@ -3366,7 +3366,7 @@ fn clear_fitting_options(s: &mut Session, p: &Value) -> Result<Value> {
     // options are already clear are left out; with nothing to change, no edit (and no empty undo
     // step).
     let doc = &s.doc()?.doc;
-    let set = |g: &designcraft_doc::Graphic| g.auto_fit != designcraft_doc::Fitting::None || g.crop != [0.0; 4] || g.fit_align != 4;
+    let set = |g: &patronusdesign_doc::Graphic| g.auto_fit != patronusdesign_doc::Fitting::None || g.crop != [0.0; 4] || g.fit_align != 4;
     let ids: Vec<ItemId> = targets(s, p)?
         .into_iter()
         .filter(|id| doc.item(*id).is_some_and(|it| unlocked(doc, it) && matches!(&it.content, Content::Graphic(g) if set(g))))
@@ -3379,7 +3379,7 @@ fn clear_fitting_options(s: &mut Session, p: &Value) -> Result<Value> {
         for id in &ids {
             let Some(it) = d.item_mut(*id) else { continue };
             let Content::Graphic(g) = &mut it.content else { continue };
-            g.auto_fit = designcraft_doc::Fitting::None;
+            g.auto_fit = patronusdesign_doc::Fitting::None;
             g.crop = [0.0; 4];
             g.fit_align = 4;
             n += 1;
@@ -3431,7 +3431,7 @@ fn fit(s: &mut Session, p: &Value) -> Result<Value> {
                 continue;
             }
             let m = fitting_mode(&mode)
-                .filter(|m| *m != designcraft_doc::Fitting::None)
+                .filter(|m| *m != patronusdesign_doc::Fitting::None)
                 .ok_or_else(|| bad("object.fit", format!("unknown mode `{mode}`")))?;
             if let Some(xf) = g.fitted(r, m) {
                 g.xf = xf;
@@ -3449,7 +3449,7 @@ fn fit(s: &mut Session, p: &Value) -> Result<Value> {
 fn fitted_text_frame(d: &Document, id: ItemId, height: bool, width: bool) -> Result<Option<Rect>> {
     let Some(it) = d.item(id) else { return Ok(None) };
     let Some(tf) = it.text_frame() else { return Ok(None) };
-    if tf.options.auto_size != designcraft_doc::AutoSize::Off {
+    if tf.options.auto_size != patronusdesign_doc::AutoSize::Off {
         return Ok(None);
     }
     if d.frame_vertical(it) || tf.options.path.is_some() {
@@ -3467,7 +3467,7 @@ fn fitted_text_frame(d: &Document, id: ItemId, height: bool, width: bool) -> Res
     // Keep trial layouts out of the session cache. Search with the actual columns and frame
     // options: measuring a very tall frame collapses columns and includes vertical alignment's
     // extra space. A fitting trial must compose all the text, regardless of its justification.
-    let cache = designcraft_compose::Cache::new();
+    let cache = patronusdesign_compose::Cache::new();
     let mut trial = d.clone();
     let mut compose = |rect| {
         if let Some(it) = trial.item_mut(id) {
@@ -3504,7 +3504,7 @@ fn fit_text_height(
     mut rect: Rect,
     id: ItemId,
     inset_bottom: f64,
-    compose: &mut impl FnMut(Rect) -> Arc<designcraft_compose::ComposedStory>,
+    compose: &mut impl FnMut(Rect) -> Arc<patronusdesign_compose::ComposedStory>,
 ) -> Result<Rect> {
     let mut low = 1.0;
     let limit = 20_000.0;
@@ -3549,11 +3549,11 @@ pub(crate) trait RemoveKeep {
 /// Detach an item without touching story threads (moving between spreads, grouping).
 impl RemoveKeep for Document {
     fn remove_item_keep_story(&mut self, id: ItemId) -> Result<Item> {
-        let loc = self.find(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let loc = self.find(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         if loc.path.len() != 1 {
             return Err(bad("object", "nested items can't be detached"));
         }
-        let sp = self.spread_mut(loc.spread).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let sp = self.spread_mut(loc.spread).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         Ok(Arc::unwrap_or_clone(sp.items.remove(loc.path[0])))
     }
 }
@@ -3680,7 +3680,7 @@ fn distribute(s: &mut Session, p: &Value) -> Result<Value> {
     })
 }
 
-fn anchor_from(v: &Value) -> Option<designcraft_geom::Anchor> {
+fn anchor_from(v: &Value) -> Option<patronusdesign_geom::Anchor> {
     let pt = |k: &str| -> Option<Point> {
         let a = v.get(k)?.as_array()?;
         Some(Point::new(a.first()?.as_f64()?, a.get(1)?.as_f64()?))
@@ -3689,16 +3689,16 @@ fn anchor_from(v: &Value) -> Option<designcraft_geom::Anchor> {
     let h_in = pt("in").unwrap_or(p);
     let h_out = pt("out").unwrap_or(p);
     let smooth = (h_in - p).hypot() > 1e-9 || (h_out - p).hypot() > 1e-9;
-    Some(designcraft_geom::Anchor {
+    Some(patronusdesign_geom::Anchor {
         p,
         h_in,
         h_out,
-        kind: if smooth { designcraft_geom::AnchorKind::Smooth } else { designcraft_geom::AnchorKind::Corner },
+        kind: if smooth { patronusdesign_geom::AnchorKind::Smooth } else { patronusdesign_geom::AnchorKind::Corner },
     })
 }
 
 fn path_create(s: &mut Session, p: &Value) -> Result<Value> {
-    let anchors: Vec<designcraft_geom::Anchor> =
+    let anchors: Vec<patronusdesign_geom::Anchor> =
         p.get("anchors").and_then(Value::as_array).map(|a| a.iter().filter_map(anchor_from).collect()).unwrap_or_default();
     if anchors.len() < 2 {
         return Err(bad("path.create", "a path needs at least two anchors"));
@@ -3709,7 +3709,7 @@ fn path_create(s: &mut Session, p: &Value) -> Result<Value> {
     s.edit(|d, sel| {
         let id = ItemId(d.alloc());
         let shape = if anchors.len() == 2 && !closed { Shape::GraphicLine } else { Shape::Path };
-        let mut it = Item::new(id, lid, shape, designcraft_geom::PathData::single(designcraft_geom::SubPath::new(anchors, closed)));
+        let mut it = Item::new(id, lid, shape, patronusdesign_geom::PathData::single(patronusdesign_geom::SubPath::new(anchors, closed)));
         it.stroke = Stroke::default();
         new_object_colors(d, &mut it);
         d.insert_item(sr, it, None)?;
@@ -3734,9 +3734,9 @@ fn path_append(s: &mut Session, p: &Value) -> Result<Value> {
     };
     s.edit(|d, sel| {
         path_editable(d, id, "path.appendAnchor")?;
-        let loc = d.find(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let loc = d.find(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         let inv = (d.parent_xf(&loc) * d.item_at(&loc).map(|i| i.xf).unwrap_or_default()).inverse();
-        let it = d.item_mut(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let it = d.item_mut(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         let si = match subpath {
             Some(i) => usize::try_from(i).ok().filter(|i| *i < it.path.subpaths.len()).ok_or_else(|| bad("path.appendAnchor", "no such subpath"))?,
             None => it.path.subpaths.len().checked_sub(1).ok_or_else(|| bad("path.appendAnchor", "empty path"))?,
@@ -3777,9 +3777,9 @@ fn path_set_anchor(s: &mut Session, p: &Value) -> Result<Value> {
     let which = p.get("anchor").cloned().unwrap_or(Value::Null);
     s.edit(|d, _| {
         path_editable(d, id, ID)?;
-        let loc = d.find(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let loc = d.find(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         let inv = (d.parent_xf(&loc) * d.item_at(&loc).map(|i| i.xf).unwrap_or_default()).inverse();
-        let it = d.item_mut(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let it = d.item_mut(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         let sp = match subpath {
             Some(i) => usize::try_from(i).ok().and_then(|i| it.path.subpaths.get_mut(i)),
             None => it.path.subpaths.last_mut(),
@@ -3807,7 +3807,7 @@ fn path_set_anchor(s: &mut Session, p: &Value) -> Result<Value> {
         if new_in.is_some() && new_out.is_some() {
             let (i, o) = (a.h_in - a.p, a.h_out - a.p);
             let collinear = (i.x * o.y - i.y * o.x).abs() <= 1e-6 * i.hypot().max(1.0) * o.hypot().max(1.0) && i.dot(o) <= 0.0;
-            a.kind = if collinear { designcraft_geom::AnchorKind::Smooth } else { designcraft_geom::AnchorKind::Corner };
+            a.kind = if collinear { patronusdesign_geom::AnchorKind::Smooth } else { patronusdesign_geom::AnchorKind::Corner };
         }
         ok()
     })
@@ -3861,7 +3861,7 @@ fn path_close(s: &mut Session, p: &Value) -> Result<Value> {
     let only = p.get("subpath").and_then(Value::as_u64).map(|i| usize::try_from(i).unwrap_or(usize::MAX));
     s.edit(|d, _| {
         path_editable(d, id, "path.close")?;
-        let it = d.item_mut(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let it = d.item_mut(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         if only.is_some_and(|i| i >= it.path.subpaths.len()) {
             return Err(bad("path.close", "no such subpath"));
         }
@@ -3919,25 +3919,25 @@ fn path_move_anchors(s: &mut Session, p: &Value) -> Result<Value> {
         }
         for (id, which) in &targets {
             let id = *id;
-            let loc = d.find(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+            let loc = d.find(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
             let m = d.parent_xf(&loc) * d.item_at(&loc).map(|i| i.xf).unwrap_or_default();
             // Spread-space delta → inner-space delta (linear part only).
             let inv = m.inverse();
             let inner = |d: Vec2| (inv * Point::new(d.x, d.y)) - (inv * Point::ZERO);
-            let it = d.item_mut(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+            let it = d.item_mut(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
             for (si, ai, own) in which {
                 let dv = inner(own.unwrap_or(d0));
                 let Some(a) = it.path.anchor_mut(*si, *ai) else { continue };
                 match handle.as_deref() {
                     Some("in") => {
                         a.h_in += dv;
-                        if a.kind == designcraft_geom::AnchorKind::Smooth {
+                        if a.kind == patronusdesign_geom::AnchorKind::Smooth {
                             a.h_out = a.p - (a.h_in - a.p);
                         }
                     }
                     Some("out") => {
                         a.h_out += dv;
-                        if a.kind == designcraft_geom::AnchorKind::Smooth {
+                        if a.kind == patronusdesign_geom::AnchorKind::Smooth {
                             a.h_in = a.p - (a.h_out - a.p);
                         }
                     }
@@ -4263,7 +4263,7 @@ mod step_repeat_tests {
         s.execute("object.fill", &json!({"swatch": "[Paper]"})).unwrap();
         assert_eq!(s.doc().unwrap().doc.settings.new_object.fill, "[Paper]");
         s.execute("object.defaultFillStroke", &json!({})).unwrap();
-        assert_eq!(s.doc().unwrap().doc.settings.new_object, designcraft_doc::NewObjectColors::default());
+        assert_eq!(s.doc().unwrap().doc.settings.new_object, patronusdesign_doc::NewObjectColors::default());
         // One undo step each.
         s.execute("edit.undo", &json!({})).unwrap();
         assert_eq!(s.doc().unwrap().doc.settings.new_object.fill, "[Paper]");
@@ -4414,7 +4414,7 @@ mod scale_tests {
         (ItemId(r["id"].as_u64().unwrap()), StoryId(r["story"].as_u64().unwrap()))
     }
 
-    fn props_at(s: &Session, story: StoryId, pos: usize) -> (designcraft_doc::ParaProps, designcraft_doc::CharProps) {
+    fn props_at(s: &Session, story: StoryId, pos: usize) -> (patronusdesign_doc::ParaProps, patronusdesign_doc::CharProps) {
         let d = &s.doc().unwrap().doc;
         let st = d.story(story).unwrap();
         let (pp, base) = d.styles.resolve_para(&st.paras[st.para_at(pos)]);
@@ -4438,7 +4438,7 @@ mod scale_tests {
         let (pp, cp) = props_at(&s, story, 0);
         assert_eq!(
             (cp.size, cp.leading, cp.baseline_shift, cp.tracking, cp.h_scale),
-            (40.0, designcraft_doc::Leading::Points(48.0), 4.0, -50.0, 1.0)
+            (40.0, patronusdesign_doc::Leading::Points(48.0), 4.0, -50.0, 1.0)
         );
         assert_eq!((pp.left_indent, pp.space_after), (8.0, 12.0));
         // The second paragraph's size came from the paragraph style: it is set too.
@@ -4529,7 +4529,7 @@ mod gradient_tests {
 
     #[test]
     fn swatches_dropped_on_stops_keep_their_cmyk() {
-        use designcraft_color::Color;
+        use patronusdesign_color::Color;
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let r = s.execute("frame.create", &json!({"rect": [100, 100, 300, 200]})).unwrap();
@@ -4546,7 +4546,7 @@ mod gradient_tests {
             )
             .unwrap();
         let d = &s.doc().unwrap().doc;
-        let g = designcraft_color::swatch::resolve_gradient(&d.swatches, r["swatch"].as_str().unwrap()).unwrap();
+        let g = patronusdesign_color::swatch::resolve_gradient(&d.swatches, r["swatch"].as_str().unwrap()).unwrap();
         assert_eq!(d.item(id).unwrap().fill.swatch, r["swatch"].as_str().unwrap());
         assert_eq!(g.stops[0].color, Color::cmyk(0.0, 1.0, 0.0, 0.0));
         assert_eq!(g.stops[1].color, Color::cmyk(1.0, 0.0, 0.0, 0.0));
@@ -4761,8 +4761,8 @@ mod attributes_tests {
         let it = s.doc().unwrap().doc.item(ItemId(a)).unwrap().clone();
         assert!(it.fill.overprint && it.stroke.gap_overprint && it.nonprinting && !it.stroke.overprint);
         // IDML keeps them.
-        let bytes = designcraft_idml::export_idml(&s.doc().unwrap().doc);
-        let back = designcraft_idml::import_idml(&bytes).unwrap();
+        let bytes = patronusdesign_idml::export_idml(&s.doc().unwrap().doc);
+        let back = patronusdesign_idml::import_idml(&bytes).unwrap();
         let it = back.spreads.iter().flat_map(|sp| sp.items.iter()).find(|i| i.fill.overprint).expect("overprint fill survives");
         assert!(it.stroke.gap_overprint);
     }
@@ -4780,7 +4780,7 @@ mod fitting_tests {
         s.execute("object.fill", &json!({"swatch": "C=100 M=0 Y=0 K=0", "ids": [id]})).unwrap();
         let shot = |s: &Session| {
             let d = s.doc().unwrap().doc.clone();
-            let mut rr = designcraft_render::Renderer::new();
+            let mut rr = patronusdesign_render::Renderer::new();
             rr.threads = 0;
             rr.render_page(&d, &s.cache, 0, 1.0, false, &Default::default()).unwrap()
         };
@@ -4855,7 +4855,7 @@ mod fitting_tests {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         // A 40×20 pt image placed into a 200×200 frame.
-        let png = designcraft_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
         let f = s.execute("frame.create", &json!({"rect": [100, 100, 300, 300]})).unwrap()["id"].as_u64().unwrap();
         s.execute("file.place", &json!({"base64": super::super::file::base64_encode(&png), "name": "a.png", "frame": f})).unwrap();
         let content = |s: &Session| {
@@ -4877,9 +4877,9 @@ mod fitting_tests {
         let c = content(&s);
         assert!((c.width() - 400.0).abs() < 1e-6, "fills the wider frame: {c:?}");
         // IDML keeps the options.
-        let back = designcraft_idml::import_idml(&designcraft_idml::export_idml(&s.doc().unwrap().doc)).unwrap();
+        let back = patronusdesign_idml::import_idml(&patronusdesign_idml::export_idml(&s.doc().unwrap().doc)).unwrap();
         let g = back.spreads.iter().flat_map(|sp| sp.items.iter()).find_map(|i| i.graphic().cloned()).unwrap();
-        assert_eq!(g.auto_fit, designcraft_doc::Fitting::FillProportionally);
+        assert_eq!(g.auto_fit, patronusdesign_doc::Fitting::FillProportionally);
     }
 
     /// Turning Auto-Fit off by itself keeps a moved picture where it is.
@@ -4888,13 +4888,13 @@ mod fitting_tests {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let f = s.execute("frame.create", &json!({"rect": [100, 100, 300, 300]})).unwrap()["id"].as_u64().unwrap();
-        let png = designcraft_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
         s.execute("file.place", &json!({"base64": crate::cmd::base64_encode(&png), "name": "p.png", "frame": f})).unwrap();
         s.execute("object.fittingOptions", &json!({"ids": [f], "autoFit": true, "fitting": "fitProportionally"})).unwrap();
-        let xf = |s: &Session| s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().graphic().unwrap().xf;
+        let xf = |s: &Session| s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().graphic().unwrap().xf;
         s.edit(|d, _| {
             if let Some(Content::Graphic(g)) = d.item_mut(ItemId(f)).map(|it| &mut it.content) {
-                g.xf = designcraft_geom::Affine::translate((7.0, 9.0)) * g.xf;
+                g.xf = patronusdesign_geom::Affine::translate((7.0, 9.0)) * g.xf;
             }
             Ok(Value::Null)
         })
@@ -4911,15 +4911,15 @@ mod fitting_tests {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let f = s.execute("frame.create", &json!({"rect": [72, 72, 272, 172]})).unwrap()["id"].as_u64().unwrap();
-        let png = designcraft_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
         s.execute("file.place", &json!({"base64": crate::cmd::base64_encode(&png), "name": "p.png", "frame": f})).unwrap();
         s.execute("object.fittingOptions", &json!({"ids": [f], "autoFit": true, "fitting": "fitProportionally", "crop": 10, "align": 0})).unwrap();
-        let graphic = |s: &Session| s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().graphic().unwrap().clone();
+        let graphic = |s: &Session| s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().graphic().unwrap().clone();
         let before = graphic(&s);
-        assert_ne!(before.auto_fit, designcraft_doc::Fitting::None);
+        assert_ne!(before.auto_fit, patronusdesign_doc::Fitting::None);
         s.execute("object.clearFittingOptions", &json!({"ids": [f]})).unwrap();
         let g = graphic(&s);
-        assert_eq!(g.auto_fit, designcraft_doc::Fitting::None);
+        assert_eq!(g.auto_fit, patronusdesign_doc::Fitting::None);
         assert_eq!(g.crop, [0.0; 4]);
         assert_eq!(g.fit_align, 4, "the centre reference point");
         assert_eq!(g.xf, before.xf, "the picture stays where it is");
@@ -4974,7 +4974,7 @@ mod clipping_tests {
                 }
             }
         }
-        let png = designcraft_render::Rendered { width: 40, height: 40, pixels: px }.to_png();
+        let png = patronusdesign_render::Rendered { width: 40, height: 40, pixels: px }.to_png();
         let f = s.execute("frame.create", &json!({"rect": [100, 100, 140, 140]})).unwrap()["id"].as_u64().unwrap();
         s.execute("file.place", &json!({"base64": super::super::file::base64_encode(&png), "name": "disc.png", "frame": f})).unwrap();
         s.execute("object.clippingPath", &json!({"ids": [f], "tolerance": 0.5})).unwrap();
@@ -5024,19 +5024,19 @@ mod clipping_tests {
     fn clipping_path_options_report_invert_and_remove_the_clip() {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
-        let png = designcraft_render::Rendered { width: 4, height: 4, pixels: vec![255; 64] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 4, height: 4, pixels: vec![255; 64] }.to_png();
         let f = s.execute("frame.create", &json!({"rect": [100, 100, 140, 140]})).unwrap()["id"].as_u64().unwrap();
         s.execute("file.place", &json!({"base64": super::super::file::base64_encode(&png), "name": "white.png", "frame": f})).unwrap();
         let get = |s: &mut Session| s.execute("object.clippingPathOptions", &json!({"ids": [f]})).unwrap()["items"][0].clone();
         assert_eq!(get(&mut s)["type"], "none");
         // As an imported file would carry it.
-        let triangle = designcraft_geom::PathData::single(designcraft_geom::path::SubPath::polyline(
+        let triangle = patronusdesign_geom::PathData::single(patronusdesign_geom::path::SubPath::polyline(
             &[Point::new(0.0, 4.0), Point::new(2.0, 0.0), Point::new(4.0, 4.0)],
             true,
         ));
         s.edit(|d, _| {
             if let Some(Content::Graphic(g)) = d.item_mut(ItemId(f)).map(|it| &mut it.content) {
-                g.clip = Some(Arc::new(designcraft_doc::ClippingPath::new(designcraft_doc::ClippingKind::PhotoshopPath, triangle)));
+                g.clip = Some(Arc::new(patronusdesign_doc::ClippingPath::new(patronusdesign_doc::ClippingKind::PhotoshopPath, triangle)));
             }
             Ok(json!({}))
         })
@@ -5083,7 +5083,7 @@ mod line_end_tests {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let r = s.execute("frame.create", &json!({"rect": [36, 36, 300, 300], "content": "text", "text": "One\rTwo\r\nThree"})).unwrap();
-        let sid = designcraft_doc::StoryId(r["story"].as_u64().unwrap());
+        let sid = patronusdesign_doc::StoryId(r["story"].as_u64().unwrap());
         let story = |s: &Session| s.doc().unwrap().doc.story(sid).unwrap().clone();
         assert_eq!(story(&s).text, "One\nTwo\nThree");
         assert_eq!(story(&s).paras.len(), 3);
@@ -5112,7 +5112,7 @@ mod line_end_tests {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let r = s.execute("frame.create", &json!({"rect": [36, 36, 300, 300], "content": "text", "text": "One\u{B}Two"})).unwrap();
-        let sid = designcraft_doc::StoryId(r["story"].as_u64().unwrap());
+        let sid = patronusdesign_doc::StoryId(r["story"].as_u64().unwrap());
         let story = |s: &Session| s.doc().unwrap().doc.story(sid).unwrap().clone();
         assert_eq!((story(&s).text.as_str(), story(&s).paras.len()), ("One\u{2028}Two", 1));
         s.execute("text.insert", &json!({"text": "\u{B}Three", "raw": true})).unwrap();
@@ -5157,7 +5157,7 @@ mod named_target_tests {
 #[cfg(test)]
 mod type_tool_frame_options_tests {
     use super::*;
-    use designcraft_doc::VerticalJustification;
+    use patronusdesign_doc::VerticalJustification;
 
     /// One story threaded through two frames, with text in both: (first frame, second frame, story).
     fn two_frame_thread(s: &mut Session) -> (ItemId, ItemId, StoryId) {
@@ -5173,7 +5173,7 @@ mod type_tool_frame_options_tests {
 
     /// The story bytes `frame` shows.
     fn shown(s: &Session, sid: StoryId, frame: ItemId) -> std::ops::Range<usize> {
-        let cs = designcraft_compose::compose_story(&s.doc().unwrap().doc, sid, &Default::default());
+        let cs = patronusdesign_compose::compose_story(&s.doc().unwrap().doc, sid, &Default::default());
         cs.frame(frame).unwrap().range.clone()
     }
 
@@ -5221,8 +5221,8 @@ mod type_tool_frame_options_tests {
         let mut s = Session::new();
         let (a, b, sid) = two_frame_thread(&mut s);
         let rb = shown(&s, sid, b);
-        let cs = designcraft_compose::compose_story(&s.doc().unwrap().doc, sid, &Default::default());
-        let drawn = designcraft_compose::caret(&cs, rb.start).and_then(|(fi, ..)| cs.frames.get(fi)).map(|f| f.frame);
+        let cs = patronusdesign_compose::compose_story(&s.doc().unwrap().doc, sid, &Default::default());
+        let drawn = patronusdesign_compose::caret(&cs, rb.start).and_then(|(fi, ..)| cs.frames.get(fi)).map(|f| f.frame);
         assert_eq!(drawn, Some(b), "the caret at the boundary is drawn in the second frame");
         s.doc_mut().unwrap().selection = Selection::text(TextSel { story: sid, anchor: rb.start, focus: rb.start, frame: Some(a), cell: None });
         s.execute("object.textFrameOptions", &json!({"columns": 2})).unwrap();
@@ -5386,7 +5386,7 @@ mod type_tool_frame_options_tests {
         let t = s.doc().unwrap().selection.text.unwrap();
         let table = t.cell.unwrap().table;
         let footer = s.doc().unwrap().doc.story(sid).unwrap().tables.get(&table).unwrap().nrows() - 1;
-        let cs = designcraft_compose::compose_story(&s.doc().unwrap().doc, sid, &Default::default());
+        let cs = patronusdesign_compose::compose_story(&s.doc().unwrap().doc, sid, &Default::default());
         let placed = |f: ItemId| {
             cs.frame(f)
                 .unwrap()
@@ -5398,8 +5398,13 @@ mod type_tool_frame_options_tests {
                 .collect::<Vec<_>>()
         };
         assert_eq!((placed(a), placed(b)), (vec![true], vec![false]), "the footer repeats in the first frame and ends the table in the second");
-        s.doc_mut().unwrap().selection =
-            Selection::text(TextSel { cell: Some(designcraft_doc::CellAddr { table, row: footer, col: 0 }), anchor: 0, focus: 0, frame: None, ..t });
+        s.doc_mut().unwrap().selection = Selection::text(TextSel {
+            cell: Some(patronusdesign_doc::CellAddr { table, row: footer, col: 0 }),
+            anchor: 0,
+            focus: 0,
+            frame: None,
+            ..t
+        });
         s.execute("object.textFrameOptions", &json!({"columns": 2})).unwrap();
         assert_eq!((options(&s, a).columns, options(&s, b).columns), (1, 2));
     }
@@ -5478,7 +5483,7 @@ mod column_rule_tests {
 
 #[cfg(test)]
 mod blend_mode_tests {
-    use designcraft_color::BlendMode;
+    use patronusdesign_color::BlendMode;
 
     use super::*;
 
@@ -5650,7 +5655,7 @@ mod content_move_tests {
     fn placed() -> (Session, ItemId) {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
-        let png = designcraft_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
         let f = s.execute("frame.create", &json!({"rect": [100, 100, 300, 300], "content": "graphic"})).unwrap()["id"].as_u64().unwrap();
         s.execute("place.load", &json!({"base64": super::super::base64_encode(&png)})).unwrap();
         s.execute("place.drop", &json!({"frame": f})).unwrap();
@@ -5874,8 +5879,8 @@ mod stroke_type_tests {
         ] {
             let result = s.execute("object.stroke", &json!({"ids": [id], "type": kind})).unwrap();
             assert_eq!(result["changed"], 1);
-            let item = s.doc().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap();
-            assert_eq!(item.stroke.kind, serde_json::from_value::<designcraft_doc::StrokeType>(kind).unwrap());
+            let item = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap();
+            assert_eq!(item.stroke.kind, serde_json::from_value::<patronusdesign_doc::StrokeType>(kind).unwrap());
         }
     }
 
@@ -5916,13 +5921,13 @@ mod stroke_type_tests {
             "align": "outside", "cap": "projecting", "join": "bevel", "start": "simpleWide", "end": "bar",
         });
         assert_eq!(s.execute("object.stroke", &settings).unwrap()["changed"], 1);
-        let st = s.doc().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap().stroke.clone();
+        let st = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap().stroke.clone();
         assert_eq!((st.tint, st.weight, st.miter_limit, st.gap_tint, st.gap_overprint), (0.0, 1000.0, 500.0, 1.0, true));
         assert_eq!(
             (st.align, st.cap, st.join),
-            (designcraft_doc::StrokeAlign::Outside, designcraft_doc::Cap::Projecting, designcraft_doc::Join::Bevel)
+            (patronusdesign_doc::StrokeAlign::Outside, patronusdesign_doc::Cap::Projecting, patronusdesign_doc::Join::Bevel)
         );
-        assert_eq!((st.start, st.end), (designcraft_doc::Arrowhead::SimpleWide, designcraft_doc::Arrowhead::Bar));
+        assert_eq!((st.start, st.end), (patronusdesign_doc::Arrowhead::SimpleWide, patronusdesign_doc::Arrowhead::Bar));
     }
 }
 
@@ -5974,7 +5979,7 @@ mod copy_ids_tests {
         assert_eq!(ids(&s.execute("transform.move", &json!({"dx": 5, "dy": 0, "ids": [a], "content": true})).unwrap()), [a]);
         let r = s.execute("transform.move", &json!({"dx": 100, "dy": 0, "copy": true, "ids": [a]})).unwrap();
         let copy = ids(&r);
-        assert!(copy.len() == 1 && copy[0] != a && s.doc().unwrap().doc.item(designcraft_doc::ItemId(copy[0])).is_some(), "{r}");
+        assert!(copy.len() == 1 && copy[0] != a && s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(copy[0])).is_some(), "{r}");
         assert_eq!(selected(&s), copy);
         // Edit › Duplicate.
         let r = s.execute("edit.duplicate", &json!({})).unwrap();
@@ -5984,15 +5989,15 @@ mod copy_ids_tests {
         // Step and Repeat: every copy.
         let r = s.execute("edit.stepAndRepeat", &json!({"count": 3, "dx": 0, "dy": 60, "ids": [a]})).unwrap();
         assert_eq!((r["created"].as_u64(), ids(&r).len()), (Some(3), 3), "{r}");
-        assert!(ids(&r).iter().all(|i| s.doc().unwrap().doc.item(designcraft_doc::ItemId(*i)).is_some()));
+        assert!(ids(&r).iter().all(|i| s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(*i)).is_some()));
     }
 
     /// A selected text frame whose story holds a paragraph anchor, a cross-reference to it and a table.
-    fn marked_frame(s: &mut crate::Session) -> (u64, designcraft_doc::StoryId) {
+    fn marked_frame(s: &mut crate::Session) -> (u64, patronusdesign_doc::StoryId) {
         s.execute("file.new", &json!({"pages": 1, "facingPages": false})).unwrap();
         let text = json!({"rect": [72, 72, 400, 400], "content": "text", "text": "Results\nSee "});
         let f = s.execute("frame.create", &text).unwrap()["id"].as_u64().unwrap();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().text_frame().unwrap().story;
         s.execute("text.select", &json!({"story": sid.0, "anchor": 12, "focus": 12})).unwrap();
         s.execute("xref.insert", &json!({"paragraph": "Results"})).unwrap();
         s.execute("table.insert", &json!({"rows": 1, "cols": 2})).unwrap();
@@ -6002,9 +6007,9 @@ mod copy_ids_tests {
 
     /// The copy of story `orig` made for item `copy` has a text anchor and a table of its own, and its cross-reference
     /// points at its own anchor. A table command naming the copy's table changes the copy alone.
-    fn assert_own_marks(s: &mut crate::Session, orig: designcraft_doc::StoryId, copy: u64) {
+    fn assert_own_marks(s: &mut crate::Session, orig: patronusdesign_doc::StoryId, copy: u64) {
         let d = s.doc().unwrap().doc.clone();
-        let sid = d.item(designcraft_doc::ItemId(copy)).unwrap().text_frame().unwrap().story;
+        let sid = d.item(patronusdesign_doc::ItemId(copy)).unwrap().text_frame().unwrap().story;
         assert_ne!(sid, orig);
         let (o, c) = (d.story(orig).unwrap(), d.story(sid).unwrap());
         let (oa, ca) = (o.anchors[0].id, c.anchors[0].id);
@@ -6017,9 +6022,9 @@ mod copy_ids_tests {
         assert_eq!(c.paras.iter().filter_map(|pf| pf.table).collect::<Vec<_>>(), [ct], "the copied paragraph holds the copied table");
         d.check().unwrap();
         // The table commands are enabled with the insertion point in a table: here the original's.
-        let cell = designcraft_doc::CellAddr { table: ot, row: 0, col: 0 };
+        let cell = patronusdesign_doc::CellAddr { table: ot, row: 0, col: 0 };
         s.edit(|_, sel| {
-            sel.text = Some(designcraft_doc::TextSel { story: orig, anchor: 0, focus: 0, frame: None, cell: Some(cell) });
+            sel.text = Some(patronusdesign_doc::TextSel { story: orig, anchor: 0, focus: 0, frame: None, cell: Some(cell) });
             Ok(())
         })
         .unwrap();
@@ -6061,7 +6066,7 @@ mod copy_ids_tests {
     fn copied_text_gives_tables_in_its_cells_ids_of_their_own() {
         use std::sync::Arc;
 
-        fn table_ids(st: &designcraft_doc::Story, out: &mut Vec<u64>) {
+        fn table_ids(st: &patronusdesign_doc::Story, out: &mut Vec<u64>) {
             for (id, t) in &st.tables {
                 out.push(*id);
                 for c in &t.cells {
@@ -6069,12 +6074,12 @@ mod copy_ids_tests {
                 }
             }
         }
-        let cell = |st: &designcraft_doc::Story| st.tables.values().next().unwrap().cells[0].text.clone();
+        let cell = |st: &patronusdesign_doc::Story| st.tables.values().next().unwrap().cells[0].text.clone();
         let mut s = crate::Session::new();
         let (f, sid) = marked_frame(&mut s);
         // The table's first cell holds a table.
         let d = Arc::make_mut(&mut s.doc_mut().unwrap().doc);
-        let inner = designcraft_doc::Table::new(d.alloc(), 1, 1, 0, 0, 40.0);
+        let inner = patronusdesign_doc::Table::new(d.alloc(), 1, 1, 0, 0, 40.0);
         let st = d.story_mut(sid).unwrap();
         let text = &mut Arc::make_mut(st.tables.values_mut().next().unwrap()).cells[0].text;
         text.insert_table(text.len(), inner);
@@ -6085,7 +6090,7 @@ mod copy_ids_tests {
             }
             let copy = s.execute(copy_cmd, &json!({})).unwrap()["ids"][0].as_u64().unwrap();
             let d = &s.doc().unwrap().doc;
-            let csid = d.item(designcraft_doc::ItemId(copy)).unwrap().text_frame().unwrap().story;
+            let csid = d.item(patronusdesign_doc::ItemId(copy)).unwrap().text_frame().unwrap().story;
             let (o, c) = (d.story(sid).unwrap(), d.story(csid).unwrap());
             let (oc, cc) = (cell(o), cell(c));
             let (oi, ci) = (*oc.tables.keys().next().unwrap(), *cc.tables.keys().next().unwrap());
@@ -6112,7 +6117,7 @@ mod copy_ids_tests {
             g = s.execute("object.group", &json!({"ids": [g, other]})).unwrap()["id"].as_u64().unwrap();
         }
         let text = s.execute("frame.create", &json!({"rect": [100, 100, 300, 300], "content": "text", "text": "Host"})).unwrap()["id"].as_u64();
-        let sid = s.doc().unwrap().doc.item(designcraft_doc::ItemId(text.unwrap())).unwrap().text_frame().unwrap().story;
+        let sid = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(text.unwrap())).unwrap().text_frame().unwrap().story;
         let before = s.doc().unwrap().doc.clone();
         assert!(s.execute("transform.move", &json!({"dx": 10, "dy": 0, "copy": true, "ids": [g]})).is_err());
         assert_eq!(s.doc().unwrap().doc, before, "nothing is copied");
@@ -6133,9 +6138,9 @@ mod copy_ids_tests {
             let mut s = crate::Session::new();
             let (f, sid) = marked_frame(&mut s);
             let d = Arc::make_mut(&mut s.doc_mut().unwrap().doc);
-            let mut chain: Option<designcraft_doc::Table> = None;
+            let mut chain: Option<patronusdesign_doc::Table> = None;
             for _ in 0..n {
-                let mut t = designcraft_doc::Table::new(d.alloc(), 1, 1, 0, 0, 40.0);
+                let mut t = patronusdesign_doc::Table::new(d.alloc(), 1, 1, 0, 0, 40.0);
                 if let Some(inner) = chain.take() {
                     t.cells[0].text.insert_table(0, inner);
                 }
@@ -6170,17 +6175,17 @@ mod copy_ids_tests {
             let (f, sid) = marked_frame(&mut s);
             let leaf = s.execute("frame.create", &json!({"rect": [0, 0, 10, 10]})).unwrap()["id"].as_u64().unwrap();
             let d = Arc::make_mut(&mut s.doc_mut().unwrap().doc);
-            let item = d.item(designcraft_doc::ItemId(leaf)).cloned().unwrap();
+            let item = d.item(patronusdesign_doc::ItemId(leaf)).cloned().unwrap();
             Arc::make_mut(&mut d.spreads[0]).items.retain(|i| i.id.0 != leaf);
-            let mut chain: Option<designcraft_doc::Table> = None;
+            let mut chain: Option<patronusdesign_doc::Table> = None;
             for _ in 0..n {
-                let mut t = designcraft_doc::Table::new(d.alloc(), 1, 1, 0, 0, 40.0);
+                let mut t = patronusdesign_doc::Table::new(d.alloc(), 1, 1, 0, 0, 40.0);
                 match chain.take() {
                     Some(inner) => {
                         t.cells[0].text.insert_table(0, inner);
                     }
                     None => {
-                        t.cells[0].text.insert_object(0, designcraft_doc::AnchoredObject::new(item.clone(), Default::default()));
+                        t.cells[0].text.insert_object(0, patronusdesign_doc::AnchoredObject::new(item.clone(), Default::default()));
                     }
                 }
                 chain = Some(t);
@@ -6207,7 +6212,7 @@ mod copy_ids_tests {
         s.execute("file.new", &json!({})).unwrap();
         let frame = |s: &mut crate::Session, rect: [f64; 4], text: &str| {
             let id = s.execute("frame.create", &json!({"rect": rect, "content": "text", "text": text})).unwrap()["id"].as_u64().unwrap();
-            (id, s.doc().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap().text_frame().unwrap().story)
+            (id, s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap().text_frame().unwrap().story)
         };
         // Each story refers to the other, so one of the two is pasted before its destination.
         let (a, first) = frame(&mut s, [72.0, 72.0, 300.0, 200.0], "Methods, see ");
@@ -6226,7 +6231,7 @@ mod copy_ids_tests {
         s.execute("selection.set", &json!({"ids": []})).unwrap();
         let ids = s.execute("edit.paste", &json!({})).unwrap()["ids"].as_array().unwrap().iter().map(|v| v.as_u64().unwrap()).collect::<Vec<_>>();
         let d = &s.doc().unwrap().doc;
-        let story = |id: u64| d.story(d.item(designcraft_doc::ItemId(id)).unwrap().text_frame().unwrap().story).unwrap();
+        let story = |id: u64| d.story(d.item(patronusdesign_doc::ItemId(id)).unwrap().text_frame().unwrap().story).unwrap();
         for (refers, dest) in [(story(ids[0]), story(ids[1])), (story(ids[1]), story(ids[0]))] {
             assert_eq!(refers.xrefs[0].target, dest.anchors[0].id, "the cross-reference points at the pasted destination");
             assert_eq!(d.find_anchor(refers.xrefs[0].target).map(|(at, _)| at), Some(dest.id));
@@ -6245,7 +6250,7 @@ mod copy_ids_tests {
         .unwrap();
         let frame = |s: &mut crate::Session, rect: [f64; 4], text: &str| {
             let id = s.execute("frame.create", &json!({"rect": rect, "content": "text", "text": text})).unwrap()["id"].as_u64().unwrap();
-            (designcraft_doc::ItemId(id), s.doc().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap().text_frame().unwrap().story)
+            (patronusdesign_doc::ItemId(id), s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap().text_frame().unwrap().story)
         };
         let (a, first) = frame(&mut s, [72.0, 72.0, 300.0, 200.0], "Methods, see ");
         let (b, second) = frame(&mut s, [72.0, 300.0, 300.0, 400.0], "Results");
@@ -6261,8 +6266,8 @@ mod copy_ids_tests {
         let mut dst = t.doc().unwrap().doc.as_ref().clone();
         assert!(dst.next_id < second.0 - 2);
         dst.next_id = second.0 - 2;
-        let ids = super::duplicate_from(&mut dst, &src, &[a, b], designcraft_doc::SpreadRef::Doc(0), designcraft_geom::Vec2::ZERO).unwrap();
-        let story = |id: designcraft_doc::ItemId| dst.story(dst.item(id).unwrap().text_frame().unwrap().story).unwrap();
+        let ids = super::duplicate_from(&mut dst, &src, &[a, b], patronusdesign_doc::SpreadRef::Doc(0), patronusdesign_geom::Vec2::ZERO).unwrap();
+        let story = |id: patronusdesign_doc::ItemId| dst.story(dst.item(id).unwrap().text_frame().unwrap().story).unwrap();
         let (one, two) = (story(ids[0]), story(ids[1]));
         assert_eq!(one.id, second);
         assert_eq!(one.xrefs[0].target, one.anchors[0].id, "the copy still refers to its own paragraph");
@@ -6285,7 +6290,7 @@ mod tint_alone_tests {
         s.execute("object.stroke", &json!({"swatch": "[None]", "ids": [a, b]})).unwrap();
         // Fill tint on both: each keeps its swatch.
         s.execute("object.fill", &json!({"tint": 0.25, "ids": [a, b]})).unwrap();
-        let item = |s: &crate::Session, id: u64| s.doc().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap().clone();
+        let item = |s: &crate::Session, id: u64| s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap().clone();
         assert_eq!((item(&s, a).fill.swatch.as_str(), item(&s, a).fill.tint), ("[Black]", 0.25));
         assert_eq!((item(&s, b).fill.swatch.as_str(), item(&s, b).fill.tint), ("C=100 M=0 Y=0 K=0", 0.25));
         // A swatch alone is 100%.
@@ -6309,7 +6314,7 @@ mod content_transform_tests {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let f = s.execute("frame.create", &json!({"rect": [100, 100, 300, 300], "content": "graphic"})).unwrap()["id"].as_u64().unwrap();
-        let png = designcraft_render::Rendered { width: 200, height: 100, pixels: vec![200u8; 200 * 100 * 4] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 200, height: 100, pixels: vec![200u8; 200 * 100 * 4] }.to_png();
         s.execute("file.place", &json!({"base64": crate::cmd::file::base64_encode(&png), "name": "a.png", "frame": f})).unwrap();
         s.execute("transform.rotate", &json!({"ids": [f], "angle": -45})).unwrap();
         s.execute("selection.set", &json!({"ids": [f], "content": true})).unwrap();
@@ -6321,12 +6326,12 @@ mod content_transform_tests {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let f = s.execute("frame.create", &json!({"rect": [100, 100, 200, 200], "content": "graphic"})).unwrap()["id"].as_u64().unwrap();
-        let png = designcraft_render::Rendered { width: 200, height: 100, pixels: vec![200u8; 200 * 100 * 4] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 200, height: 100, pixels: vec![200u8; 200 * 100 * 4] }.to_png();
         s.execute("file.place", &json!({"base64": crate::cmd::file::base64_encode(&png), "name": "a.png", "frame": f})).unwrap();
         let bounds = |s: &Session| {
-            let it = s.doc().unwrap().doc.item(designcraft_doc::ItemId(f)).unwrap().clone();
+            let it = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(f)).unwrap().clone();
             let g = it.graphic().unwrap().clone();
-            (it.bounds(), (it.xf * g.xf).transform_rect_bbox(designcraft_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1)))
+            (it.bounds(), (it.xf * g.xf).transform_rect_bbox(patronusdesign_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1)))
         };
         let (frame0, _) = bounds(&s);
         // The handles' drag: the image to (20, 40)–(420, 240), one undo step; the frame stays.
@@ -6388,18 +6393,18 @@ mod content_transform_tests {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let f = s.execute("frame.create", &json!({"rect": [100, 100, 300, 300], "content": "graphic"})).unwrap()["id"].as_u64().unwrap();
-        let png = designcraft_render::Rendered { width: 200, height: 100, pixels: vec![200u8; 200 * 100 * 4] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 200, height: 100, pixels: vec![200u8; 200 * 100 * 4] }.to_png();
         s.execute("file.place", &json!({"base64": crate::cmd::file::base64_encode(&png), "name": "a.png", "frame": f})).unwrap();
         s.execute("view.zeroPoint", &json!({"at": [72, 36]})).unwrap();
         s.execute("selection.set", &json!({"ids": [f], "content": true})).unwrap();
         s.execute("transform.set", &json!({"x": 10, "y": 20, "ref": 0})).unwrap();
         // The graphic's top-left, measured from the zero point (what the Transform fields show).
         let d = &s.doc().unwrap().doc;
-        let id = designcraft_doc::ItemId(f);
+        let id = patronusdesign_doc::ItemId(f);
         let loc = d.find(id).unwrap();
         let it = d.item(id).unwrap();
         let g = it.graphic().unwrap();
-        let b = (d.parent_xf(&loc) * it.xf * g.xf).transform_rect_bbox(designcraft_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1));
+        let b = (d.parent_xf(&loc) * it.xf * g.xf).transform_rect_bbox(patronusdesign_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1));
         let o = d.ruler_origin(loc.spread, b.center().x).unwrap();
         assert!(o.x > 0.0 && o.y > 0.0, "the zero point moved: {o:?}");
         assert!((b.x0 - o.x - 10.0).abs() < 1e-6 && (b.y0 - o.y - 20.0).abs() < 1e-6, "{b:?} from {o:?}");
@@ -6483,7 +6488,7 @@ mod fit_text_frame_tests {
 
     #[test]
     fn fitting_text_keeps_columns_and_vertical_justification() {
-        use designcraft_doc::VerticalJustification::{Bottom, Center, Justify, Top};
+        use patronusdesign_doc::VerticalJustification::{Bottom, Center, Justify, Top};
         for columns in [1, 2] {
             for justification in [Top, Bottom, Center, Justify] {
                 let mut s = Session::new();
@@ -6517,7 +6522,7 @@ mod fit_text_frame_tests {
                 s.execute("file.new", &json!({})).unwrap();
                 let id = frame(&mut s, [100.0, 100.0, 500.0, 300.0], "Fit me");
                 if graphic {
-                    let png = designcraft_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
+                    let png = patronusdesign_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
                     s.execute("file.place", &json!({"base64": super::super::file::base64_encode(&png), "name": "test.png", "frame": id.0})).unwrap();
                     let it = Arc::make_mut(&mut s.doc_mut().unwrap().doc).item_mut(id).unwrap();
                     let Content::Graphic(g) = &mut it.content else { panic!("graphic") };
@@ -6591,8 +6596,8 @@ mod spread_target_tests {
 
 #[cfg(test)]
 mod path_edit_tests {
-    use designcraft_doc::ItemId;
-    use designcraft_geom::Point;
+    use patronusdesign_doc::ItemId;
+    use patronusdesign_geom::Point;
     use serde_json::json;
 
     fn session_with_path() -> (crate::Session, u64) {
@@ -6609,7 +6614,7 @@ mod path_edit_tests {
         (s, id)
     }
 
-    fn anchors(s: &crate::Session, id: u64) -> Vec<designcraft_geom::Anchor> {
+    fn anchors(s: &crate::Session, id: u64) -> Vec<patronusdesign_geom::Anchor> {
         let d = &s.doc().unwrap().doc;
         let it = d.item(ItemId(id)).unwrap();
         let xf = d.parent_xf(&d.find(ItemId(id)).unwrap()) * it.xf;
@@ -6639,7 +6644,7 @@ mod path_edit_tests {
         // Direction lines on the last anchor: collinear and opposite make it smooth.
         s.execute("path.setAnchor", &json!({"id": id, "anchor": "last", "in": [380, 230], "out": [420, 270]})).unwrap();
         let last = *anchors(&s, id).last().unwrap();
-        assert_eq!((last.h_in, last.h_out, last.kind), (Point::new(380.0, 230.0), Point::new(420.0, 270.0), designcraft_geom::AnchorKind::Smooth));
+        assert_eq!((last.h_in, last.h_out, last.kind), (Point::new(380.0, 230.0), Point::new(420.0, 270.0), patronusdesign_geom::AnchorKind::Smooth));
         s.execute("path.setAnchor", &json!({"id": id, "anchor": 0, "p": [90, 110]})).unwrap();
         assert_eq!(anchors(&s, id)[0].p, Point::new(90.0, 110.0));
         assert!(s.execute("path.setAnchor", &json!({"id": id, "anchor": 9, "p": [0, 0]})).is_err());
@@ -6717,7 +6722,7 @@ mod path_edit_tests {
 
 #[cfg(test)]
 mod effects_command_tests {
-    use designcraft_doc::ItemId;
+    use patronusdesign_doc::ItemId;
     use serde_json::json;
 
     #[test]
@@ -6740,14 +6745,14 @@ mod effects_command_tests {
         let it = st.doc.item(ItemId(id)).unwrap();
         let e = &it.effects;
         assert!(e.inner_shadow.on && e.inner_shadow.angle == 120.0 && e.inner_shadow.size == 7.0);
-        assert_eq!(e.inner_shadow.mode, designcraft_color::BlendMode::Multiply, "a patch without a mode keeps the default");
+        assert_eq!(e.inner_shadow.mode, patronusdesign_color::BlendMode::Multiply, "a patch without a mode keeps the default");
         assert!(e.drop_shadow.on && e.drop_shadow.distance == 10.0 && e.drop_shadow.size == 9.0, "untouched fields stay");
-        assert_eq!((e.feather, it.opacity, it.blend), (4.0, 0.5, designcraft_color::BlendMode::Multiply));
+        assert_eq!((e.feather, it.opacity, it.blend), (4.0, 0.5, patronusdesign_color::BlendMode::Multiply));
         // Out of range values are kept in range; garbage changes nothing.
         s.execute("object.effects", &json!({"ids": [id], "effects": {"outerGlow": {"on": true, "opacity": 3, "spread": 400, "size": -5}}})).unwrap();
         let og = s.doc().unwrap().doc.item(ItemId(id)).unwrap().effects.outer_glow.clone();
         assert_eq!((og.opacity, og.spread, og.size), (1.0, 100.0, 0.0));
-        assert_eq!(og.mode, designcraft_color::BlendMode::Screen);
+        assert_eq!(og.mode, patronusdesign_color::BlendMode::Screen);
         let before = s.doc().unwrap().doc.clone();
         for bad in [json!({"effects": {"dropShadow": {"distance": "far"}}}), json!({"effects": 5}), json!({"blend": "loud"}), json!({"opacity": "x"})]
         {
@@ -6833,13 +6838,16 @@ mod glow_feather_options_tests {
             &json!({"ids": [id], "effects": {"innerGlow": {"on": true, "mode": "Multiply", "technique": "precise"}, "feather": 4.5, "featherOptions": {"choke": 140, "corners": "sharp"}}}),
         )
         .unwrap();
-        let e = s.doc().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap().effects.clone();
-        assert_eq!((e.inner_glow.mode, e.inner_glow.technique), (designcraft_color::BlendMode::Multiply, designcraft_doc::GlowTechnique::Precise));
-        assert_eq!((e.feather_options.choke, e.feather_options.corners), (100.0, designcraft_doc::FeatherCorners::Sharp), "choke is a percentage");
+        let e = s.doc().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap().effects.clone();
+        assert_eq!(
+            (e.inner_glow.mode, e.inner_glow.technique),
+            (patronusdesign_color::BlendMode::Multiply, patronusdesign_doc::GlowTechnique::Precise)
+        );
+        assert_eq!((e.feather_options.choke, e.feather_options.corners), (100.0, patronusdesign_doc::FeatherCorners::Sharp), "choke is a percentage");
         // InDesign's defaults: Screen and Softer; Diffused corners, no choke.
-        let d = designcraft_doc::Effects::default();
-        assert_eq!((d.inner_glow.mode, d.inner_glow.technique), (designcraft_color::BlendMode::Screen, designcraft_doc::GlowTechnique::Softer));
-        assert_eq!((d.feather_options.choke, d.feather_options.corners), (0.0, designcraft_doc::FeatherCorners::Diffused));
+        let d = patronusdesign_doc::Effects::default();
+        assert_eq!((d.inner_glow.mode, d.inner_glow.technique), (patronusdesign_color::BlendMode::Screen, patronusdesign_doc::GlowTechnique::Softer));
+        assert_eq!((d.feather_options.choke, d.feather_options.corners), (0.0, patronusdesign_doc::FeatherCorners::Diffused));
     }
 }
 
@@ -6879,7 +6887,7 @@ mod fill_tint_tests {
 #[cfg(test)]
 mod frame_baseline_grid_tests {
     use super::*;
-    use designcraft_doc::{FrameBaselineGrid, FrameGridRelative};
+    use patronusdesign_doc::{FrameBaselineGrid, FrameGridRelative};
 
     #[test]
     fn text_frame_options_set_a_custom_baseline_grid_relative_to() {
@@ -6954,11 +6962,11 @@ mod frame_baseline_grid_tests {
         s.execute("object.textFrameOptions", &json!({"ids": [id.0], "inset": [0, null, 15552, 4.5], "verticalJustification": "bottom"})).unwrap();
         let o = options(&s);
         assert_eq!(o.inset, [0.0, before.inset[1], 15552.0, 4.5]);
-        assert_eq!(o.vertical_justification, designcraft_doc::VerticalJustification::Bottom);
+        assert_eq!(o.vertical_justification, patronusdesign_doc::VerticalJustification::Bottom);
         s.execute("object.textFrameOptions", &json!({"ids": [id.0], "inset": 6, "firstBaseline": "capHeight"})).unwrap();
         let o = options(&s);
         assert_eq!(o.inset, [6.0; 4]);
-        assert_eq!(o.first_baseline, designcraft_doc::FirstBaseline::CapHeight);
+        assert_eq!(o.first_baseline, patronusdesign_doc::FirstBaseline::CapHeight);
         s.execute("object.textFrameOptions", &json!({"ids": [id.0], "columns": 3, "gutter": 15552, "balanceColumns": true, "ignoreWrap": true}))
             .unwrap();
         let o = options(&s);
@@ -6972,7 +6980,7 @@ mod frame_baseline_grid_tests {
 #[cfg(test)]
 mod anchored_copy_tests {
     use super::*;
-    use designcraft_doc::AnchoredObject;
+    use patronusdesign_doc::AnchoredObject;
 
     /// A text frame with an inline rectangle; returns the frame and the anchored item's id.
     fn frame_with_inline_box(s: &mut Session) -> (ItemId, ItemId) {
@@ -6987,7 +6995,7 @@ mod anchored_copy_tests {
 
     fn assert_reopens(doc: &Document) {
         doc.check().unwrap();
-        designcraft_format::load(&designcraft_format::save(doc).unwrap()).unwrap();
+        patronusdesign_format::load(&patronusdesign_format::save(doc).unwrap()).unwrap();
     }
 
     // #1522: the copy kept the anchored object's id, and the saved file no longer opened.
@@ -7018,7 +7026,7 @@ mod anchored_copy_tests {
     // IDML import can anchor a text frame; its story is copied too, with the copy in its thread.
     #[test]
     fn an_anchored_text_frame_gets_its_own_story_copy() {
-        let mut d = Document::new(&designcraft_doc::build::NewDocument::default());
+        let mut d = Document::new(&patronusdesign_doc::build::NewDocument::default());
         let layer = d.default_layer();
         let (host, host_sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(0.0, 0.0, 300.0, 300.0), layer, "Host", ParaFormat::default()).unwrap();
         let (inner, inner_sid) = d.add_text_frame(SpreadRef::Doc(0), Rect::new(0.0, 0.0, 50.0, 50.0), layer, "Inner", ParaFormat::default()).unwrap();
@@ -7043,7 +7051,7 @@ mod anchored_copy_tests {
     // Each story refers to an anchor in the story anchored in it, which is copied after it.
     #[test]
     fn cross_references_into_anchored_stories_follow_their_copies() {
-        let mut d = Document::new(&designcraft_doc::build::NewDocument::default());
+        let mut d = Document::new(&patronusdesign_doc::build::NewDocument::default());
         let layer = d.default_layer();
         let mut frame =
             |text: &str| d.add_text_frame(SpreadRef::Doc(0), Rect::new(0.0, 0.0, 50.0, 50.0), layer, text, ParaFormat::default()).unwrap();
@@ -7053,7 +7061,7 @@ mod anchored_copy_tests {
         for (into, (id, sid)) in [(inner_sid, (deep, deep_sid)), (host_sid, (inner, inner_sid))] {
             let target = d.story_mut(sid).unwrap().insert_anchor(0, "Here");
             let st = d.story_mut(into).unwrap();
-            st.insert_xref(st.len(), designcraft_doc::CrossRef { target, ..Default::default() });
+            st.insert_xref(st.len(), patronusdesign_doc::CrossRef { target, ..Default::default() });
             let item = d.item(id).unwrap().clone();
             let story = d.stories.get(&sid).unwrap().clone();
             d.remove_item(id).unwrap();

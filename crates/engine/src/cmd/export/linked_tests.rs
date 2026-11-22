@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use designcraft_doc::{AssetData, AssetId, LinkedSource, Proxy, Storage};
+use patronusdesign_doc::{AssetData, AssetId, LinkedSource, Proxy, Storage};
 use serde_json::{Value, json};
 
 use crate::Session;
@@ -35,7 +35,7 @@ fn png(w: usize, h: usize, cut: bool) -> Vec<u8> {
             pixels.extend([200, 40, 40, if cut && x < w / 2 { 0 } else { 255 }]);
         }
     }
-    designcraft_render::Rendered { width: w as u32, height: h as u32, pixels }.to_png()
+    patronusdesign_render::Rendered { width: w as u32, height: h as u32, pixels }.to_png()
 }
 
 /// A session with `bytes` placed, then made a linked asset to `file` (holding `bytes`) with a
@@ -46,7 +46,7 @@ fn linked_session(file: &Path, bytes: &[u8]) -> (Session, AssetId) {
     s.execute("file.new", &json!({})).unwrap();
     s.execute("file.place", &json!({"base64": crate::cmd::base64_encode(bytes), "name": "art.png", "x": 10, "y": 10, "width": 100})).unwrap();
     let id = *s.doc().unwrap().doc.assets.keys().next().unwrap();
-    let proxy = designcraft_render::proxy::make_proxy(bytes, 0).unwrap();
+    let proxy = patronusdesign_render::proxy::make_proxy(bytes, 0).unwrap();
     let st = s.doc_mut().unwrap();
     let a = Arc::make_mut(Arc::make_mut(&mut st.doc).assets.get_mut(&id).unwrap());
     a.link = Some(file.to_string_lossy().into_owned());

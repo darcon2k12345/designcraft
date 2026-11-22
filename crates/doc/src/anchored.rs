@@ -112,7 +112,7 @@ impl AnchoredObject {
     /// Wrap `item`, moving it so its bounds start at the origin.
     pub fn new(mut item: Item, position: AnchorPosition) -> Self {
         let b = item.bounds();
-        item.xf = designcraft_geom::Affine::translate((-b.x0, -b.y0)) * item.xf;
+        item.xf = patronusdesign_geom::Affine::translate((-b.x0, -b.y0)) * item.xf;
         AnchoredObject { item, position }
     }
 
@@ -126,7 +126,7 @@ impl AnchoredObject {
 impl Default for AnchoredObject {
     /// An empty placeholder (an object mark typed or pasted without its object).
     fn default() -> Self {
-        let path = designcraft_geom::shapes::rectangle(designcraft_geom::Rect::new(0.0, 0.0, 0.0, 0.0));
+        let path = patronusdesign_geom::shapes::rectangle(patronusdesign_geom::Rect::new(0.0, 0.0, 0.0, 0.0));
         let item = Item::new(crate::ids::ItemId(0), crate::ids::LayerId(0), crate::item::Shape::Rectangle, path);
         AnchoredObject { item, position: AnchorPosition::default() }
     }
@@ -508,7 +508,7 @@ impl Document {
 
 #[cfg(test)]
 mod tests {
-    use designcraft_geom::Rect;
+    use patronusdesign_geom::Rect;
 
     use super::*;
     use crate::build::NewDocument;
@@ -605,7 +605,7 @@ mod tests {
         d.story_mut(host).unwrap().insert(0, "Typed ");
         d.story_mut(inner).unwrap().insert(0, "Typed ");
         let frame = d.story(host).unwrap().frames[0];
-        d.item_mut(frame).unwrap().xf = designcraft_geom::Affine::translate((10.0, 0.0));
+        d.item_mut(frame).unwrap().xf = patronusdesign_geom::Affine::translate((10.0, 0.0));
         assert!(!d.anchored_items_changed_since(&old), "typing and moving");
         d.check().unwrap();
         // Text with the anchored frame copied in the document.
@@ -756,13 +756,17 @@ mod tests {
         let (inner, _) = anchor(&mut a, host, "Inner ");
         let aid = AssetId(a.alloc());
         a.assets.insert(aid, Arc::new(pdf(aid, "a.pdf")));
-        let mut g =
-            Item::new(ItemId(a.alloc()), a.default_layer(), Shape::Rectangle, designcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 20.0, 20.0)));
+        let mut g = Item::new(
+            ItemId(a.alloc()),
+            a.default_layer(),
+            Shape::Rectangle,
+            patronusdesign_geom::shapes::rectangle(Rect::new(0.0, 0.0, 20.0, 20.0)),
+        );
         g.content = Content::Graphic(Graphic {
             layer_options: None,
             asset: aid,
             size: (20.0, 20.0),
-            xf: designcraft_geom::Affine::IDENTITY,
+            xf: patronusdesign_geom::Affine::IDENTITY,
             clip: None,
             auto_fit: Default::default(),
             fit_align: 4,

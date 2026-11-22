@@ -43,7 +43,7 @@ fn list(app: &mut DesignApp, ui: &mut egui::Ui, para: bool) {
         g
     };
     for n in names.iter().filter(|n| !n.contains('/')) {
-        if para && n == designcraft_doc::NO_PARA_STYLE {
+        if para && n == patronusdesign_doc::NO_PARA_STYLE {
             continue;
         }
         style_row(app, ui, para, n, (current.as_deref(), overrides > 0), &groups, &t);
@@ -115,7 +115,7 @@ fn object_style_of_selection(app: &DesignApp) -> Option<(String, bool)> {
 
 /// Whether `it` differs from its object style: its own attributes, or a text frame's paragraphs
 /// in other styles than the object style gives them.
-fn overrides_its_style(doc: &designcraft_doc::Document, it: &designcraft_doc::Item) -> bool {
+fn overrides_its_style(doc: &patronusdesign_doc::Document, it: &patronusdesign_doc::Item) -> bool {
     let Some(os) = doc.styles.object_style(&it.object_style) else { return false };
     let mut styled = it.clone();
     os.apply_to(&mut styled);
@@ -161,7 +161,7 @@ pub fn object(app: &mut DesignApp, ui: &mut egui::Ui) {
             ui.painter().rect_stroke(mark, 0.0, egui::Stroke::new(1.0, t.icon), egui::StrokeKind::Inside);
             ui.painter().text(mark.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(8.5), t.icon);
         }
-        let editable = n != designcraft_doc::NO_OBJECT_STYLE;
+        let editable = n != patronusdesign_doc::NO_OBJECT_STYLE;
         if resp.double_clicked() && editable {
             let _ = crate::object_style_dialog::open_edit(app, n);
         } else if resp.clicked() && selected {
@@ -205,7 +205,7 @@ pub fn object(app: &mut DesignApp, ui: &mut egui::Ui) {
                     crate::object_style_dialog::open_new(app);
                     ui.close();
                 }
-                if let Some((n, _)) = current.as_ref().filter(|(n, _)| n != designcraft_doc::NO_OBJECT_STYLE)
+                if let Some((n, _)) = current.as_ref().filter(|(n, _)| n != patronusdesign_doc::NO_OBJECT_STYLE)
                     && ui.button(crate::rtl::widget(ui, crate::i18n::tr(&lang, "Object Style Options…"))).clicked()
                 {
                     let _ = crate::object_style_dialog::open_edit(app, n);
@@ -238,7 +238,7 @@ fn style_row(
     let row_label = format!("{label}{}", if current == Some(n) && overridden { "+" } else { "" });
     resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, current == Some(n), &row_label));
     crate::rtl::paint(ui.painter(), row.min + vec2(8.0, 11.0), egui::Align2::LEFT_CENTER, &row_label, egui::FontId::proportional(12.5), t.text);
-    let editable = n != if para { designcraft_doc::NO_PARA_STYLE } else { designcraft_doc::NO_CHAR_STYLE };
+    let editable = n != if para { patronusdesign_doc::NO_PARA_STYLE } else { patronusdesign_doc::NO_CHAR_STYLE };
     if resp.double_clicked() && editable {
         crate::dialogs::open_style_options(app, para, n);
     } else if resp.clicked() {
@@ -330,7 +330,7 @@ mod tests {
     /// mark, and Clear Overrides puts them back.
     #[test]
     fn a_paragraph_style_change_is_an_object_style_override() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), Default::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), Default::default());
         app.run("file.new", serde_json::json!({})).unwrap();
         app.run("style.paragraph.create", serde_json::json!({"name": "Caption"})).unwrap();
         app.run("style.object.create", serde_json::json!({"name": "Captioned", "fromSelection": false, "paragraphStyle": "Caption"})).unwrap();
@@ -339,7 +339,7 @@ mod tests {
         app.run("selection.set", serde_json::json!({"ids": [f["id"]]})).unwrap();
         assert_eq!(object_style_of_selection(&app), Some(("Captioned".into(), false)));
         app.run("text.select", serde_json::json!({"story": f["story"], "anchor": 0, "focus": 3})).unwrap();
-        app.run("style.paragraph.apply", serde_json::json!({"name": designcraft_doc::BASIC_PARAGRAPH})).unwrap();
+        app.run("style.paragraph.apply", serde_json::json!({"name": patronusdesign_doc::BASIC_PARAGRAPH})).unwrap();
         app.run("selection.set", serde_json::json!({"ids": [f["id"]]})).unwrap();
         assert_eq!(object_style_of_selection(&app), Some(("Captioned".into(), true)), "the + mark");
         app.run("style.object.clearOverrides", serde_json::json!({})).unwrap();
@@ -348,7 +348,7 @@ mod tests {
 
     #[test]
     fn selected_style_context_menu_redefines_its_format() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let frame = app.run("frame.create", json!({"rect":[36,36,300,200],"content":"text","text":"Headline"})).unwrap();
         app.run("text.select", json!({"story":frame["story"],"anchor":0,"focus":8})).unwrap();
@@ -378,7 +378,7 @@ mod tests {
     /// click applies a style, the eraser clears the overrides, + makes a style from the selection.
     #[test]
     fn object_styles_panel_applies_marks_overrides_and_creates() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let id = app.run("frame.create", json!({"rect": [36, 36, 136, 136], "content": "graphic"})).unwrap()["id"].as_u64().unwrap();
         app.run("selection.set", json!({"ids": [id]})).unwrap();
@@ -400,7 +400,7 @@ mod tests {
         h.run_steps(3);
         // The style on top and its row.
         assert_eq!(h.get_all_by_label("Framed").count(), 2);
-        let style = |h: &Harness<DesignApp>| h.state().session.active().unwrap().doc.item(designcraft_doc::ItemId(id)).unwrap().clone();
+        let style = |h: &Harness<DesignApp>| h.state().session.active().unwrap().doc.item(patronusdesign_doc::ItemId(id)).unwrap().clone();
         assert_eq!((style(&h).object_style.as_str(), style(&h).stroke.weight), ("Framed", 3.0));
         h.state_mut().run("object.stroke", json!({"weight": 1})).unwrap();
         h.run_steps(3);
@@ -419,7 +419,7 @@ mod tests {
     /// the label on top describes the first.
     #[test]
     fn clear_overrides_is_on_when_a_later_selected_frame_is_overridden() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let frame = |app: &mut DesignApp, x: f64| {
             app.run("frame.create", json!({"rect": [x, 36, x + 100.0, 136], "content": "graphic"})).unwrap()["id"].as_u64().unwrap()
@@ -445,13 +445,13 @@ mod tests {
         assert_eq!(h.get_all_by_label("Framed").count(), 2, "the first frame follows its style");
         h.get_by_label("Clear Overrides").click();
         h.run_steps(3);
-        let weight = |h: &Harness<DesignApp>| h.state().session.active().unwrap().doc.item(designcraft_doc::ItemId(b)).unwrap().stroke.weight;
+        let weight = |h: &Harness<DesignApp>| h.state().session.active().unwrap().doc.item(patronusdesign_doc::ItemId(b)).unwrap().stroke.weight;
         assert_eq!(weight(&h), 3.0);
     }
 
     #[test]
     fn paragraph_color_override_is_marked_and_cleared_from_the_row_menu() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let f = app.run("frame.create", json!({"rect": [36,36,300,200], "content": "text", "text": "Header"})).unwrap();
         app.run("text.select", json!({"story": f["story"], "anchor": 0, "focus": 6})).unwrap();
@@ -483,7 +483,7 @@ mod tests {
 
     #[test]
     fn named_character_styles_and_redundant_local_values_are_not_paragraph_overrides() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let f = app.run("frame.create", json!({"rect": [36,36,300,200], "content": "text", "text": "Body text"})).unwrap();
         app.run("text.select", json!({"story": f["story"], "anchor": 0, "focus": 4})).unwrap();
@@ -503,7 +503,7 @@ mod tests {
 
     #[test]
     fn character_style_plus_captures_selection_for_reuse() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let frame = app.run("frame.create", json!({"rect": [36, 36, 300, 200], "content": "text", "text": "alpha beta"})).unwrap();
         app.run("text.select", json!({"story": frame["story"], "anchor": 0, "focus": 5})).unwrap();
@@ -527,7 +527,7 @@ mod tests {
         h.run_steps(3);
         let app = h.state_mut();
         let style = app.session.doc().unwrap().doc.styles.char_style("Character Style 1").unwrap();
-        assert_eq!(style.chars, designcraft_doc::CharAttrs { underline: Some(true), ..Default::default() });
+        assert_eq!(style.chars, patronusdesign_doc::CharAttrs { underline: Some(true), ..Default::default() });
         assert_eq!(app.session.doc().unwrap().selection, selection);
         assert_eq!(app.session.doc().unwrap().history.undo.len(), undo_len + 1);
         app.run("text.select", json!({"story": frame["story"], "anchor": 6, "focus": 10})).unwrap();

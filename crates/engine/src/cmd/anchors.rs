@@ -2,8 +2,8 @@
 //! Direction Point, and the Pathfinder panel's Join Path and Convert Point. Positions are in spread
 //! coordinates; anchors are `(subpath, index)`.
 
-use designcraft_doc::{Document, ItemId, Shape};
-use designcraft_geom::{Affine, Anchor, AnchorKind, Point};
+use patronusdesign_doc::{Document, ItemId, Shape};
+use patronusdesign_geom::{Affine, Anchor, AnchorKind, Point};
 use serde_json::{Value, json};
 
 use super::object::path_editable;
@@ -94,7 +94,7 @@ fn first_open_subpath(d: &Document, id: ItemId) -> Option<usize> {
 
 /// Close every open subpath of one path.
 fn close_open_subpaths(d: &mut Document, id: ItemId) -> Result<Value> {
-    let it = d.item_mut(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+    let it = d.item_mut(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
     let mut closed = 0;
     for sp in it.path.subpaths.iter_mut().filter(|sp| !sp.closed && sp.anchors.len() > 1) {
         sp.closed = true;
@@ -108,22 +108,22 @@ fn close_open_subpaths(d: &mut Document, id: ItemId) -> Result<Value> {
 }
 
 /// Join the open subpaths of two paths at their nearest ends, into the first path.
-fn join_open_pair(d: &mut Document, sel: &mut designcraft_doc::Selection, a: ItemId, b: ItemId) -> Result<Value> {
+fn join_open_pair(d: &mut Document, sel: &mut patronusdesign_doc::Selection, a: ItemId, b: ItemId) -> Result<Value> {
     let (Some(sa), Some(sb)) = (first_open_subpath(d, a), first_open_subpath(d, b)) else {
         return Err(bad("path.join", "select two open paths"));
     };
     // b's path in a's space.
-    let inv_a = to_inner(d, a).ok_or(designcraft_doc::DocError::NoItem(a))?;
-    let xf_b = to_inner(d, b).ok_or(designcraft_doc::DocError::NoItem(b))?.inverse();
+    let inv_a = to_inner(d, a).ok_or(patronusdesign_doc::DocError::NoItem(a))?;
+    let xf_b = to_inner(d, b).ok_or(patronusdesign_doc::DocError::NoItem(b))?.inverse();
     let m = inv_a * xf_b;
-    let mut pb = d.item(b).and_then(|it| it.path.subpaths.get(sb).cloned()).ok_or(designcraft_doc::DocError::NoItem(b))?;
+    let mut pb = d.item(b).and_then(|it| it.path.subpaths.get(sb).cloned()).ok_or(patronusdesign_doc::DocError::NoItem(b))?;
     for an in &mut pb.anchors {
         *an = Anchor { p: m * an.p, h_in: m * an.h_in, h_out: m * an.h_out, kind: an.kind };
     }
-    let ita = d.item_mut(a).ok_or(designcraft_doc::DocError::NoItem(a))?;
+    let ita = d.item_mut(a).ok_or(patronusdesign_doc::DocError::NoItem(a))?;
     let pa = ita.path.subpaths.get_mut(sa).ok_or_else(|| bad("path.join", "no such subpath"))?;
     // The pair of ends nearest each other; then a's end meets b's start.
-    let ends = |sp: &designcraft_geom::SubPath| (sp.anchors.first().map(|x| x.p), sp.anchors.last().map(|x| x.p));
+    let ends = |sp: &patronusdesign_geom::SubPath| (sp.anchors.first().map(|x| x.p), sp.anchors.last().map(|x| x.p));
     let ((Some(a0), Some(a1)), (Some(b0), Some(b1))) = (ends(pa), ends(&pb)) else {
         return Err(bad("path.join", "select two open paths"));
     };
@@ -147,7 +147,7 @@ fn join_open_pair(d: &mut Document, sel: &mut designcraft_doc::Selection, a: Ite
     pa.anchors.extend(rest);
     as_path(&mut ita.shape);
     d.remove_item(b)?;
-    *sel = designcraft_doc::Selection::items(vec![a]);
+    *sel = patronusdesign_doc::Selection::items(vec![a]);
     Ok(json!({"id": a.0}))
 }
 
@@ -317,9 +317,9 @@ fn erase_or_smooth(s: &mut Session, p: &Value, smooth: bool) -> Result<Value> {
     };
     s.edit(|d, sel| {
         path_editable(d, id, cmd)?;
-        let inv = to_inner(d, id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let inv = to_inner(d, id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         let scale = inv.determinant().abs().sqrt().max(1e-9);
-        let it = d.item_mut(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let it = d.item_mut(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         // Where the drag touched the path, per subpath.
         let hits_of = |set: &[Point]| -> Vec<(usize, usize, f64)> {
             let mut hits = Vec::new();
@@ -357,9 +357,9 @@ fn erase_or_smooth(s: &mut Session, p: &Value, smooth: bool) -> Result<Value> {
         // The subpath list changes under the stored point indices: they would name other points.
         sel.anchors.retain(|a| a.0 != id);
         if smooth {
-            it.path.subpaths[si] = designcraft_geom::edit_path::smooth(&sp, a, b, tol * scale);
+            it.path.subpaths[si] = patronusdesign_geom::edit_path::smooth(&sp, a, b, tol * scale);
         } else {
-            let parts = designcraft_geom::edit_path::erase(&sp, a, b);
+            let parts = patronusdesign_geom::edit_path::erase(&sp, a, b);
             it.path.subpaths.remove(si);
             for (k, part) in parts.into_iter().enumerate() {
                 it.path.subpaths.insert(si + k, part);
@@ -400,8 +400,8 @@ fn add_anchor(s: &mut Session, p: &Value) -> Result<Value> {
     let tol = p.get("tolerance").and_then(Value::as_f64).unwrap_or(4.0);
     s.edit(|d, sel| {
         path_editable(d, id, "path.addAnchor")?;
-        let inv = to_inner(d, id).ok_or(designcraft_doc::DocError::NoItem(id))?;
-        let it = d.item_mut(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let inv = to_inner(d, id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
+        let it = d.item_mut(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         let q = inv * at;
         let (si, seg, t, _, dist) = it.path.nearest(q).ok_or_else(|| bad("path.addAnchor", "the object has no path"))?;
         // Tolerance is in spread units; the item space may be scaled.
@@ -424,7 +424,7 @@ fn delete_anchor(s: &mut Session, p: &Value) -> Result<Value> {
     let (id, si, ai) = anchor_param(p, "path.deleteAnchor")?;
     s.edit(|d, sel| {
         path_editable(d, id, "path.deleteAnchor")?;
-        let it = d.item_mut(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let it = d.item_mut(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         let sp = it.path.subpaths.get_mut(si).ok_or_else(|| bad("path.deleteAnchor", "no such subpath"))?;
         if ai >= sp.anchors.len() {
             return Err(bad("path.deleteAnchor", "no such anchor"));
@@ -464,8 +464,8 @@ fn convert_anchor(s: &mut Session, p: &Value) -> Result<Value> {
     let corner = p.get("corner").and_then(Value::as_bool);
     s.edit(|d, _| {
         path_editable(d, id, "path.convertAnchor")?;
-        let inv = to_inner(d, id).ok_or(designcraft_doc::DocError::NoItem(id))?;
-        let it = d.item_mut(id).ok_or(designcraft_doc::DocError::NoItem(id))?;
+        let inv = to_inner(d, id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
+        let it = d.item_mut(id).ok_or(patronusdesign_doc::DocError::NoItem(id))?;
         let sp = it.path.subpaths.get_mut(si).ok_or_else(|| bad("path.convertAnchor", "no such subpath"))?;
         let n = sp.anchors.len();
         if ai >= n {
@@ -550,13 +550,13 @@ mod tests {
         let id = s.execute("frame.create", &serde_json::json!({"rect": [100, 100, 200, 200]})).unwrap()["id"].as_u64().unwrap();
         let at = |s: &crate::Session, i: usize| {
             let d = &s.doc().unwrap().doc;
-            let it = d.item(designcraft_doc::ItemId(id)).unwrap();
+            let it = d.item(patronusdesign_doc::ItemId(id)).unwrap();
             it.xf * it.path.subpaths[0].anchors[i].p
         };
         let (a0, a1) = (at(&s, 0), at(&s, 1));
         s.execute("path.moveAnchors", &serde_json::json!({"points": [[id, 0, 0, 5, 0], [id, 0, 1]], "dx": 0, "dy": 7})).unwrap();
-        assert_eq!(at(&s, 0) - a0, designcraft_geom::Vec2::new(5.0, 0.0), "its own");
-        assert_eq!(at(&s, 1) - a1, designcraft_geom::Vec2::new(0.0, 7.0), "the shared one");
+        assert_eq!(at(&s, 0) - a0, patronusdesign_geom::Vec2::new(5.0, 0.0), "its own");
+        assert_eq!(at(&s, 1) - a1, patronusdesign_geom::Vec2::new(0.0, 7.0), "the shared one");
         for bad in [serde_json::json!([[id, 0, 0, "x", 1]]), serde_json::json!([[id, 0, 0, 5]])] {
             assert!(s.execute("path.moveAnchors", &serde_json::json!({"points": bad})).is_err(), "{bad}");
         }

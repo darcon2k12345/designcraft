@@ -1,5 +1,5 @@
-use designcraft_color::{Color, Swatch, SwatchValue};
-use designcraft_doc::{CharAttrs, CharacterStyle, ExportTag, GrepStyle, NumberedList, ParaAttrs, ParagraphStyle, Rule, Styles};
+use patronusdesign_color::{Color, Swatch, SwatchValue};
+use patronusdesign_doc::{CharAttrs, CharacterStyle, ExportTag, GrepStyle, NumberedList, ParaAttrs, ParagraphStyle, Rule, Styles};
 use serde_json::{Value, json};
 
 use crate::Session;

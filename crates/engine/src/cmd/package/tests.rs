@@ -101,7 +101,7 @@ fn relocated_packages_rebind_embedded_image_links_on_open() {
     let dir = std::env::temp_dir().join(format!("dc-package-relocation-{}-{nonce}", std::process::id()));
     let original = dir.join("original");
     let moved = dir.join("moved");
-    let png = designcraft_render::Rendered { width: 4, height: 3, pixels: [30, 90, 180, 255].repeat(12) }.to_png();
+    let png = patronusdesign_render::Rendered { width: 4, height: 3, pixels: [30, 90, 180, 255].repeat(12) }.to_png();
     let mut s = Session::new();
     s.execute("file.new", &json!({"title": "OwnedPackage", "width": 72, "height": 72})).unwrap();
     s.execute("file.place", &json!({"base64": super::super::base64_encode(&png), "name": "owned.png", "x": 5, "y": 5, "width": 16})).unwrap();
@@ -190,9 +190,9 @@ fn package_report_names_placed_pdf_layer_choices() {
     let r = s.execute("file.package", &json!({"dir": dir.to_string_lossy(), "idml": true, "pdf": false})).unwrap();
     let report = r["report"].as_str().unwrap();
     assert!(report.contains("Placed PDF layers"), "{report}");
-    // The DesignCraft copy keeps the choice; only the linked IDML copy shows file defaults.
+    // The Patronus Design copy keeps the choice; only the linked IDML copy shows file defaults.
     let packed = super::super::from_bytes(&std::fs::read(dir.join("LayeredPackage.designcraft")).unwrap()).unwrap();
-    let item = packed.item(designcraft_doc::ItemId(id.as_u64().unwrap())).unwrap();
+    let item = packed.item(patronusdesign_doc::ItemId(id.as_u64().unwrap())).unwrap();
     assert_eq!(item.pdf_hidden_layers, vec!["Red".to_string()]);
     assert!(item.has_pdf_layer_override());
     std::fs::remove_dir_all(dir).unwrap();
@@ -204,7 +204,7 @@ fn package_report_names_placed_pdf_layer_choices() {
 fn package_idml_links_the_links_folder_and_embeds_nothing() {
     let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
     let dir = std::env::temp_dir().join(format!("dc-package-idml-links-{}-{nonce}", std::process::id()));
-    let png = designcraft_render::Rendered { width: 4, height: 3, pixels: [30, 90, 180, 255].repeat(12) }.to_png();
+    let png = patronusdesign_render::Rendered { width: 4, height: 3, pixels: [30, 90, 180, 255].repeat(12) }.to_png();
     let mut s = Session::new();
     s.execute("file.new", &json!({"title": "LinkedPackage", "width": 72, "height": 72})).unwrap();
     s.execute("file.place", &json!({"base64": super::super::base64_encode(&png), "name": "my photo.png", "x": 5, "y": 5, "width": 16})).unwrap();
@@ -224,7 +224,7 @@ fn package_idml_links_the_links_folder_and_embeds_nothing() {
     assert!(!spreads.contains(&folder), "the package's own folder is not written: {spreads}");
     assert!(spreads.contains(&format!(r#"LinkResourceURI="{uri}""#)), "{spreads}");
     assert!(!spreads.contains("<Contents") && !spreads.contains(r#"StoredState="Embedded""#), "no image is embedded");
-    let back = designcraft_idml::import_idml_with(&idml, &|_| None).unwrap();
+    let back = patronusdesign_idml::import_idml_with(&idml, &|_| None).unwrap();
     let asset = back.assets.values().next().unwrap();
     assert!(asset.data.is_empty(), "no image is embedded");
     assert_eq!(asset.link.as_deref(), Some("Links/my photo.png"));
@@ -285,7 +285,7 @@ fn package_documents_hold_relative_links_only() {
     let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
     let dir = std::env::temp_dir().join(format!("dc-package-relative-{}-{nonce}", std::process::id()));
     let folder = dir.file_name().unwrap().to_string_lossy().into_owned();
-    let png = designcraft_render::Rendered { width: 4, height: 3, pixels: [30, 90, 180, 255].repeat(12) }.to_png();
+    let png = patronusdesign_render::Rendered { width: 4, height: 3, pixels: [30, 90, 180, 255].repeat(12) }.to_png();
     let mut s = Session::new();
     s.execute("file.new", &json!({"title": "RelativePackage", "width": 72, "height": 72})).unwrap();
     s.execute("file.place", &json!({"base64": super::super::base64_encode(&png), "name": "owned.png", "x": 5, "y": 5, "width": 16})).unwrap();
@@ -351,8 +351,8 @@ fn package_writes_document_links_and_report() {
 
 #[test]
 fn package_copies_the_fonts_their_licences_allow() {
-    use designcraft_fonts::DOCUMENT_FONTS_FOLDER;
-    use designcraft_fonts::testing::{font_with, with_fs_type};
+    use patronusdesign_fonts::DOCUMENT_FONTS_FOLDER;
+    use patronusdesign_fonts::testing::{font_with, with_fs_type};
     const FREE: &str = "DocFont Package Free";
     const RESTRICTED: &str = "DocFont Package Restricted";
     let dir = std::env::temp_dir().join(format!("dc-package-fonts-{}", std::process::id()));
@@ -398,7 +398,7 @@ fn package_copies_the_fonts_their_licences_allow() {
     let report = r["report"].as_str().unwrap();
     assert!(report.contains(&format!("{RESTRICTED} Regular — not copied: its licence doesn't allow it")), "{report}");
     assert!(report.contains(&format!("{FREE} Regular\n")), "{report}");
-    assert!(report.contains(&format!("{} Regular — included with DesignCraft", designcraft_fonts::DEFAULT_FAMILY)), "{report}");
+    assert!(report.contains(&format!("{} Regular — included with Patronus Design", patronusdesign_fonts::DEFAULT_FAMILY)), "{report}");
     // The packaged document opens with its fonts.
     let doc = r["files"][0].as_str().unwrap().to_string();
     assert_eq!(Session::new().execute("file.open", &json!({"path": doc})).unwrap()["documentFonts"], 1);
@@ -411,8 +411,8 @@ fn package_copies_the_fonts_their_licences_allow() {
 
 #[test]
 fn package_copies_the_fallback_fonts_that_draw_text() {
-    use designcraft_fonts::DOCUMENT_FONTS_FOLDER;
-    use designcraft_fonts::testing::{font_with, with_fs_type};
+    use patronusdesign_fonts::DOCUMENT_FONTS_FOLDER;
+    use patronusdesign_fonts::testing::{font_with, with_fs_type};
     const NAMED: &str = "DocFont Fallback Named";
     const HELPER: &str = "DocFont Fallback Helper";
     const RESTRICTED: &str = "DocFont Fallback Restricted";
@@ -463,8 +463,8 @@ fn package_copies_the_fallback_fonts_that_draw_text() {
 #[cfg(unix)]
 #[test]
 fn packaged_fonts_are_the_loaded_bytes_not_what_is_at_the_path_now() {
-    use designcraft_fonts::DOCUMENT_FONTS_FOLDER;
-    use designcraft_fonts::testing::{font_with, installed_face};
+    use patronusdesign_fonts::DOCUMENT_FONTS_FOLDER;
+    use patronusdesign_fonts::testing::{font_with, installed_face};
     let dir = std::env::temp_dir().join(format!("dc-package-font-swapped-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
@@ -486,7 +486,7 @@ fn packaged_fonts_are_the_loaded_bytes_not_what_is_at_the_path_now() {
 
 #[test]
 fn packaging_into_a_fonts_own_folder_neither_overwrites_nor_packages_a_changed_font() {
-    use designcraft_fonts::testing::{font_with, installed_face};
+    use patronusdesign_fonts::testing::{font_with, installed_face};
     let dir = std::env::temp_dir().join(format!("dc-package-font-same-file-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
@@ -511,8 +511,8 @@ fn packaging_into_a_fonts_own_folder_neither_overwrites_nor_packages_a_changed_f
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn packaged_fonts_keep_a_font_extension() {
-    use designcraft_fonts::DOCUMENT_FONTS_FOLDER;
-    use designcraft_fonts::testing::{font_with, installed_face};
+    use patronusdesign_fonts::DOCUMENT_FONTS_FOLDER;
+    use patronusdesign_fonts::testing::{font_with, installed_face};
     // A font service's file without an extension is copied under a name the reopened
     // package loads.
     let dir = std::env::temp_dir().join(format!("dc-package-font-ext-{}", std::process::id()));
@@ -528,7 +528,7 @@ fn packaged_fonts_keep_a_font_extension() {
     let (mut copied, mut taken, mut files) = (Vec::new(), Taken::default(), Vec::new());
     assert_eq!(copy_font(&root, &face, &fonts, &mut copied, &mut taken, &mut files), "");
     assert_eq!(files, [fonts.join("12345.ttf")]);
-    let db = designcraft_fonts::FontDb::global();
+    let db = patronusdesign_fonts::FontDb::global();
     let loaded = db.load_document_fonts(&fonts, &|_| Ok(()));
     assert_eq!((loaded.faces, loaded.skipped.len()), (1, 0), "{:?}", loaded.skipped);
     db.close_scope(loaded.scope);
@@ -598,7 +598,7 @@ fn package_overwrites_existing_regular_outputs() {
     s.execute("file.package", &json!({"dir": dir.to_string_lossy(), "idml": false})).unwrap();
     s.execute("file.package", &json!({"dir": dir.to_string_lossy(), "idml": false})).unwrap();
     assert!(super::super::from_bytes(&std::fs::read(&document).unwrap()).is_ok());
-    assert!(!dir.join(designcraft_fonts::DOCUMENT_FONTS_FOLDER).exists());
+    assert!(!dir.join(patronusdesign_fonts::DOCUMENT_FONTS_FOLDER).exists());
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

@@ -1,8 +1,8 @@
 //! Modal dialogs. Each dialog keeps its fields in a JSON map so the control channel can set them
 //! (`ui.dialog.set {field, value}`) and confirm them (`ui.dialog.confirm`) like a user would.
 
-use designcraft_doc::SpreadRef;
-use designcraft_geom::{Unit, format_measure, units::parse_measure};
+use patronusdesign_doc::SpreadRef;
+use patronusdesign_geom::{Unit, format_measure, units::parse_measure};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
@@ -29,7 +29,7 @@ pub struct Dialog {
     /// The document contents the dialog opened with (Diagonal Lines), held while it is open: an
     /// edit replaces them, so a dialog whose document holds other contents knows it was edited.
     #[serde(skip)]
-    pub contents: Option<std::sync::Arc<designcraft_doc::Document>>,
+    pub contents: Option<std::sync::Arc<patronusdesign_doc::Document>>,
 }
 
 impl Dialog {
@@ -42,7 +42,7 @@ impl Dialog {
             "newDocument" => crate::new_document::defaults(),
             "contactSheet" => json!({"columns": 3, "rows": 4, "gutter": "6pt", "margin": "36pt"}),
             "goToPage" => json!({"page": "1"}),
-            "epubExport" => json!({"split": false, "mode": "style", "style": designcraft_doc::BASIC_PARAGRAPH, "coverImage": ""}),
+            "epubExport" => json!({"split": false, "mode": "style", "style": patronusdesign_doc::BASIC_PARAGRAPH, "coverImage": ""}),
             "qrCode" => json!({"type": "url", "content": "https://", "color": "[Black]"}),
             "insertTable" => json!({"bodyRows": 4, "columns": 4, "headerRows": 0, "footerRows": 0}),
             "convertTextToTable" => json!({"columnSeparator": "tab", "rowSeparator": "paragraph", "columns": 1}),
@@ -98,7 +98,7 @@ impl Dialog {
             (self.id == "findChange" && matches!(key, "scope" | "story" | "objectMode")).then(|| (self.b("objectMode"), find_change_params(self)));
         self.fields.insert(key.into(), value);
         before.is_some_and(|(object_mode, params)| {
-            object_mode != self.b("objectMode") || !designcraft_engine::cmd::same_find_domain(&params, &find_change_params(self))
+            object_mode != self.b("objectMode") || !patronusdesign_engine::cmd::same_find_domain(&params, &find_change_params(self))
         })
     }
 
@@ -290,7 +290,7 @@ fn convert_table_dialog(app: &DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
         }
         let same = same_separators(d);
         label(ui, "Number of Columns", same);
-        let max = designcraft_engine::cmd::table::MAX_COLUMNS as f64;
+        let max = patronusdesign_engine::cmd::table::MAX_COLUMNS as f64;
         let field = crate::widgets::NumField::number("columns", d.n("columns"), "", 0).width(70.0).range(1.0, max).spinner().enabled(same);
         if let Some(v) = field.show(ui) {
             d.fields.insert("columns".into(), json!(v.round()));
@@ -298,7 +298,7 @@ fn convert_table_dialog(app: &DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
         ui.end_row();
         label(ui, "Table Style", true);
         let names: Vec<String> = app.session.active().map(|st| st.doc.styles.table.iter().map(|s| s.name.clone()).collect()).unwrap_or_default();
-        let cur = table_style_field(d).unwrap_or_else(|| designcraft_doc::BASIC_TABLE.to_string());
+        let cur = table_style_field(d).unwrap_or_else(|| patronusdesign_doc::BASIC_TABLE.to_string());
         craft_ui::ComboBox::from_id_salt("convert_table_style").selected_text(&cur).width(170.0).show_ui(ui, |ui| {
             for n in &names {
                 if ui.selectable_label(*n == cur, n).clicked() {
@@ -330,7 +330,7 @@ fn table_style_value(d: &Dialog) -> Value {
 fn insert_table_dialog(app: &DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
     let lang = &app.ui.language;
     crate::rtl::label(ui, egui::RichText::new(crate::i18n::tr(lang, "Table Dimensions")).font(semibold(12.0)));
-    use designcraft_engine::cmd::table::{MAX_BODY_ROWS, MAX_COLUMNS, MAX_HEADER_FOOTER_ROWS};
+    use patronusdesign_engine::cmd::table::{MAX_BODY_ROWS, MAX_COLUMNS, MAX_HEADER_FOOTER_ROWS};
     // `table.insert`'s limits, so the table made is the one the fields show.
     let rows = [
         ("bodyRows", crate::i18n::tr(lang, "Body Rows"), 1.0, MAX_BODY_ROWS),
@@ -356,7 +356,7 @@ fn insert_table_dialog(app: &DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
     }
     ui.add_space(8.0);
     let names: Vec<String> = app.session.active().map(|st| st.doc.styles.table.iter().map(|s| s.name.clone()).collect()).unwrap_or_default();
-    let cur = table_style_field(d).unwrap_or_else(|| designcraft_doc::BASIC_TABLE.to_string());
+    let cur = table_style_field(d).unwrap_or_else(|| patronusdesign_doc::BASIC_TABLE.to_string());
     ui.horizontal(|ui| {
         crate::rtl::label(ui, format!("{}:", crate::i18n::tr(lang, "Table Style")));
         craft_ui::ComboBox::from_id_salt("ins_table_style").selected_text(&cur).width(160.0).show_ui(ui, |ui| {
@@ -422,7 +422,7 @@ mod color_theme_tests {
     /// page before that one rather than at the end.
     #[test]
     fn insert_pages_before_a_page_past_the_end_goes_before_the_last() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"pages": 4, "facingPages": false})).unwrap();
         let ids = |app: &DesignApp| {
             let d = &app.session.doc().unwrap().doc;
@@ -443,7 +443,7 @@ mod color_theme_tests {
     fn insert_pages_goes_before_a_page_or_at_the_start_with_the_chosen_parent() {
         use egui::accesskit::Role;
         use egui_kittest::{Harness, kittest::Queryable};
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         // Facing: [1] [2 3] [4].
         app.run("file.new", json!({"pages": 4})).unwrap();
         let b = app.run("layout.parents.new", json!({"prefix": "B", "name": "Cover"})).unwrap()["id"].as_u64().unwrap();
@@ -507,10 +507,10 @@ mod color_theme_tests {
     /// undo step. The Paragraph Spacing Limit is set from the dialog too.
     #[test]
     fn text_frame_options_preview_shows_the_change_until_ok_or_cancel() {
-        let mut app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let r = app.run("frame.create", json!({"rect": [36, 36, 336, 236], "content": "text", "text": "Hello"})).unwrap();
-        let id = designcraft_doc::ItemId(r["id"].as_u64().unwrap());
+        let id = patronusdesign_doc::ItemId(r["id"].as_u64().unwrap());
         app.run("selection.set", json!({"ids": [id.0]})).unwrap();
         let opts = |app: &DesignApp| app.session.doc().unwrap().doc.item(id).unwrap().text_frame().unwrap().options.clone();
         let open = |app: &mut DesignApp| {
@@ -565,16 +565,19 @@ mod color_theme_tests {
     /// frame while a preview pushes the caret's line into the next frame of the thread.
     #[test]
     fn text_frame_options_keep_their_frame_while_the_preview_reflows_the_caret() {
-        let mut app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let text = (0..40).map(|i| format!("Line {i} of the threaded story.")).collect::<Vec<_>>().join(" ");
         let a = app.run("frame.create", json!({"rect": [36, 36, 300, 120], "content": "text", "text": text})).unwrap();
         let b = app.run("frame.create", json!({"rect": [36, 200, 300, 700], "content": "text", "text": "", "caret": false})).unwrap();
-        let (a, b, sid) =
-            (designcraft_doc::ItemId(a["id"].as_u64().unwrap()), designcraft_doc::ItemId(b["id"].as_u64().unwrap()), a["story"].as_u64().unwrap());
+        let (a, b, sid) = (
+            patronusdesign_doc::ItemId(a["id"].as_u64().unwrap()),
+            patronusdesign_doc::ItemId(b["id"].as_u64().unwrap()),
+            a["story"].as_u64().unwrap(),
+        );
         app.run("text.thread", json!({"from": a.0, "to": b.0})).unwrap();
         let shown = |app: &DesignApp, f| {
-            let cs = designcraft_compose::compose_story(&app.session.doc().unwrap().doc, designcraft_doc::StoryId(sid), &Default::default());
+            let cs = patronusdesign_compose::compose_story(&app.session.doc().unwrap().doc, patronusdesign_doc::StoryId(sid), &Default::default());
             cs.frame(f).unwrap().range.clone()
         };
         let caret = shown(&app, a).end - 1;
@@ -598,17 +601,20 @@ mod color_theme_tests {
     /// dialog shows the one Inset of the oval and keeps the link on: both follow the frame it changes.
     #[test]
     fn text_frame_options_from_the_type_tool_show_the_inset_of_the_caret_frame() {
-        let mut app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let text = (0..40).map(|i| format!("Line {i} of the threaded story.")).collect::<Vec<_>>().join(" ");
         let a = app.run("frame.create", json!({"rect": [36, 36, 300, 120], "content": "text", "text": text})).unwrap();
         let b =
             app.run("frame.create", json!({"rect": [36, 200, 300, 700], "shape": "ellipse", "content": "text", "text": "", "caret": false})).unwrap();
-        let (a, b, sid) =
-            (designcraft_doc::ItemId(a["id"].as_u64().unwrap()), designcraft_doc::ItemId(b["id"].as_u64().unwrap()), a["story"].as_u64().unwrap());
+        let (a, b, sid) = (
+            patronusdesign_doc::ItemId(a["id"].as_u64().unwrap()),
+            patronusdesign_doc::ItemId(b["id"].as_u64().unwrap()),
+            a["story"].as_u64().unwrap(),
+        );
         app.run("text.thread", json!({"from": a.0, "to": b.0})).unwrap();
         app.run("object.textFrameOptions", json!({"ids": [a.0], "inset": [1, 2, 3, 4]})).unwrap();
-        let cs = designcraft_compose::compose_story(&app.session.doc().unwrap().doc, designcraft_doc::StoryId(sid), &Default::default());
+        let cs = patronusdesign_compose::compose_story(&app.session.doc().unwrap().doc, patronusdesign_doc::StoryId(sid), &Default::default());
         let caret = cs.frame(b).unwrap().range.start + 2;
         app.run("text.select", json!({"story": sid, "anchor": caret})).unwrap();
         let mut d = Dialog::new("textFrameOptions", json!({}));
@@ -622,12 +628,12 @@ mod color_theme_tests {
     /// document became active.
     #[test]
     fn text_frame_options_preview_goes_from_its_document_after_another_becomes_active() {
-        let mut app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         let make = |app: &mut crate::DesignApp| {
             app.run("file.new", json!({})).unwrap();
             let r = app.run("frame.create", json!({"rect": [36, 36, 300, 300], "content": "text", "text": "Hello"})).unwrap();
             app.run("text.select", json!({"story": r["story"], "anchor": 2})).unwrap();
-            designcraft_doc::ItemId(r["id"].as_u64().unwrap())
+            patronusdesign_doc::ItemId(r["id"].as_u64().unwrap())
         };
         let a = make(&mut app);
         let first = |app: &DesignApp| {
@@ -662,7 +668,7 @@ mod color_theme_tests {
     /// frame the dialog stored; OK is refused instead of changing the new frame.
     #[test]
     fn text_frame_options_from_the_type_tool_are_refused_after_undo_reuses_the_frame_id() {
-        let mut app = crate::DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = crate::DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let a = app.run("frame.create", json!({"rect": [36, 36, 300, 120], "content": "text", "text": "First"})).unwrap();
         app.run("text.select", json!({"story": a["story"], "anchor": 1})).unwrap();
@@ -676,13 +682,13 @@ mod color_theme_tests {
         app.ui.dialog = Some(d);
         let err = confirm(&mut app).unwrap_err().to_string();
         assert!(err.contains("changed after the dialog opened"), "{err}");
-        let b = designcraft_doc::ItemId(b["id"].as_u64().unwrap());
+        let b = patronusdesign_doc::ItemId(b["id"].as_u64().unwrap());
         assert_eq!(app.session.doc().unwrap().doc.item(b).unwrap().text_frame().unwrap().options.columns, 1, "the new frame is unchanged");
     }
 
     #[test]
     fn toc_right_indent_separator_survives_the_dialog_and_update() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.newSample", json!({})).unwrap();
         open_toc(&mut app);
         app.ui.dialog.as_mut().unwrap().fields.insert(
@@ -695,7 +701,7 @@ mod color_theme_tests {
         if app.session.tool_id() == "tocPlace" {
             app.run("toc.place", json!({"x":36,"y":36})).unwrap();
         }
-        let separator = format!(" {} ", designcraft_doc::story::RIGHT_INDENT_TAB);
+        let separator = format!(" {} ", patronusdesign_doc::story::RIGHT_INDENT_TAB);
         let d = &app.session.doc().unwrap().doc;
         let toc = d.toc.as_ref().unwrap();
         assert_eq!(toc.entries[0].separator.as_deref(), Some(separator.as_str()));
@@ -716,7 +722,7 @@ mod color_theme_tests {
 
     #[test]
     fn color_theme_cancel_is_read_only_and_confirm_adds_the_preview() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let before = app.session.active().unwrap().doc.clone();
         let theme = json!({"name":"Fashion", "colors":["#102030", "#f0a020"]});
@@ -805,7 +811,7 @@ pub fn open_pdf_export(app: &mut DesignApp) {
 /// File › Export EPUB…: the EPUB Export Options dialog, seeded from the document's Split
 /// Document setting.
 pub fn open_epub_export(app: &mut DesignApp) {
-    use designcraft_doc::EpubSplit;
+    use patronusdesign_doc::EpubSplit;
     let split = app.session.active().map(|st| st.doc.settings.epub_split.clone()).unwrap_or_default();
     let fields = match split {
         EpubSplit::Off => json!({}),
@@ -816,8 +822,8 @@ pub fn open_epub_export(app: &mut DesignApp) {
 }
 
 /// The Split Document setting the EPUB Export Options dialog's fields describe.
-fn epub_export_split(d: &Dialog) -> designcraft_doc::EpubSplit {
-    use designcraft_doc::EpubSplit;
+fn epub_export_split(d: &Dialog) -> patronusdesign_doc::EpubSplit {
+    use patronusdesign_doc::EpubSplit;
     if !d.b("split") {
         EpubSplit::Off
     } else if d.s("mode") == "exportTags" {
@@ -833,7 +839,7 @@ fn epub_export(app: &mut crate::DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
     let styles: Vec<String> = app
         .session
         .active()
-        .map(|st| st.doc.styles.paragraph.iter().map(|s| s.name.clone()).filter(|n| n != designcraft_doc::NO_PARA_STYLE).collect())
+        .map(|st| st.doc.styles.paragraph.iter().map(|s| s.name.clone()).filter(|n| n != patronusdesign_doc::NO_PARA_STYLE).collect())
         .unwrap_or_default();
     check(ui, d, "split", crate::i18n::tr(lang, "Split Document"));
     ui.add_enabled_ui(d.b("split"), |ui| {
@@ -1117,8 +1123,8 @@ fn pdf_export(app: &crate::DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
 
 /// The first frame Text Frame Options changes: the first selected item, the frame that shows the
 /// caret, or the first frame holding selected text.
-fn options_frame(app: &DesignApp) -> Option<designcraft_doc::ItemId> {
-    designcraft_engine::cmd::text_frame_options_frames(&app.session).first().copied()
+fn options_frame(app: &DesignApp) -> Option<patronusdesign_doc::ItemId> {
+    patronusdesign_engine::cmd::text_frame_options_frames(&app.session).first().copied()
 }
 
 /// The selected text frame's width (its own, before rotation).
@@ -1128,7 +1134,7 @@ fn selected_frame_width(app: &DesignApp) -> Option<f64> {
 }
 
 /// The options of the frame Text Frame Options shows.
-fn selected_frame_options(app: &DesignApp) -> Option<designcraft_doc::TextFrameOptions> {
+fn selected_frame_options(app: &DesignApp) -> Option<patronusdesign_doc::TextFrameOptions> {
     let st = app.session.active()?;
     st.doc.item(options_frame(app)?)?.text_frame().map(|t| t.options.clone())
 }
@@ -1139,7 +1145,7 @@ fn selected_frames_have_even_insets(app: &DesignApp) -> bool {
     let Some(st) = app.session.active() else {
         return true;
     };
-    let ids = designcraft_engine::cmd::text_frame_options_frames(&app.session);
+    let ids = patronusdesign_engine::cmd::text_frame_options_frames(&app.session);
     ids.iter().filter_map(|id| st.doc.item(*id)?.text_frame()).all(|t| t.options.inset.iter().all(|v| (v - t.options.inset[0]).abs() < 1e-9))
 }
 
@@ -1150,15 +1156,15 @@ fn selected_frames_have_even_insets(app: &DesignApp) -> bool {
 /// the sides left as shown.
 fn selected_frame_is_shaped(app: &DesignApp) -> bool {
     let Some(st) = app.session.active() else { return false };
-    let shaped = |fid: designcraft_doc::ItemId| -> Option<bool> {
+    let shaped = |fid: patronusdesign_doc::ItemId| -> Option<bool> {
         let item = st.doc.item(fid)?;
         if item.text_frame()?.options.path.is_some() {
             return Some(false);
         }
-        let bp = if item.corners.is_none() { item.path.to_bezpath() } else { designcraft_geom::corners::apply(&item.path, &item.corners) };
-        Some(designcraft_compose::FrameOutline::new(&bp, 0.0).is_some())
+        let bp = if item.corners.is_none() { item.path.to_bezpath() } else { patronusdesign_geom::corners::apply(&item.path, &item.corners) };
+        Some(patronusdesign_compose::FrameOutline::new(&bp, 0.0).is_some())
     };
-    let ids = designcraft_engine::cmd::text_frame_options_frames(&app.session);
+    let ids = patronusdesign_engine::cmd::text_frame_options_frames(&app.session);
     !ids.is_empty() && ids.iter().all(|&fid| shaped(fid).unwrap_or(false))
 }
 
@@ -1212,7 +1218,7 @@ fn seed_text_frame_options(app: &DesignApp, d: &mut Dialog) {
 }
 
 /// The active document's baseline grid (the default one without a document).
-pub(crate) fn document_grid(app: &DesignApp) -> designcraft_doc::BaselineGrid {
+pub(crate) fn document_grid(app: &DesignApp) -> patronusdesign_doc::BaselineGrid {
     app.session.active().map(|s| s.doc.settings.baseline_grid.clone()).unwrap_or_default()
 }
 
@@ -1220,17 +1226,17 @@ pub(crate) fn document_grid(app: &DesignApp) -> designcraft_doc::BaselineGrid {
 /// frame's width, a Fixed Number column shows the width it gets. Without a custom baseline grid of
 /// its own, the frame shows `doc_grid`'s start and increment.
 pub(crate) fn text_frame_fields(
-    o: &designcraft_doc::TextFrameOptions,
+    o: &patronusdesign_doc::TextFrameOptions,
     units: Unit,
     frame_width: Option<f64>,
-    doc_grid: &designcraft_doc::BaselineGrid,
+    doc_grid: &patronusdesign_doc::BaselineGrid,
 ) -> Value {
     let fm = |v: f64| json!(format_measure(v, units));
     // Fixed Number: the width each column gets in the frame (shown, as in InDesign).
     let inner = frame_width.map(|w| w - o.inset[1] - o.inset[3]).unwrap_or(0.0);
     let n = o.columns.max(1) as f64;
     let width = match o.columns_kind {
-        designcraft_doc::ColumnsKind::FixedWidth if o.column_width > 0.0 => o.column_width,
+        patronusdesign_doc::ColumnsKind::FixedWidth if o.column_width > 0.0 => o.column_width,
         _ => ((inner - o.gutter * (n - 1.0)) / n).max(0.0),
     };
     let kind = |v: Value| v.as_str().unwrap_or_default().to_string();
@@ -1238,10 +1244,10 @@ pub(crate) fn text_frame_fields(
     let grid = o.baseline_grid.unwrap_or_else(|| {
         let g = doc_grid;
         let relative_to = match g.relative_to {
-            designcraft_doc::GridRelative::TopOfPage => designcraft_doc::FrameGridRelative::TopOfPage,
-            designcraft_doc::GridRelative::TopMargin => designcraft_doc::FrameGridRelative::TopMargin,
+            patronusdesign_doc::GridRelative::TopOfPage => patronusdesign_doc::FrameGridRelative::TopOfPage,
+            patronusdesign_doc::GridRelative::TopMargin => patronusdesign_doc::FrameGridRelative::TopMargin,
         };
-        designcraft_doc::FrameBaselineGrid { start: g.start, increment: g.increment, relative_to }
+        patronusdesign_doc::FrameBaselineGrid { start: g.start, increment: g.increment, relative_to }
     });
     json!({
         "columns": o.columns, "gutter": fm(o.gutter),
@@ -1255,7 +1261,7 @@ pub(crate) fn text_frame_fields(
         "columnRuleTint": percent(o.column_rule_tint), "columnRuleTopInset": fm(o.column_rule_top_inset),
         "columnRuleBottomInset": fm(o.column_rule_bottom_inset), "columnRuleOffset": fm(o.column_rule_offset),
         "autoSize": serde_json::to_value(o.auto_size).unwrap_or(Value::Null),
-        "autoSizeReference": designcraft_engine::autosize::REFERENCES.get(usize::from(o.auto_size_ref)).copied().unwrap_or("topCenter"),
+        "autoSizeReference": patronusdesign_engine::autosize::REFERENCES.get(usize::from(o.auto_size_ref)).copied().unwrap_or("topCenter"),
         "useMinimumHeight": o.auto_size_use_min_height, "minimumHeight": fm(o.auto_size_min_height),
         "useMinimumWidth": o.auto_size_use_min_width, "minimumWidth": fm(o.auto_size_min_width),
         "noLineBreaks": o.auto_size_no_line_breaks,
@@ -1265,7 +1271,7 @@ pub(crate) fn text_frame_fields(
 }
 
 /// The document's revision without a preview on top: the one the open gesture began at.
-fn base_revision(st: &designcraft_engine::DocState) -> u64 {
+fn base_revision(st: &patronusdesign_engine::DocState) -> u64 {
     st.interaction.as_ref().map_or(st.revision, |it| it.revision)
 }
 
@@ -1276,7 +1282,7 @@ fn typing_frame_ids(app: &DesignApp) -> Option<Value> {
     if !st.selection.items.is_empty() || st.selection.text.is_none() {
         return None;
     }
-    let ids: Vec<u64> = designcraft_engine::cmd::text_frame_options_frames(&app.session).iter().map(|f| f.0).collect();
+    let ids: Vec<u64> = patronusdesign_engine::cmd::text_frame_options_frames(&app.session).iter().map(|f| f.0).collect();
     Some(json!(ids))
 }
 
@@ -1577,7 +1583,7 @@ fn column_rules(app: &DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
             s.doc
                 .swatches
                 .iter()
-                .filter(|w| !matches!(w.value, designcraft_color::swatch::SwatchValue::Gradient { .. }))
+                .filter(|w| !matches!(w.value, patronusdesign_color::swatch::SwatchValue::Gradient { .. }))
                 .map(|w| w.name.clone())
                 .collect()
         })
@@ -1643,7 +1649,7 @@ fn reference_point(ui: &mut egui::Ui, d: &mut Dialog, key: &str) {
     let cur = d.s(key);
     let (r, _) = ui.allocate_exact_size(egui::vec2(46.0, 46.0), egui::Sense::hover());
     ui.painter().rect_stroke(r.shrink(5.0), 0.0, egui::Stroke::new(1.0, t.field_border), egui::StrokeKind::Inside);
-    for (i, name) in designcraft_engine::autosize::REFERENCES.iter().enumerate() {
+    for (i, name) in patronusdesign_engine::autosize::REFERENCES.iter().enumerate() {
         let c = r.min + egui::vec2(5.0 + 18.0 * (i % 3) as f32, 5.0 + 18.0 * (i / 3) as f32);
         let dot = egui::Rect::from_center_size(c, egui::vec2(8.0, 8.0));
         let resp = ui.interact(dot.expand(2.0), ui.scope_id().with((key, i)), egui::Sense::click());
@@ -2359,7 +2365,7 @@ fn confirm_file_info(app: &mut DesignApp, d: &Dialog) -> Result<Value, String> {
         .filter(|(key, _)| *key != "keywords" || keywords_edited)
         .map(|(key, _)| {
             let v = match d.fields.get(*key) {
-                Some(Value::String(s)) if *key == "keywords" => json!(designcraft_doc::file_info::parse_keywords_keeping(s, &stored)),
+                Some(Value::String(s)) if *key == "keywords" => json!(patronusdesign_doc::file_info::parse_keywords_keeping(s, &stored)),
                 Some(v) => v.clone(),
                 None => Value::Null,
             };
@@ -2409,7 +2415,7 @@ fn setup_spin(ui: &mut egui::Ui, d: &mut Dialog, key: &str, width: f32, min: f64
     let seg = egui::Rect::from_min_size(r.min, egui::vec2(18.0, h));
     ui.painter().line_segment([seg.right_top(), seg.right_bottom()], egui::Stroke::new(1.0, t.field_border));
     let units = setup_units(d);
-    let step = if matches!(units, Unit::Millimeters | Unit::Centimeters) { designcraft_geom::units::PT_PER_MM } else { 1.0 };
+    let step = if matches!(units, Unit::Millimeters | Unit::Centimeters) { patronusdesign_geom::units::PT_PER_MM } else { 1.0 };
     let mut changed = false;
     for (dir, half) in [
         (1.0, egui::Rect::from_min_max(seg.min, egui::pos2(seg.max.x, seg.center().y))),
@@ -2549,7 +2555,7 @@ fn document_setup(app: &crate::DesignApp, ui: &mut egui::Ui, d: &mut Dialog) -> 
     ui.add_space(4.0);
     // Page Size.
     let (w, h) = (setup_measure(d, "width").unwrap_or(612.0), setup_measure(d, "height").unwrap_or(792.0));
-    let preset = designcraft_doc::build::PRESETS
+    let preset = patronusdesign_doc::build::PRESETS
         .iter()
         .find(|p| ((p.width - w).abs() < 0.5 && (p.height - h).abs() < 0.5) || ((p.width - h).abs() < 0.5 && (p.height - w).abs() < 0.5))
         .map_or_else(|| tr("Custom").to_string(), |p| tr(p.name).to_string());
@@ -2557,7 +2563,7 @@ fn document_setup(app: &crate::DesignApp, ui: &mut egui::Ui, d: &mut Dialog) -> 
         setup_row(ui, rtl, |ui| {
             crate::rtl::label(ui, egui::RichText::new(tr("Page Size:")).color(t.text_strong));
             craft_ui::ComboBox::from_id_salt("ds_preset").selected_text(crate::rtl::widget(ui, &preset)).width(260.0).show_ui(ui, |ui| {
-                for p in designcraft_doc::build::PRESETS {
+                for p in patronusdesign_doc::build::PRESETS {
                     if ui.selectable_label(tr(p.name) == preset, crate::rtl::widget(ui, tr(p.name))).clicked() {
                         // Keep the orientation; the preset's size in the document's units.
                         let units = setup_units(d);
@@ -2847,7 +2853,7 @@ fn preferences(app: &crate::DesignApp, ui: &mut egui::Ui, d: &mut Dialog, max_he
                         let mut v = d.n("recentFilesMax").unwrap_or(20.0);
                         // A count: a whole number ("20", not "20.0").
                         let field =
-                            egui::DragValue::new(&mut v).range(0.0..=f64::from(designcraft_engine::MAX_RECENT_FILES)).speed(0.2).fixed_decimals(0);
+                            egui::DragValue::new(&mut v).range(0.0..=f64::from(patronusdesign_engine::MAX_RECENT_FILES)).speed(0.2).fixed_decimals(0);
                         if ui.add(field).changed() {
                             d.fields.insert("recentFilesMax".into(), json!(v.round()));
                         }
@@ -3340,7 +3346,7 @@ pub fn show(app: &mut DesignApp, ctx: &egui::Context) {
         crate::package_dialog::ID => crate::i18n::tr(&app.ui.language, "Package"),
         crate::package_dialog::INSTRUCTIONS => crate::i18n::tr(&app.ui.language, "Printing Instructions"),
         crate::object_style_dialog::ID => crate::i18n::tr(&app.ui.language, crate::object_style_dialog::title(&d)),
-        id => match id.strip_prefix("cmd:").and_then(designcraft_engine::find_command) {
+        id => match id.strip_prefix("cmd:").and_then(patronusdesign_engine::find_command) {
             Some(c) => crate::i18n::tr(&app.ui.language, c.label.trim_end_matches('…')),
             None => crate::i18n::tr(&app.ui.language, "Dialog"),
         },
@@ -3750,7 +3756,7 @@ pub fn show(app: &mut DesignApp, ctx: &egui::Context) {
                                 _ => crate::i18n::tr(&app.ui.language, "Crop"),
                             };
                             craft_ui::ComboBox::from_id_salt("pdf_crop").selected_text(crate::rtl::widget(ui, label(&cur))).show_ui(ui, |ui| {
-                                for v in designcraft_doc::PdfCrop::ALL.map(designcraft_doc::PdfCrop::name) {
+                                for v in patronusdesign_doc::PdfCrop::ALL.map(patronusdesign_doc::PdfCrop::name) {
                                     if ui.selectable_label(label(&cur) == label(v), label(v)).clicked() {
                                         d.fields.insert("crop".into(), json!(v));
                                     }
@@ -3801,10 +3807,10 @@ pub fn show(app: &mut DesignApp, ctx: &egui::Context) {
                             craft_ui::ComboBox::from_id_salt("ws_intent")
                                 .selected_text(crate::rtl::widget(
                                     ui,
-                                    crate::i18n::tr(&app.ui.language, designcraft_color::cms::Intent::parse(&cur).map_or("", |i| i.label())),
+                                    crate::i18n::tr(&app.ui.language, patronusdesign_color::cms::Intent::parse(&cur).map_or("", |i| i.label())),
                                 ))
                                 .show_ui(ui, |ui| {
-                                    for i in designcraft_color::cms::Intent::ALL {
+                                    for i in patronusdesign_color::cms::Intent::ALL {
                                         if ui
                                             .selectable_label(i.id() == cur, crate::rtl::widget(ui, crate::i18n::tr(&app.ui.language, i.label())))
                                             .clicked()
@@ -4842,7 +4848,7 @@ fn format_settings(app: &mut DesignApp, ctx: &egui::Context, d: &mut Dialog) {
 
 /// Find or Change Format Settings › Style Options: the character and paragraph style the found
 /// text has or the changed text gets ([Any Style]: any, or as it is).
-fn format_style_options(lang: &str, ui: &mut egui::Ui, fd: &mut Dialog, styles: &designcraft_doc::Styles) {
+fn format_style_options(lang: &str, ui: &mut egui::Ui, fd: &mut Dialog, styles: &patronusdesign_doc::Styles) {
     crate::rtl::label(ui, egui::RichText::new(crate::i18n::tr(lang, "Style Options")).font(semibold(13.0)));
     ui.add_space(6.0);
     let any = crate::i18n::tr(lang, "[Any Style]");
@@ -4941,10 +4947,10 @@ fn confirm_part1(app: &mut DesignApp, d: Dialog) -> Result<Value, String> {
             match &r {
                 Ok(v) => {
                     // The view scrolls the row to its middle, at the same zoom, on the row's page or another.
-                    let spread = serde_json::from_value::<designcraft_doc::SpreadRef>(v["spread"].clone()).ok();
+                    let spread = serde_json::from_value::<patronusdesign_doc::SpreadRef>(v["spread"].clone()).ok();
                     let bounds = v["rowBounds"].as_array().and_then(|a| {
                         let n: Vec<f64> = a.iter().filter_map(Value::as_f64).collect();
-                        (n.len() == 4).then(|| designcraft_geom::Rect::new(n[0], n[1], n[2], n[3]))
+                        (n.len() == 4).then(|| patronusdesign_geom::Rect::new(n[0], n[1], n[2], n[3]))
                     });
                     if let (Some(spread), Some(b)) = (spread, bounds) {
                         crate::canvas::go_to_spread_rect(app, spread, b);
@@ -5105,7 +5111,7 @@ fn confirm_part2(app: &mut DesignApp, d: Dialog) -> Result<Value, String> {
             let replace = d.s("replaceWith");
             app.run(
                 "style.paragraph.delete",
-                json!({"name": name, "replaceWith": if replace.is_empty() { json!(designcraft_doc::BASIC_PARAGRAPH) } else { json!(replace) }}),
+                json!({"name": name, "replaceWith": if replace.is_empty() { json!(patronusdesign_doc::BASIC_PARAGRAPH) } else { json!(replace) }}),
             )
         }
         "paragraphLocal" => {
@@ -5170,7 +5176,7 @@ fn confirm_part2(app: &mut DesignApp, d: Dialog) -> Result<Value, String> {
                 // A new style sets only what was filled in.
                 chars.retain(|_, v| !v.is_null());
                 let mut params = json!({"name": if rename.is_empty() { "Character Style 1" } else { rename.as_str() }, "chars": chars});
-                if let Some(b) = based.filter(|b| b != designcraft_doc::NO_CHAR_STYLE) {
+                if let Some(b) = based.filter(|b| b != patronusdesign_doc::NO_CHAR_STYLE) {
                     params["basedOn"] = json!(b);
                 }
                 // Apply Style to Selection.
@@ -5183,7 +5189,7 @@ fn confirm_part2(app: &mut DesignApp, d: Dialog) -> Result<Value, String> {
             } else {
                 let mut params = json!({"name": name, "chars": chars});
                 if let Some(b) = based {
-                    params["basedOn"] = if b == designcraft_doc::NO_CHAR_STYLE { Value::Null } else { json!(b) };
+                    params["basedOn"] = if b == patronusdesign_doc::NO_CHAR_STYLE { Value::Null } else { json!(b) };
                 }
                 if !rename.is_empty() && rename != name {
                     params["rename"] = json!(rename);
@@ -5204,7 +5210,7 @@ fn confirm_part2(app: &mut DesignApp, d: Dialog) -> Result<Value, String> {
             let replace = d.s("replaceWith");
             app.run(
                 "style.character.delete",
-                json!({"name": name, "replaceWith": if replace.is_empty() { json!(designcraft_doc::NO_CHAR_STYLE) } else { json!(replace) }}),
+                json!({"name": name, "replaceWith": if replace.is_empty() { json!(patronusdesign_doc::NO_CHAR_STYLE) } else { json!(replace) }}),
             )
         }
         "swatchOptions" | "colorGroupOptions" | "layerSettings" => {
@@ -5256,7 +5262,7 @@ fn confirm_part3(app: &mut DesignApp, d: Dialog) -> Result<Value, String> {
         }
         "colorSettings" => {
             let r = app.run("color.settings", json!({"rgb": d.s("rgb"), "cmyk": d.s("cmyk"), "intent": d.s("intent"), "bpc": d.b("bpc")}))?;
-            app.ui.color_settings = Some(designcraft_color::cms::active_settings());
+            app.ui.color_settings = Some(patronusdesign_color::cms::active_settings());
             app.canvas.shown = None;
             Ok(r)
         }
@@ -5426,7 +5432,7 @@ fn confirm_part4(app: &mut DesignApp, d: Dialog) -> Result<Value, String> {
             let mut prefs = json!({"scaleStrokes": d.b("scaleStrokes"), "dimensionsIncludeStroke": d.b("dimensionsIncludeStroke"), "transformationsAreTotals": d.b("transformationsAreTotals"), "absolutePageNumbers": d.b("absolutePageNumbers"), "highlightHj": d.b("highlightHj"), "highlightKeeps": d.b("highlightKeeps"), "highlightCustomTracking": d.b("highlightCustomTracking"), "highlightSubstitutedFonts": d.b("highlightSubstitutedFonts"), "richBlackOutput": d.b("richBlackOutput"), "typographersQuotes": d.b("typographersQuotes"), "showFontNamesInEnglish": d.b("showFontNamesInEnglish"), "smartTextReflow": d.b("smartTextReflow"),
                     "autocorrect": d.b("autocorrect"), "showAddedText": d.b("showAddedText"), "showNoteAnchors": d.b("showNoteAnchors"),
                     "recoveryMinutes": d.n("recoveryMinutes").unwrap_or(0.5), "linkTextFiles": d.b("linkTextFiles"),
-                    "recentFilesMax": d.n("recentFilesMax").unwrap_or(20.0).clamp(0.0, f64::from(designcraft_engine::MAX_RECENT_FILES)) as u32,
+                    "recentFilesMax": d.n("recentFilesMax").unwrap_or(20.0).clamp(0.0, f64::from(patronusdesign_engine::MAX_RECENT_FILES)) as u32,
                     "autocorrectList": d.s("autocorrectText").lines().filter_map(|l| {
                         let (a, b) = l.split_once('→').or_else(|| l.split_once("->"))?;
                         let (a, b) = (a.trim().to_lowercase(), b.trim().to_string());
@@ -5787,7 +5793,7 @@ fn confirm_part6(app: &mut DesignApp, d: Dialog) -> Result<Value, String> {
         }
         id if id.starts_with("cmd:") => {
             let cid = &id[4..];
-            let doc = designcraft_engine::find_command(cid).map_or("", |c| c.params);
+            let doc = patronusdesign_engine::find_command(cid).map_or("", |c| c.params);
             let mut p = Map::new();
             for f in command_fields(doc) {
                 match d.fields.get(&f.key) {
@@ -5826,17 +5832,17 @@ fn grep_error(p: &str) -> Option<String> {
     if p.is_empty() {
         return None;
     }
-    designcraft_compose::grep::Grep::new(p, Default::default()).err().map(|e| e.to_string())
+    patronusdesign_compose::grep::Grep::new(p, Default::default()).err().map(|e| e.to_string())
 }
 
 /// What paragraph style `style` resolves to when based on `based` (the Based On chosen in its
 /// dialog, which may not be its own yet): `based`'s chain with the style's own settings over it.
 fn style_over(
-    styles: &designcraft_doc::Styles,
+    styles: &patronusdesign_doc::Styles,
     based: &str,
-    style: &designcraft_doc::ParagraphStyle,
-) -> (designcraft_doc::ParaProps, designcraft_doc::CharProps) {
-    styles.resolve_para(&designcraft_doc::ParaFormat {
+    style: &patronusdesign_doc::ParagraphStyle,
+) -> (patronusdesign_doc::ParaProps, patronusdesign_doc::CharProps) {
+    styles.resolve_para(&patronusdesign_doc::ParaFormat {
         style: based.into(),
         para: style.para.clone(),
         chars: style.chars.clone(),
@@ -5848,7 +5854,7 @@ fn style_over(
 /// the style's own values, or a new style's Based On.
 fn check_paragraph_style_justification(app: &DesignApp, d: &Dialog) -> Result<(), String> {
     // After Reset To Base the style starts from its Based On (the one chosen here, if any).
-    let base_of = |st: &designcraft_engine::DocState| {
+    let base_of = |st: &patronusdesign_engine::DocState| {
         let chosen = d.s("basedOn");
         if chosen.is_empty() { st.doc.styles.para(&d.s("name")).and_then(|s| s.based_on.clone()).unwrap_or_default() } else { chosen }
     };
@@ -5910,7 +5916,7 @@ fn confirm_paragraph_style_options(app: &mut DesignApp, d: &mut Dialog) -> Resul
     let next = d.fields.get("nextStyle").cloned();
     let (r, style) = if d.b("new") {
         let mut params = json!({"name": if rename.is_empty() { "Paragraph Style 1" } else { rename.as_str() }, "para": para, "chars": chars});
-        if !based.is_empty() && based != designcraft_doc::NO_PARA_STYLE {
+        if !based.is_empty() && based != patronusdesign_doc::NO_PARA_STYLE {
             params["basedOn"] = json!(based);
         }
         if let Some(Value::String(n)) = &next {
@@ -5928,7 +5934,7 @@ fn confirm_paragraph_style_options(app: &mut DesignApp, d: &mut Dialog) -> Resul
             params["resetToBase"] = json!(true);
         }
         if !based.is_empty() {
-            params["basedOn"] = if based == designcraft_doc::NO_PARA_STYLE { Value::Null } else { json!(based) };
+            params["basedOn"] = if based == patronusdesign_doc::NO_PARA_STYLE { Value::Null } else { json!(based) };
         }
         let renaming = !rename.is_empty() && rename != name;
         if renaming {
@@ -6012,7 +6018,7 @@ fn style_options_preview(app: &mut DesignApp, d: &mut Dialog) {
     fill_style_preview_fields(&mut params, d, paragraph);
     if let Some(based) = d.fields.get("basedOn") {
         params["basedOn"] = match based.as_str() {
-            Some(designcraft_doc::NO_PARA_STYLE | designcraft_doc::NO_CHAR_STYLE) => Value::Null,
+            Some(patronusdesign_doc::NO_PARA_STYLE | patronusdesign_doc::NO_CHAR_STYLE) => Value::Null,
             _ => based.clone(),
         };
     }
@@ -6044,7 +6050,7 @@ fn paragraph_style_options(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialo
     let new = d.b("new");
     let Some(doc) = app.session.active().map(|s| s.doc.clone()) else { return };
     let style = match doc.styles.para(&name) {
-        _ if new => designcraft_doc::ParagraphStyle {
+        _ if new => patronusdesign_doc::ParagraphStyle {
             name: String::new(),
             based_on: None,
             next_style: None,
@@ -6146,12 +6152,12 @@ fn paragraph_style_options(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialo
             "indents" => {
                 egui::Grid::new("psi").num_columns(2).spacing([8.0, 6.0]).show(ui, |ui| {
                     let alignment_label = crate::rtl::label(ui, crate::i18n::tr(&app.ui.language, "Alignment:"));
-                    let a: designcraft_doc::Align = serde_json::from_value(cur(d, "p.align", &pv["align"])).unwrap_or_default();
+                    let a: patronusdesign_doc::Align = serde_json::from_value(cur(d, "p.align", &pv["align"])).unwrap_or_default();
                     craft_ui::ComboBox::from_id_salt("psalign")
                         .selected_text(crate::rtl::widget(ui, crate::i18n::tr(&app.ui.language, a.label())))
                         .width(240.0)
                         .show_ui(ui, |ui| {
-                            for al in designcraft_doc::Align::ALL {
+                            for al in patronusdesign_doc::Align::ALL {
                                 if ui.selectable_label(al == a, crate::rtl::widget(ui, crate::i18n::tr(&app.ui.language, al.label()))).clicked() {
                                     d.fields.insert("p.align".into(), serde_json::to_value(al).unwrap_or_default());
                                 }
@@ -6175,7 +6181,7 @@ fn paragraph_style_options(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialo
                         ui.end_row();
                     }
                     // The CJK Grid Settings section edits the same `p.gridAlign` field.
-                    use designcraft_doc::GridAlign;
+                    use patronusdesign_doc::GridAlign;
                     const GRID_ALIGN: [(GridAlign, &str); 3] =
                         [(GridAlign::None, "None"), (GridAlign::AllLines, "All Lines"), (GridAlign::FirstLineOnly, "First Line Only")];
                     let grid_label = crate::rtl::label(ui, crate::i18n::tr(&app.ui.language, "Align to Grid:"));
@@ -6278,7 +6284,7 @@ fn paragraph_style_options(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialo
                             if ui.selectable_label(next.is_none(), crate::rtl::widget(ui, &same)).clicked() {
                                 d.fields.insert("nextStyle".into(), Value::Null);
                             }
-                            for n in names.iter().filter(|n| *n != designcraft_doc::NO_PARA_STYLE) {
+                            for n in names.iter().filter(|n| *n != patronusdesign_doc::NO_PARA_STYLE) {
                                 if ui
                                     .selectable_label(
                                         next.as_deref() == Some(n),
@@ -6298,7 +6304,7 @@ fn paragraph_style_options(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialo
                 if !new
                     && ui
                         .add_enabled(
-                            !based_name.is_empty() && based_name != designcraft_doc::NO_PARA_STYLE,
+                            !based_name.is_empty() && based_name != patronusdesign_doc::NO_PARA_STYLE,
                             egui::Button::new(crate::rtl::widget(ui, crate::i18n::tr(&app.ui.language, "Reset To Base"))),
                         )
                         .clicked()
@@ -6327,21 +6333,21 @@ fn paragraph_style_options(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialo
 
 /// Show what the style changes from its parent, including edits waiting for OK. Fully captured
 /// styles contain every default, so comparing resolved values keeps the summary readable.
-fn paragraph_style_summary(lang: &str, d: &Dialog, style: &designcraft_doc::ParagraphStyle, styles: &designcraft_doc::Styles) -> String {
-    let based = d.fields.get("basedOn").and_then(Value::as_str).or(style.based_on.as_deref()).unwrap_or(designcraft_doc::NO_PARA_STYLE);
+fn paragraph_style_summary(lang: &str, d: &Dialog, style: &patronusdesign_doc::ParagraphStyle, styles: &patronusdesign_doc::Styles) -> String {
+    let based = d.fields.get("basedOn").and_then(Value::as_str).or(style.based_on.as_deref()).unwrap_or(patronusdesign_doc::NO_PARA_STYLE);
     let (base_para, base_chars) = styles.resolve_para_style(based);
     let (mut para, mut chars) = (base_para.clone(), base_chars.clone());
     para.apply(&style.para);
     chars.apply(&style.chars);
     for (key, value) in &d.fields {
         if let Some(key) = key.strip_prefix("c.") {
-            let mut delta = designcraft_doc::CharAttrs::default();
+            let mut delta = patronusdesign_doc::CharAttrs::default();
             if delta.set_json(key, value).is_ok() {
                 chars.apply(&delta);
             }
         } else if let Some(key) = key.strip_prefix("p.") {
             let (key, value) = key.split_once('.').map_or((key, value.clone()), |(attr, field)| (attr, json!({field:value})));
-            let mut delta = designcraft_doc::ParaAttrs::default();
+            let mut delta = patronusdesign_doc::ParaAttrs::default();
             if delta.set_json_over(key, &value, &para).is_ok() {
                 para.apply(&delta);
             }
@@ -6400,7 +6406,7 @@ fn delete_paragraph_style(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog
     }
     ui.add_space(4.0);
     if !d.fields.contains_key("replaceWith") {
-        d.fields.insert("replaceWith".into(), json!(designcraft_doc::BASIC_PARAGRAPH));
+        d.fields.insert("replaceWith".into(), json!(patronusdesign_doc::BASIC_PARAGRAPH));
     }
     let replace = d.s("replaceWith");
     craft_ui::ComboBox::from_id_salt("del_para_replace")
@@ -6417,11 +6423,11 @@ fn delete_paragraph_style(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog
 
 /// Paragraph Style Options › Tabs: the style's stops on a ruler as wide as the first page's
 /// column, edited in `p.tabs` (and the indents in `p.leftIndent`…) until OK.
-fn style_tabs(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &designcraft_doc::Document) {
+fn style_tabs(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &patronusdesign_doc::Document) {
     use crate::panels::tabs::{Ruler, RulerEdit, align_buttons, ruler, text_commit};
-    use designcraft_engine::cmd::tabs;
+    use patronusdesign_engine::cmd::tabs;
     let cur = |d: &Dialog, k: &str| d.fields.get(k).cloned().unwrap_or_else(|| pv[k.trim_start_matches("p.")].clone());
-    let mut list: Vec<designcraft_doc::TabStop> = serde_json::from_value(cur(d, "p.tabs")).unwrap_or_default();
+    let mut list: Vec<patronusdesign_doc::TabStop> = serde_json::from_value(cur(d, "p.tabs")).unwrap_or_default();
     tabs::sort(&mut list);
     let num = |d: &Dialog, k: &str| cur(d, k).as_f64().filter(|v| v.is_finite()).unwrap_or(0.0);
     let (left, first, right) = (num(d, "p.leftIndent"), num(d, "p.firstLineIndent"), num(d, "p.rightIndent"));
@@ -6446,7 +6452,7 @@ fn style_tabs(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &d
         if let Some(x) = crate::widgets::measure(ui, "pstabx", stop.as_ref().map(|s| s.position), unit, 72.0) {
             result = Some(match sel {
                 Some(i) => tabs::move_to(&mut list, i, x),
-                None => tabs::add(&mut list, designcraft_doc::TabStop { position: x, align, leader: String::new(), align_on: String::new() }),
+                None => tabs::add(&mut list, patronusdesign_doc::TabStop { position: x, align, leader: String::new(), align_on: String::new() }),
             });
         }
         crate::rtl::label(ui, crate::i18n::tr(lang, "Leader:"));
@@ -6456,7 +6462,7 @@ fn style_tabs(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &d
             result = Some(tabs::leader_value(&l, "tabs").map_err(|e| e.to_string()).and_then(|l| tabs::change(&mut list, i, None, Some(l), None)));
         }
         crate::rtl::label(ui, crate::i18n::tr(lang, "Align On:"));
-        let on_char = stop.as_ref().is_some_and(|s| s.align == designcraft_doc::TabAlign::Char);
+        let on_char = stop.as_ref().is_some_and(|s| s.align == patronusdesign_doc::TabAlign::Char);
         let align_name = crate::i18n::tr(lang, "Align On:");
         let align_on = text_commit(ui, "psalignon", stop.as_ref().map_or("", |s| s.align_on.as_str()), 18.0, on_char, align_name);
         if let (Some(c), Some(i)) = (align_on, sel) {
@@ -6473,7 +6479,7 @@ fn style_tabs(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &d
     match ruler(ui, "style", &r) {
         Some(RulerEdit::Select(i)) => sel = Some(i),
         Some(RulerEdit::Add(x)) => {
-            result = Some(tabs::add(&mut list, designcraft_doc::TabStop { position: x, align, leader: String::new(), align_on: String::new() }))
+            result = Some(tabs::add(&mut list, patronusdesign_doc::TabStop { position: x, align, leader: String::new(), align_on: String::new() }))
         }
         Some(RulerEdit::Move(i, x)) => result = Some(tabs::move_to(&mut list, i, x)),
         Some(RulerEdit::Remove(i)) => result = Some(tabs::remove(&mut list, i)),
@@ -6608,7 +6614,7 @@ fn link_toggle(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, key: &str, linked:
 
 /// A swatch menu with a colour chip per swatch (hidden swatches left out); returns the swatch
 /// picked.
-fn swatch_menu(ui: &mut egui::Ui, doc: &designcraft_doc::Document, id: impl egui::AsIdSalt, current: &str, width: f32) -> Option<String> {
+fn swatch_menu(ui: &mut egui::Ui, doc: &patronusdesign_doc::Document, id: impl egui::AsIdSalt, current: &str, width: f32) -> Option<String> {
     swatch_menu_with(ui, doc, id, current, width, None)
 }
 
@@ -6616,7 +6622,7 @@ fn swatch_menu(ui: &mut egui::Ui, doc: &designcraft_doc::Document, id: impl egui
 /// colour: the text's own), as InDesign's Paragraph Rules › Color.
 fn swatch_menu_with(
     ui: &mut egui::Ui,
-    doc: &designcraft_doc::Document,
+    doc: &patronusdesign_doc::Document,
     id: impl egui::AsIdSalt,
     current: &str,
     width: f32,
@@ -6624,14 +6630,14 @@ fn swatch_menu_with(
 ) -> Option<String> {
     let mut picked = None;
     let shown = match text_color {
-        Some(label) if current == designcraft_doc::TEXT_COLOR => label,
+        Some(label) if current == patronusdesign_doc::TEXT_COLOR => label,
         _ => current,
     };
     craft_ui::ComboBox::from_id_salt(id).selected_text(shown).width(width).show_ui(ui, |ui| {
         if let Some(label) = text_color
-            && ui.selectable_label(current == designcraft_doc::TEXT_COLOR, label).clicked()
+            && ui.selectable_label(current == patronusdesign_doc::TEXT_COLOR, label).clicked()
         {
-            picked = Some(designcraft_doc::TEXT_COLOR.to_string());
+            picked = Some(patronusdesign_doc::TEXT_COLOR.to_string());
         }
         for w in doc.swatches.iter().filter(|w| !w.hidden) {
             let (c, g) = crate::widgets::swatch_colors(doc, &w.name, 1.0);
@@ -6652,8 +6658,8 @@ const BORDER_TYPES: [&str; 11] =
     ["solid", "dashed", "dotted", "thickThin", "thinThick", "thinThin", "thickThick", "thinThickThin", "thickThinThick", "wavy", "hashed"];
 
 /// The border's stroke type: a built-in type or one of the document's stroke styles.
-fn border_type_menu(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &designcraft_doc::Document) {
-    use designcraft_doc::StrokeType;
+fn border_type_menu(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &patronusdesign_doc::Document) {
+    use patronusdesign_doc::StrokeType;
     let cur: StrokeType = serde_json::from_value(para_value(d, pv, "borderType")).unwrap_or_default();
     let shown = match &cur {
         StrokeType::Style { name } => name.clone(),
@@ -6682,7 +6688,7 @@ fn border_type_menu(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, d
 /// Right, each a corner icon, a size and a shape menu showing the shapes' glyphs, with the link in
 /// the middle. An edited corner stores all four.
 fn para_corners(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, key: &str, units: Unit) {
-    use designcraft_geom::corners::{Corner, CornerShape};
+    use patronusdesign_geom::corners::{Corner, CornerShape};
     let mut corners: [Corner; 4] = serde_json::from_value(para_value(d, pv, key)).unwrap_or_default();
     let linked = linked(d, key, corners.iter().all(|c| *c == corners[0]));
     let mut changed = None;
@@ -6761,7 +6767,7 @@ fn para_color_tint(
     ui: &mut egui::Ui,
     d: &mut Dialog,
     pv: &Value,
-    doc: &designcraft_doc::Document,
+    doc: &patronusdesign_doc::Document,
     keys: (&str, &str, &str),
     labels: (&str, &str),
     enabled: bool,
@@ -6792,7 +6798,7 @@ fn para_color_tint(
 /// Paragraph Style Options › Paragraph Border / Paragraph Shading (and the Paragraph Borders and
 /// Shading dialog): on or off, the stroke (border) or colour (shading), corners, offsets, the
 /// edges and width the box follows, and the options for split and consecutive paragraphs.
-fn border_shading(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &designcraft_doc::Document, border: bool) {
+fn border_shading(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &patronusdesign_doc::Document, border: bool) {
     let key = |field: &str| format!("{}{field}", if border { "border" } else { "shading" });
     let on_key = key("On");
     para_check(ui, d, pv, &on_key, crate::i18n::tr(lang, if border { "Border" } else { "Shading" }));
@@ -6913,8 +6919,8 @@ fn drop_cap_fields(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, cn
     crate::rtl::label(ui, egui::RichText::new(crate::i18n::tr(lang, "Drop Caps")).font(semibold(12.0)));
     egui::Grid::new("psdc").num_columns(2).spacing([8.0, 6.0]).show(ui, |ui| {
         for (label, key, max) in [
-            ("Lines:", "dropCapLines", designcraft_compose::MAX_DROP_CAP_LINES),
-            ("Characters:", "dropCapChars", designcraft_compose::MAX_DROP_CAP_CHARS),
+            ("Lines:", "dropCapLines", patronusdesign_compose::MAX_DROP_CAP_LINES),
+            ("Characters:", "dropCapChars", patronusdesign_compose::MAX_DROP_CAP_CHARS),
         ] {
             crate::rtl::label(ui, crate::i18n::tr(lang, label));
             let v = field_or(d, &format!("p.{key}"), &pv[key]).as_f64();
@@ -6925,7 +6931,7 @@ fn drop_cap_fields(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, cn
         }
         crate::rtl::label(ui, crate::i18n::tr(lang, "Character Style:"));
         let style = field_or(d, "p.dropCapStyle", &pv["dropCapStyle"]).as_str().unwrap_or("").to_string();
-        let style = if style.is_empty() { designcraft_doc::NO_CHAR_STYLE.to_string() } else { style };
+        let style = if style.is_empty() { patronusdesign_doc::NO_CHAR_STYLE.to_string() } else { style };
         craft_ui::ComboBox::from_id_salt("ps_dropcap_style")
             .selected_text(crate::rtl::widget(ui, crate::i18n::style_name(lang, &style)))
             .width(160.0)
@@ -7221,8 +7227,8 @@ fn keep_options(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value) {
 /// Paragraph Style Options › Span Columns (and the Span Columns dialog): one column, spanning
 /// columns (0 = all), or split into sub-columns with inside and outside gutters; the least space
 /// before and after a spanning or split paragraph.
-fn span_columns(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &designcraft_doc::Document) {
-    use designcraft_doc::SpanColumns;
+fn span_columns(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &patronusdesign_doc::Document) {
+    use patronusdesign_doc::SpanColumns;
     let cur: SpanColumns = serde_json::from_value(para_value(d, pv, "spanColumns")).unwrap_or_default();
     let same = |a: &SpanColumns, b: &SpanColumns| std::mem::discriminant(a) == std::mem::discriminant(b);
     let units = doc.settings.horizontal_units;
@@ -7322,14 +7328,14 @@ fn list_text(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, label: &
 struct ListUi<'a> {
     char_styles: &'a [String],
     families: &'a [String],
-    fonts: &'a designcraft_fonts::ScopedFonts<'static>,
+    fonts: &'a patronusdesign_fonts::ScopedFonts<'static>,
     scope: u32,
     family: &'a str,
     style: &'a str,
 }
 
 impl ListUi<'_> {
-    fn new_parts(app: &DesignApp) -> (Vec<String>, Vec<String>, designcraft_fonts::ScopedFonts<'static>, u32) {
+    fn new_parts(app: &DesignApp) -> (Vec<String>, Vec<String>, patronusdesign_fonts::ScopedFonts<'static>, u32) {
         let styles = app.session.active().map(|s| s.doc.styles.character.iter().map(|c| c.name.clone()).collect()).unwrap_or_default();
         let families = crate::panels::font_menu(app).into_iter().map(|f| f.family).collect();
         (styles, families, crate::panels::fonts(app), crate::panels::font_scope(app))
@@ -7338,13 +7344,13 @@ impl ListUi<'_> {
 
 /// A character style for a bullet or number (`key`), [None] first.
 fn list_char_style(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, key: &str, styles: &[String]) {
-    let cur = para_value(d, pv, key).as_str().unwrap_or(designcraft_doc::NO_CHAR_STYLE).to_string();
+    let cur = para_value(d, pv, key).as_str().unwrap_or(patronusdesign_doc::NO_CHAR_STYLE).to_string();
     craft_ui::ComboBox::from_id_salt(("pslistcs", key))
         .selected_text(crate::rtl::widget(ui, crate::i18n::style_name(lang, &cur)))
         .width(200.0)
         .show_ui(ui, |ui| {
-            for n in std::iter::once(designcraft_doc::NO_CHAR_STYLE)
-                .chain(styles.iter().map(String::as_str).filter(|n| *n != designcraft_doc::NO_CHAR_STYLE))
+            for n in std::iter::once(patronusdesign_doc::NO_CHAR_STYLE)
+                .chain(styles.iter().map(String::as_str).filter(|n| *n != patronusdesign_doc::NO_CHAR_STYLE))
             {
                 if ui.selectable_label(n == cur, crate::rtl::widget(ui, crate::i18n::style_name(lang, n))).clicked() {
                     para_set(d, key, json!(n));
@@ -7443,10 +7449,10 @@ fn bullet_font(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, lu: &L
 /// list type and level; the bullet, its font and the text after it, or the list, number style,
 /// number text and where numbering starts and restarts; the label's character style; then where
 /// the label goes (alignment, indents and the tab position of the text after it).
-fn bullets_and_numbering(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &designcraft_doc::Document, lu: &ListUi<'_>) {
+fn bullets_and_numbering(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Value, doc: &patronusdesign_doc::Document, lu: &ListUi<'_>) {
     let units = doc.settings.horizontal_units;
     let kind = para_value(d, pv, "listType").as_str().unwrap_or("none").to_string();
-    let level = para_value(d, pv, "listLevel").as_u64().unwrap_or(1).clamp(1, designcraft_doc::LIST_LEVELS as u64) as u32;
+    let level = para_value(d, pv, "listLevel").as_u64().unwrap_or(1).clamp(1, patronusdesign_doc::LIST_LEVELS as u64) as u32;
     egui::ScrollArea::vertical().id_salt("psbnscroll").max_height(340.0).show(ui, |ui| {
         egui::Grid::new("psbn").num_columns(2).spacing([8.0, 6.0]).show(ui, |ui| {
             crate::rtl::label(ui, crate::i18n::tr(lang, "List Type:"));
@@ -7454,7 +7460,7 @@ fn bullets_and_numbering(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, pv: &Val
             ui.end_row();
             if kind != "none" {
                 crate::rtl::label(ui, crate::i18n::tr(lang, "Level:"));
-                para_count(ui, d, pv, "listLevel", (1, designcraft_doc::LIST_LEVELS as u32));
+                para_count(ui, d, pv, "listLevel", (1, patronusdesign_doc::LIST_LEVELS as u32));
                 ui.end_row();
             }
             match kind.as_str() {
@@ -7643,7 +7649,7 @@ fn default_units_of(d: &Dialog) -> Result<Option<Value>, String> {
 }
 
 /// "Paragraph Style n" / "Character Style n": the first name no style has.
-fn next_style_name(styles: &designcraft_doc::Styles, para: bool) -> String {
+fn next_style_name(styles: &patronusdesign_doc::Styles, para: bool) -> String {
     let (base, count) = if para { ("Paragraph Style", styles.paragraph.len()) } else { ("Character Style", styles.character.len()) };
     let taken = |n: &str| if para { styles.para(n).is_some() } else { styles.char_style(n).is_some() };
     // Among count + 1 numbers at least one is free.
@@ -7653,7 +7659,7 @@ fn next_style_name(styles: &designcraft_doc::Styles, para: bool) -> String {
 /// Paragraph or Character Style Options for an existing style (a double-click on it in the styles
 /// panel, or Edit in its menu). [None] and [No Paragraph Style] have no options.
 pub fn open_style_options(app: &mut DesignApp, para: bool, name: &str) {
-    if name == if para { designcraft_doc::NO_PARA_STYLE } else { designcraft_doc::NO_CHAR_STYLE } {
+    if name == if para { patronusdesign_doc::NO_PARA_STYLE } else { patronusdesign_doc::NO_CHAR_STYLE } {
         return;
     }
     let id = if para { "paragraphStyleOptions" } else { "characterStyleOptions" };
@@ -7666,7 +7672,7 @@ pub fn open_new_style(app: &mut DesignApp, para: bool) {
     let Some(st) = app.session.active() else { return };
     let name = next_style_name(&st.doc.styles, para);
     let has_text = st.selection.text.is_some();
-    let (bp, bc) = st.doc.styles.resolve_para_style(designcraft_doc::NO_PARA_STYLE);
+    let (bp, bc) = st.doc.styles.resolve_para_style(patronusdesign_doc::NO_PARA_STYLE);
     let id = if para { "paragraphStyleOptions" } else { "characterStyleOptions" };
     let mut fields = json!({"new": true, "rename": name});
     // New Paragraph Style with text selected starts from it, as InDesign's: Based On [No Paragraph
@@ -7706,8 +7712,8 @@ fn character_style_general(
     lang: &str,
     ui: &mut egui::Ui,
     d: &mut Dialog,
-    styles: &designcraft_doc::Styles,
-    style: &designcraft_doc::CharacterStyle,
+    styles: &patronusdesign_doc::Styles,
+    style: &patronusdesign_doc::CharacterStyle,
     based: &str,
 ) {
     let (name, new) = (d.s("name"), d.b("new"));
@@ -7762,8 +7768,8 @@ fn character_style_options(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialo
     let Some(doc) = app.session.active().map(|st| st.doc.clone()) else { return };
     let styles = &doc.styles;
     let style = match styles.char_style(&name) {
-        _ if new => designcraft_doc::CharacterStyle { name: String::new(), based_on: None, chars: Default::default(), shortcut: String::new() },
-        Some(s) if name != designcraft_doc::NO_CHAR_STYLE => s.clone(),
+        _ if new => patronusdesign_doc::CharacterStyle { name: String::new(), based_on: None, chars: Default::default(), shortcut: String::new() },
+        Some(s) if name != patronusdesign_doc::NO_CHAR_STYLE => s.clone(),
         _ => {
             crate::rtl::label(ui, format!("No style named {name}"));
             return;
@@ -7778,7 +7784,7 @@ fn character_style_options(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialo
         .and_then(Value::as_str)
         .map(str::to_string)
         .or(style.based_on.clone())
-        .unwrap_or_else(|| designcraft_doc::NO_CHAR_STYLE.into());
+        .unwrap_or_else(|| patronusdesign_doc::NO_CHAR_STYLE.into());
     // The fields show the style's own attributes over those its Based On gives it.
     let mut shown = styles.char_style_attrs(&based);
     shown.merge(&style.chars);
@@ -7916,7 +7922,15 @@ fn char_check(ui: &mut egui::Ui, d: &mut Dialog, cf: &CharFields, key: &str, lab
 }
 
 /// A swatch attribute from a menu; `text_color` names the "" entry (the text's own colour).
-fn char_swatch(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, cf: &CharFields, doc: &designcraft_doc::Document, key: &str, text_color: Option<&str>) {
+fn char_swatch(
+    lang: &str,
+    ui: &mut egui::Ui,
+    d: &mut Dialog,
+    cf: &CharFields,
+    doc: &patronusdesign_doc::Document,
+    key: &str,
+    text_color: Option<&str>,
+) {
     let mut opts: Vec<(Value, &str)> = text_color.map(|l| (json!(""), l)).into_iter().collect();
     opts.extend(doc.swatches.iter().map(|w| (json!(w.name), w.name.as_str())));
     char_choice(lang, ui, d, cf, key, &opts);
@@ -7925,7 +7939,7 @@ fn char_swatch(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, cf: &CharFields, d
 /// Load styles once per popup opening, including when the selected family is missing.
 fn font_style_combo(
     ui: &mut egui::Ui,
-    fonts: &designcraft_fonts::ScopedFonts<'_>,
+    fonts: &patronusdesign_fonts::ScopedFonts<'_>,
     scope: u32,
     family: &str,
     style: &str,
@@ -8115,7 +8129,7 @@ fn advanced_character_formats(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, cf:
 }
 
 /// Character Color: the fill or stroke swatch, its tint and the stroke weight.
-fn character_color(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, cf: &CharFields, doc: &designcraft_doc::Document) {
+fn character_color(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, cf: &CharFields, doc: &patronusdesign_doc::Document) {
     let stroke = d.s("colorTarget") == "stroke";
     ui.horizontal(|ui| {
         for (target, label) in [("fill", "Fill"), ("stroke", "Stroke")] {
@@ -8155,7 +8169,7 @@ fn character_color(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, cf: &CharField
 /// OpenType Features: the feature switches, figure style and stylistic sets (one `otfFeatures`
 /// list: changing any feature sets the whole list).
 fn open_type_features(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, cf: &CharFields) {
-    use designcraft_doc::otf;
+    use patronusdesign_doc::otf;
     let mut list: Vec<String> =
         cf.get(d, "otfFeatures").as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string)).collect()).unwrap_or_default();
     let mut changed = false;
@@ -8210,7 +8224,7 @@ fn open_type_features(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, cf: &CharFi
 }
 
 /// Underline Options / Strikethrough Options (`key` is `underline` or `strikethrough`).
-fn line_options(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, cf: &CharFields, doc: &designcraft_doc::Document, key: &str) {
+fn line_options(lang: &str, ui: &mut egui::Ui, d: &mut Dialog, cf: &CharFields, doc: &patronusdesign_doc::Document, key: &str) {
     char_check(ui, d, cf, key, crate::i18n::tr(lang, if key == "underline" { "Underline On" } else { "Strikethrough On" }));
     ui.add_space(4.0);
     egui::Grid::new(("csline", key)).num_columns(2).spacing([8.0, 6.0]).show(ui, |ui| {
@@ -8259,14 +8273,14 @@ fn delete_character_style(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog
     }
     ui.add_space(4.0);
     if !d.fields.contains_key("replaceWith") {
-        d.fields.insert("replaceWith".into(), json!(designcraft_doc::NO_CHAR_STYLE));
+        d.fields.insert("replaceWith".into(), json!(patronusdesign_doc::NO_CHAR_STYLE));
     }
     let replace = d.s("replaceWith");
     craft_ui::ComboBox::from_id_salt("del_char_replace")
         .selected_text(crate::rtl::widget(ui, crate::i18n::style_name(&app.ui.language, &replace)))
         .width(260.0)
         .show_ui(ui, |ui| {
-            for n in [designcraft_doc::NO_CHAR_STYLE].into_iter().chain(names.iter().map(String::as_str)) {
+            for n in [patronusdesign_doc::NO_CHAR_STYLE].into_iter().chain(names.iter().map(String::as_str)) {
                 if ui.selectable_label(n == replace, crate::rtl::widget(ui, crate::i18n::style_name(&app.ui.language, n))).clicked() {
                     d.fields.insert("replaceWith".into(), json!(n));
                 }
@@ -8310,8 +8324,8 @@ fn style_combo(app: &DesignApp, ui: &mut egui::Ui, d: &mut Dialog, key: &str, ch
         })
         .unwrap_or_default();
     let mut opts: Vec<(&str, &str)> = names.iter().map(|n| (n.as_str(), crate::i18n::style_name(&app.ui.language, n))).collect();
-    if character && !names.iter().any(|n| n == designcraft_doc::NO_CHAR_STYLE) {
-        opts.insert(0, (designcraft_doc::NO_CHAR_STYLE, crate::i18n::style_name(&app.ui.language, designcraft_doc::NO_CHAR_STYLE)));
+    if character && !names.iter().any(|n| n == patronusdesign_doc::NO_CHAR_STYLE) {
+        opts.insert(0, (patronusdesign_doc::NO_CHAR_STYLE, crate::i18n::style_name(&app.ui.language, patronusdesign_doc::NO_CHAR_STYLE)));
     }
     combo(ui, d, key, &opts);
 }
@@ -8703,7 +8717,7 @@ fn paragraph_rules(app: &DesignApp, ui: &mut egui::Ui, d: &mut Dialog, prefix: &
     });
     ui.add_space(6.0);
     let on = rule["on"].as_bool().unwrap_or(false);
-    let kind: designcraft_doc::StrokeType = serde_json::from_value(rule["type"].clone()).unwrap_or_default();
+    let kind: patronusdesign_doc::StrokeType = serde_json::from_value(rule["type"].clone()).unwrap_or_default();
     let doc = app.session.active().map(|st| &st.doc);
     // As InDesign's: Weight and Type, Color and Tint, Gap Color and Gap Tint, Width and Offset,
     // Left and Right Indent, then Keep In Frame (rule above).
@@ -8718,13 +8732,13 @@ fn paragraph_rules(app: &DesignApp, ui: &mut egui::Ui, d: &mut Dialog, prefix: &
             crate::rtl::label(ui, crate::i18n::tr(lang, "Type:"));
             let custom: Vec<String> = doc.map_or_else(Vec::new, |doc| doc.stroke_styles.iter().map(|s| s.name.clone()).collect());
             let shown = match &kind {
-                designcraft_doc::StrokeType::Style { name } => name.clone(),
+                patronusdesign_doc::StrokeType::Style { name } => name.clone(),
                 k => crate::i18n::tr(lang, k.label()).to_string(),
             };
             craft_ui::ComboBox::from_id_salt(("rule_type", which)).selected_text(crate::rtl::widget(ui, shown)).width(130.0).show_ui(ui, |ui| {
-                for k in rule_types().into_iter().chain(custom.into_iter().map(|name| designcraft_doc::StrokeType::Style { name })) {
+                for k in rule_types().into_iter().chain(custom.into_iter().map(|name| patronusdesign_doc::StrokeType::Style { name })) {
                     let label = match &k {
-                        designcraft_doc::StrokeType::Style { name } => name.clone(),
+                        patronusdesign_doc::StrokeType::Style { name } => name.clone(),
                         k => crate::i18n::tr(lang, k.label()).to_string(),
                     };
                     if ui.selectable_label(k == kind, crate::rtl::widget(ui, label)).clicked() {
@@ -8745,16 +8759,16 @@ fn paragraph_rules(app: &DesignApp, ui: &mut egui::Ui, d: &mut Dialog, prefix: &
             }
             ui.end_row();
             // A solid rule has no gaps.
-            let gaps = !matches!(kind, designcraft_doc::StrokeType::Solid);
+            let gaps = !matches!(kind, patronusdesign_doc::StrokeType::Solid);
             crate::rtl::label(ui, crate::i18n::tr(lang, "Gap Color:"));
-            let gap = rule["gapColor"].as_str().unwrap_or(designcraft_color::swatch::NONE).to_string();
+            let gap = rule["gapColor"].as_str().unwrap_or(patronusdesign_color::swatch::NONE).to_string();
             ui.add_enabled_ui(gaps, |ui| {
                 if let Some(w) = doc.and_then(|doc| swatch_menu(ui, doc, ("rule_gap", which), &gap, 130.0)) {
                     d.fields.insert(key("gapColor"), json!(w));
                 }
             });
             crate::rtl::label(ui, crate::i18n::tr(lang, "Gap Tint:"));
-            ui.add_enabled_ui(gaps && gap != designcraft_color::swatch::NONE, |ui| {
+            ui.add_enabled_ui(gaps && gap != patronusdesign_color::swatch::NONE, |ui| {
                 // A full gap tint is left out of the rule's JSON: it reads 100%.
                 let gap_tint = rule["gapTint"].as_f64().unwrap_or(1.0) * 100.0;
                 if let Some(v) = sized(ui, &mut |ui| crate::widgets::number(ui, &key("gapTint"), Some(gap_tint), "%", 80.0, 0)) {
@@ -8801,8 +8815,8 @@ fn paragraph_rules(app: &DesignApp, ui: &mut egui::Ui, d: &mut Dialog, prefix: &
 }
 
 /// The built-in stroke types a paragraph rule can have (Paragraph Rules › Type).
-fn rule_types() -> Vec<designcraft_doc::StrokeType> {
-    use designcraft_doc::StrokeType as T;
+fn rule_types() -> Vec<patronusdesign_doc::StrokeType> {
+    use patronusdesign_doc::StrokeType as T;
     vec![
         T::Solid,
         T::ThickThick,
@@ -9054,7 +9068,7 @@ fn humanize(key: &str) -> String {
 
 /// A form for any command, from its parameter documentation.
 fn command_form(app: &crate::DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
-    let doc = designcraft_engine::find_command(&d.id[4..]).map_or("", |c| c.params);
+    let doc = patronusdesign_engine::find_command(&d.id[4..]).map_or("", |c| c.params);
     let fields = command_fields(doc);
     let dim = crate::theme::Tokens::get(ui.ctx()).text_dim;
     egui::Grid::new("cmdform").num_columns(2).spacing([8.0, 6.0]).show(ui, |ui| {
@@ -9123,11 +9137,11 @@ struct TocRow {
 }
 
 fn toc_separator_shown(s: &str) -> String {
-    designcraft_doc::story::toc_separator_notation(s)
+    patronusdesign_doc::story::toc_separator_notation(s)
 }
 
 fn toc_separator_typed(s: &str) -> String {
-    designcraft_doc::story::toc_separator_text(s)
+    patronusdesign_doc::story::toc_separator_text(s)
 }
 
 /// Appends the special-character `code` (such as `^y`) to the separator field's notation. A
@@ -9147,8 +9161,8 @@ fn toc_rows(d: &Dialog) -> Vec<TocRow> {
 pub fn open_toc(app: &mut DesignApp) {
     let Some(st) = app.session.active() else { return };
     let d = &st.doc;
-    let styles: Vec<&str> = d.styles.paragraph.iter().map(|p| p.name.as_str()).filter(|n| *n != designcraft_doc::NO_PARA_STYLE).collect();
-    let char_styles: Vec<&str> = d.styles.character.iter().map(|c| c.name.as_str()).filter(|n| *n != designcraft_doc::NO_CHAR_STYLE).collect();
+    let styles: Vec<&str> = d.styles.paragraph.iter().map(|p| p.name.as_str()).filter(|n| *n != patronusdesign_doc::NO_PARA_STYLE).collect();
+    let char_styles: Vec<&str> = d.styles.character.iter().map(|c| c.name.as_str()).filter(|n| *n != patronusdesign_doc::NO_CHAR_STYLE).collect();
     let toc = d.toc.as_ref().filter(|t| d.story(t.story).is_some());
     let rows: Vec<TocRow> = toc
         .map(|t| {
@@ -9159,8 +9173,8 @@ pub fn open_toc(app: &mut DesignApp) {
                     level: e.level,
                     entry_style: e.entry_style.clone().unwrap_or_default(),
                     page_number: match (t.page_numbers, e.page_number) {
-                        (false, _) | (_, designcraft_doc::TocPageNumber::None) => "none",
-                        (_, designcraft_doc::TocPageNumber::Before) => "before",
+                        (false, _) | (_, patronusdesign_doc::TocPageNumber::None) => "none",
+                        (_, patronusdesign_doc::TocPageNumber::Before) => "before",
                         _ => "after",
                     }
                     .into(),
@@ -9334,7 +9348,7 @@ fn toc_dialog(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
     if let Some(r) = rows.get_mut(sel) {
         ui.add_space(8.0);
         crate::rtl::label(ui, egui::RichText::new(format!("{} {}", tr("Style:"), r.style)).font(semibold(12.0)));
-        let none = designcraft_doc::NO_CHAR_STYLE;
+        let none = patronusdesign_doc::NO_CHAR_STYLE;
         egui::Grid::new("toc_entry").num_columns(4).spacing([8.0, 6.0]).show(ui, |ui| {
             let name = crate::rtl::label(ui, tr("Entry Style:")).id;
             let auto = format!("TOC Level {}", r.level.clamp(1, 9));
@@ -9535,7 +9549,7 @@ const CORNERS: [(&str, &str); 4] = [("0", "Top Left:"), ("1", "Top Right:"), ("2
 /// The Corner Options dialog's fields from the first selected object's corners, once: each
 /// corner's size (in the ruler units) and shape, linked when all four are the same.
 fn seed_corner_options(app: &DesignApp, d: &mut Dialog) {
-    use designcraft_geom::corners::Corner;
+    use patronusdesign_geom::corners::Corner;
     let Some(st) = app.session.active() else { return };
     d.unit = st.doc.settings.horizontal_units;
     if d.fields.contains_key("_seeded") {
@@ -9595,7 +9609,7 @@ fn link_corners(d: &mut Dialog) {
 /// selected object keeps its own). A size that does not parse, or a shape the dialog doesn't
 /// offer, is an error to show.
 fn corner_options_params(d: &Dialog) -> Result<Value, String> {
-    use designcraft_geom::corners::CornerShape;
+    use patronusdesign_geom::corners::CornerShape;
     let edited = edited_corners(d);
     let mut corners = Vec::with_capacity(CORNERS.len());
     for ((k, _), edited) in CORNERS.iter().zip(edited) {
@@ -9631,7 +9645,7 @@ fn paint_corner_icon(ui: &mut egui::Ui, corner: usize, tip: &str) {
 /// shape (top corners above, bottom ones below, as on the frame), the link button that makes all
 /// four the same, and Preview.
 fn corner_options_dialog(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
-    use designcraft_geom::corners::CornerShape;
+    use patronusdesign_geom::corners::CornerShape;
     seed_corner_options(app, d);
     link_corners(d);
     let lang = app.ui.language.clone();
@@ -9784,7 +9798,7 @@ fn insert_xref(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
                             if cur_style != all && st.paras[pi].style != cur_style {
                                 continue;
                             }
-                            let text = designcraft_doc::xref::clean(&st.text[r]);
+                            let text = patronusdesign_doc::xref::clean(&st.text[r]);
                             if text.is_empty() {
                                 continue;
                             }
@@ -9905,8 +9919,8 @@ fn color_picker(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
         d.fields.insert(
             "cmyk".into(),
             json!(
-                designcraft_color::Color::Rgb { r: p.rgb[0], g: p.rgb[1], b: p.rgb[2] }
-                    .to_cmyk_managed(designcraft_color::cms::active_settings().intent)
+                patronusdesign_color::Color::Rgb { r: p.rgb[0], g: p.rgb[1], b: p.rgb[2] }
+                    .to_cmyk_managed(patronusdesign_color::cms::active_settings().intent)
                     .map(|x| x * 100.0)
             ),
         );
@@ -9978,7 +9992,7 @@ fn color_picker(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
     }
     // The new colour over the one it replaces.
     let pr = put(at::swatch());
-    let old = designcraft_color::Color::from_hex(&d.s("old")).map_or([0.0; 3], |c| c.to_rgb_uncalibrated());
+    let old = patronusdesign_color::Color::from_hex(&d.s("old")).map_or([0.0; 3], |c| c.to_rgb_uncalibrated());
     ui.painter().rect_filled(egui::Rect::from_min_max(pr.min, egui::pos2(pr.max.x, pr.center().y)), 0.0, color32(p.rgb));
     ui.painter().rect_filled(egui::Rect::from_min_max(egui::pos2(pr.min.x, pr.center().y), pr.max), 0.0, color32(old));
     ui.painter().rect_stroke(pr, 0.0, egui::Stroke::new(1.0, t.field_border), egui::StrokeKind::Inside);
@@ -10005,8 +10019,8 @@ fn color_picker(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
     picker_close(ui, d, ok, cancel);
     // The C/M/Y/K the fields show: the percentages typed or given, else the colour converted.
     let cmyk = nums::<4>(d, "cmyk").map(|v| v.map(|x| x as f32)).unwrap_or_else(|| {
-        designcraft_color::Color::Rgb { r: p.rgb[0], g: p.rgb[1], b: p.rgb[2] }
-            .to_cmyk_managed(designcraft_color::cms::active_settings().intent)
+        patronusdesign_color::Color::Rgb { r: p.rgb[0], g: p.rgb[1], b: p.rgb[2] }
+            .to_cmyk_managed(patronusdesign_color::cms::active_settings().intent)
             .map(|v| v * 100.0)
     });
     if pill(ui, 2, &tr("Add CMYK Swatch"), false) {
@@ -10078,7 +10092,7 @@ fn color_picker(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
                     c[["c", "m", "y", "k"].iter().position(|k| *k == key).unwrap_or(0)] = v;
                     exact_cmyk = Some(c);
                     let [c, m, y, k] = c.map(|x| x / 100.0);
-                    Picked::from_rgb(designcraft_color::Color::Cmyk { c, m, y, k }.to_rgb(), p.hsb[0])
+                    Picked::from_rgb(patronusdesign_color::Color::Cmyk { c, m, y, k }.to_rgb(), p.hsb[0])
                 }
             });
         }
@@ -10105,7 +10119,7 @@ fn color_picker(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
         .accessible_name("Hex".to_owned())
         .changed()
         && (h.len() == 6 || (h.len() == 7 && h.starts_with('#')))
-        && let Some(c) = designcraft_color::Color::from_hex(&h)
+        && let Some(c) = patronusdesign_color::Color::from_hex(&h)
     {
         p = Picked::from_rgb(c.to_rgb_uncalibrated(), p.hsb[0]);
     }
@@ -10247,7 +10261,7 @@ fn find_font(app: &mut DesignApp, ui: &mut egui::Ui, d: &mut Dialog) {
     crate::rtl::label(ui, egui::RichText::new(crate::i18n::tr(&app.ui.language, "Replace With")).font(semibold(12.0)));
     let db = crate::panels::fonts(app);
     if d.s("toFamily").is_empty() {
-        d.fields.insert("toFamily".into(), json!(designcraft_fonts::FALLBACK_FAMILY));
+        d.fields.insert("toFamily".into(), json!(patronusdesign_fonts::FALLBACK_FAMILY));
     }
     egui::Grid::new("ff_to").num_columns(2).spacing([8.0, 6.0]).show(ui, |ui| {
         crate::rtl::label(ui, crate::i18n::tr(&app.ui.language, "Font Family:"));
@@ -10341,25 +10355,25 @@ pub(crate) struct Picked {
 impl Picked {
     pub fn from_rgb(rgb: [f32; 3], hue: f32) -> Picked {
         let rgb = rgb.map(|v| v.clamp(0.0, 1.0));
-        let c = designcraft_color::Color::Rgb { r: rgb[0], g: rgb[1], b: rgb[2] };
+        let c = patronusdesign_color::Color::Rgb { r: rgb[0], g: rgb[1], b: rgb[2] };
         let mut hsb = c.to_hsb();
         if hsb[1] <= 1e-4 || hsb[2] <= 1e-4 {
             hsb[0] = hue;
         }
-        let l = designcraft_color::cms::lab::srgb_to_lab(rgb);
+        let l = patronusdesign_color::cms::lab::srgb_to_lab(rgb);
         Picked { rgb, hsb, lab: [l.l, l.a, l.b] }
     }
 
     fn from_hsb(hsb: [f32; 3]) -> Picked {
         let hsb = [hsb[0].rem_euclid(360.0), hsb[1].clamp(0.0, 1.0), hsb[2].clamp(0.0, 1.0)];
-        let mut p = Picked::from_rgb(designcraft_color::Color::from_hsb(hsb[0], hsb[1], hsb[2]).to_rgb_uncalibrated(), hsb[0]);
+        let mut p = Picked::from_rgb(patronusdesign_color::Color::from_hsb(hsb[0], hsb[1], hsb[2]).to_rgb_uncalibrated(), hsb[0]);
         p.hsb = hsb;
         p
     }
 
     fn from_lab(lab: [f32; 3], hue: f32) -> Picked {
         let lab = [lab[0].clamp(0.0, 100.0), lab[1].clamp(-128.0, 127.0), lab[2].clamp(-128.0, 127.0)];
-        let mut p = Picked::from_rgb(designcraft_color::cms::lab::lab_to_srgb(designcraft_color::cms::Lab::new(lab[0], lab[1], lab[2])), hue);
+        let mut p = Picked::from_rgb(patronusdesign_color::cms::lab::lab_to_srgb(patronusdesign_color::cms::Lab::new(lab[0], lab[1], lab[2])), hue);
         p.lab = lab;
         p
     }
@@ -10404,7 +10418,7 @@ impl Picked {
     /// the component at `t`.
     fn slider_at(&self, c: PickComp, t: f32) -> [f32; 3] {
         if c == PickComp::H {
-            return designcraft_color::Color::from_hsb(t * 360.0, 1.0, 1.0).to_rgb_uncalibrated();
+            return patronusdesign_color::Color::from_hsb(t * 360.0, 1.0, 1.0).to_rgb_uncalibrated();
         }
         let (_, u, v) = self.coords(c);
         self.at(c, t, u, v).rgb
@@ -10444,7 +10458,7 @@ fn gradient_mesh(painter: &egui::Painter, r: egui::Rect, cols: usize, rows: usiz
 /// The colour in the dialog's fields: `hex`, with the HSB hue and the Lab values kept while
 /// they round-trip (`_hsb`, `_lab`).
 fn picked_of(d: &Dialog) -> Picked {
-    let mut rgb = designcraft_color::Color::from_hex(&d.s("hex")).map_or([0.0; 3], |c| c.to_rgb_uncalibrated());
+    let mut rgb = patronusdesign_color::Color::from_hex(&d.s("hex")).map_or([0.0; 3], |c| c.to_rgb_uncalibrated());
     if let Some(raw) = nums::<3>(d, "rgb") {
         let raw = raw.map(|x| (x / 255.0) as f32);
         if Picked::from_rgb(raw, 0.0).hex() == Picked::from_rgb(rgb, 0.0).hex() {
@@ -10473,8 +10487,8 @@ fn store_picked(d: &mut Dialog, p: &Picked) {
     d.fields.insert(
         "cmyk".into(),
         json!(
-            designcraft_color::Color::Rgb { r: p.rgb[0], g: p.rgb[1], b: p.rgb[2] }
-                .to_cmyk_managed(designcraft_color::cms::active_settings().intent)
+            patronusdesign_color::Color::Rgb { r: p.rgb[0], g: p.rgb[1], b: p.rgb[2] }
+                .to_cmyk_managed(patronusdesign_color::cms::active_settings().intent)
                 .map(|x| x * 100.0)
         ),
     );
@@ -10544,10 +10558,10 @@ mod variable_style_regression {
     #[ignore = "requires the pinned Bricolage fixture; see docs/testing-variable-fonts.md"]
     fn named_instance_style_widget_and_api_agree() {
         use egui_kittest::{Harness, kittest::Queryable};
-        let path = std::env::var_os("DESIGNCRAFT_TEST_VARIABLE_FONT").expect("set DESIGNCRAFT_TEST_VARIABLE_FONT");
-        let db = designcraft_fonts::FontDb::global();
+        let path = std::env::var_os("PATRONUSDESIGN_TEST_VARIABLE_FONT").expect("set PATRONUSDESIGN_TEST_VARIABLE_FONT");
+        let db = patronusdesign_fonts::FontDb::global();
         db.add_font(std::fs::read(path).unwrap());
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         app.run("style.paragraph.create", json!({"name":"Base VF", "chars":{"fontFamily":"Bricolage Grotesque", "fontStyle":"Regular"}})).unwrap();
         app.run("style.paragraph.create", json!({"name":"UI VF", "basedOn":"Base VF"})).unwrap();
@@ -10628,12 +10642,12 @@ mod variable_cold_style_regression {
     #[ignore = "requires a fresh process with the pinned Bricolage fixture catalogued; see docs/testing-variable-fonts.md"]
     fn cold_style_combo_contains_named_instances() {
         use egui_kittest::{Harness, kittest::Queryable};
-        let fonts = designcraft_fonts::FontDb::global();
+        let fonts = patronusdesign_fonts::FontDb::global();
         assert!(
             !fonts.styles("Bricolage Grotesque").contains(&"SemiBold".into()),
             "run in a fresh process with the test font catalogued but not loaded"
         );
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let base = json!({"fontFamily":"Bricolage Grotesque", "fontStyle":"Regular"});
         let mut h = Harness::builder()
@@ -10665,8 +10679,8 @@ mod synthetic_variable_style_regression {
     #[test]
     fn paragraph_style_formats_select_a_synthetic_named_instance() {
         let family = "Synthetic Paragraph Wiring";
-        designcraft_fonts::FontDb::global().add_font(designcraft_fonts::testing::variable_font(family).unwrap());
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        patronusdesign_fonts::FontDb::global().add_font(patronusdesign_fonts::testing::variable_font(family).unwrap());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         app.run("style.paragraph.create", json!({"name":"Synthetic UI", "chars":{"fontFamily":family,"fontStyle":"Regular"}})).unwrap();
         let base = json!({"fontFamily":family,"fontStyle":"Regular"});
@@ -10694,8 +10708,8 @@ mod synthetic_variable_style_regression {
     fn cold_style_popup_discovers_instances_and_selects_them() {
         let dir = tempfile::tempdir().unwrap();
         let family = "Synthetic Cold Style";
-        std::fs::write(dir.path().join("variable.ttf"), designcraft_fonts::testing::variable_font(family).unwrap()).unwrap();
-        let db = designcraft_fonts::FontDb::with_font_dirs(vec![dir.path().to_owned()]);
+        std::fs::write(dir.path().join("variable.ttf"), patronusdesign_fonts::testing::variable_font(family).unwrap()).unwrap();
+        let db = patronusdesign_fonts::FontDb::with_font_dirs(vec![dir.path().to_owned()]);
         assert_eq!(db.styles(family), ["Regular"]);
         let mut h = Harness::builder()
             .with_context_setup(|ctx| {
@@ -10725,8 +10739,8 @@ mod synthetic_variable_style_regression {
             let dir = tempfile::tempdir().unwrap();
             let family = "Synthetic Missing Style";
             let path = dir.path().join("variable.ttf");
-            std::fs::write(&path, designcraft_fonts::testing::variable_font(family).unwrap()).unwrap();
-            let db = designcraft_fonts::FontDb::with_font_dirs(vec![dir.path().to_owned()]);
+            std::fs::write(&path, patronusdesign_fonts::testing::variable_font(family).unwrap()).unwrap();
+            let db = patronusdesign_fonts::FontDb::with_font_dirs(vec![dir.path().to_owned()]);
             assert_eq!(db.styles(family), ["Regular"]);
             std::fs::remove_file(&path).unwrap();
             let mut h = Harness::builder()
@@ -10754,7 +10768,7 @@ mod synthetic_variable_style_regression {
             h.get_by_value("Regular").click();
             h.run_steps(3);
             assert!(h.query_by_label("SemiBold").is_none());
-            std::fs::write(&path, designcraft_fonts::testing::variable_font(family).unwrap()).unwrap();
+            std::fs::write(&path, patronusdesign_fonts::testing::variable_font(family).unwrap()).unwrap();
             h.run_steps(3);
             assert_eq!(db.styles(family), ["Regular"], "an open popup must not retry the missing font every frame");
             match retry {

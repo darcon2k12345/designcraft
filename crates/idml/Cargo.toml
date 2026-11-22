@@ -1,18 +1,18 @@
 [package]
-name = "designcraft-idml"
+name = "patronusdesign-idml"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "DesignCraft IDML (InDesign Markup Language) import and export"
+description = "Patronus Design IDML (InDesign Markup Language) import and export"
 
 [lints]
 workspace = true
 
 [dependencies]
-designcraft-geom = { workspace = true }
-designcraft-color = { workspace = true }
-designcraft-doc = { workspace = true }
-designcraft-images = { workspace = true }
+patronusdesign-geom = { workspace = true }
+patronusdesign-color = { workspace = true }
+patronusdesign-doc = { workspace = true }
+patronusdesign-images = { workspace = true }
 craft-idml = { workspace = true }
 craft-xml = { workspace = true }
 craft-file-formats = { workspace = true }
@@ -20,5 +20,5 @@ thiserror = { workspace = true }
 log = { workspace = true }
 
 [dev-dependencies]
-designcraft-compose = { workspace = true }
+patronusdesign-compose = { workspace = true }
 zip = { workspace = true }

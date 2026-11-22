@@ -43,10 +43,10 @@ pub(super) fn xref_format_self(i: usize) -> String {
 }
 
 /// The IDML `ChangeType` of a tracked change.
-pub(super) fn change_type(mark: Option<designcraft_doc::ChangeMark>) -> Option<&'static str> {
+pub(super) fn change_type(mark: Option<patronusdesign_doc::ChangeMark>) -> Option<&'static str> {
     match mark {
-        Some(designcraft_doc::ChangeMark::Deleted) => Some("DeletedText"),
-        Some(designcraft_doc::ChangeMark::Inserted) => Some("InsertedText"),
+        Some(patronusdesign_doc::ChangeMark::Deleted) => Some("DeletedText"),
+        Some(patronusdesign_doc::ChangeMark::Inserted) => Some("InsertedText"),
         _ => None,
     }
 }

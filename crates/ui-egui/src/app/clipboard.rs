@@ -95,9 +95,8 @@ impl DesignApp {
             Err("To paste the image, stop editing the text first (Esc).".to_string())
         } else {
             match image {
-                ClipboardImage::Pixels { width, height, rgba } => {
-                    designcraft_engine::cmd::pasted_png(width, height, rgba).map(|png| (png, designcraft_engine::cmd::PASTED_IMAGE_NAME.to_string()))
-                }
+                ClipboardImage::Pixels { width, height, rgba } => patronusdesign_engine::cmd::pasted_png(width, height, rgba)
+                    .map(|png| (png, patronusdesign_engine::cmd::PASTED_IMAGE_NAME.to_string())),
                 ClipboardImage::File { name, bytes } => Ok((bytes, name)),
             }
         };
@@ -108,7 +107,7 @@ impl DesignApp {
                 return Err(e);
             }
         };
-        let mut params = json!({"base64": designcraft_engine::cmd::base64_encode(&bytes), "name": name});
+        let mut params = json!({"base64": patronusdesign_engine::cmd::base64_encode(&bytes), "name": name});
         if let Some((spread, at)) = canvas::view_centre(self)
             && let Ok(spread) = serde_json::to_value(spread)
             && let Some(o) = params.as_object_mut()

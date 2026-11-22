@@ -1,15 +1,15 @@
 [package]
-name = "designcraft-textimport"
+name = "patronusdesign-textimport"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "DesignCraft text import: plain text, Word (.docx) and RTF into stories"
+description = "Patronus Design text import: plain text, Word (.docx) and RTF into stories"
 
 [lints]
 workspace = true
 
 [dependencies]
-designcraft-doc = { workspace = true }
+patronusdesign-doc = { workspace = true }
 craft-rtf = { workspace = true }
 craft-xlsx = { workspace = true }
 craft-docx = { workspace = true }

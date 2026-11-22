@@ -1,9 +1,9 @@
 [package]
-name = "designcraft-images"
+name = "patronusdesign-images"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "DesignCraft placed-graphic decoding: raster formats (PNG, JPEG, GIF, WebP, TIFF, BMP, PSD) and SVG"
+description = "Patronus Design placed-graphic decoding: raster formats (PNG, JPEG, GIF, WebP, TIFF, BMP, PSD) and SVG"
 
 [lints]
 workspace = true
@@ -12,8 +12,8 @@ workspace = true
 craft-eps = { workspace = true }
 craft-ps = { workspace = true }
 craft-svg = { workspace = true }
-designcraft-color = { workspace = true }
-designcraft-fonts = { workspace = true }
+patronusdesign-color = { workspace = true }
+patronusdesign-fonts = { workspace = true }
 image = { workspace = true }
 skrifa = { workspace = true }
 log = { workspace = true }
@@ -26,6 +26,6 @@ craft-jpeg = { workspace = true }
 
 [dev-dependencies]
 image = { workspace = true, features = ["png", "jpeg", "webp", "gif", "tiff", "bmp"] }
-designcraft-fonts = { workspace = true, features = ["testing"] }
+patronusdesign-fonts = { workspace = true, features = ["testing"] }
 flate2 = "1"
 tiff = { workspace = true }

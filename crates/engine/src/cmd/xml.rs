@@ -1,7 +1,7 @@
 //! Structure and XML: tags on frames (Tags panel), paragraph styles mapped to tags, the structure
 //! tree, XML export and import (content flows into the frames with matching tags).
 
-use designcraft_doc::{Content, Document, Item, ItemId, ParaFormat, Story, StoryId, XmlTag};
+use patronusdesign_doc::{Content, Document, Item, ItemId, ParaFormat, Story, StoryId, XmlTag};
 use serde_json::{Value, json};
 
 use super::{CommandSpec, bad, cmd, has_doc, ids_param, ok, str_param};
@@ -62,7 +62,7 @@ fn plain(t: &str) -> String {
 /// A paragraph's text with inline-tagged runs as elements.
 /// `runs` are the story's runs in order (collected once per story): only those reaching the
 /// paragraph are visited, found by binary search.
-fn para_xml(st: &designcraft_doc::Story, runs: &[(std::ops::Range<usize>, &designcraft_doc::CharFormat)], r: std::ops::Range<usize>) -> String {
+fn para_xml(st: &patronusdesign_doc::Story, runs: &[(std::ops::Range<usize>, &patronusdesign_doc::CharFormat)], r: std::ops::Range<usize>) -> String {
     let mut out = String::new();
     let mut open: Option<String> = None;
     let first = runs.partition_point(|(rr, _)| rr.end <= r.start);
@@ -520,7 +520,7 @@ mod tests {
         assert!(x.contains("<title>See the <term>glossary</term> entry</title>"), "{x}");
         s.execute("file.importXml", &json!({"text": x})).unwrap();
         let d = &s.doc().unwrap().doc;
-        assert_eq!(d.stories[&designcraft_doc::StoryId(a["story"].as_u64().unwrap())].text, "See the glossary entry");
+        assert_eq!(d.stories[&patronusdesign_doc::StoryId(a["story"].as_u64().unwrap())].text, "See the glossary entry");
     }
 
     #[test]
@@ -564,10 +564,10 @@ mod tests {
             .unwrap();
         assert_eq!((r["placed"].as_u64(), r["unmatched"].as_u64()), (Some(2), Some(1)));
         let d = &s.doc().unwrap().doc;
-        let sa = d.stories[&designcraft_doc::StoryId(a["story"].as_u64().unwrap())].clone();
+        let sa = d.stories[&patronusdesign_doc::StoryId(a["story"].as_u64().unwrap())].clone();
         assert_eq!(sa.text, "New title\nNew body");
         assert_eq!(sa.paras[0].style, "Head", "mapped tag → paragraph style");
-        assert_eq!(d.stories[&designcraft_doc::StoryId(b["story"].as_u64().unwrap())].text, "New caption");
+        assert_eq!(d.stories[&patronusdesign_doc::StoryId(b["story"].as_u64().unwrap())].text, "New caption");
         assert!(s.execute("xml.tag", &json!({"tag": "1bad", "ids": [b["id"]]})).is_err());
         // Inline tagging: part of a paragraph becomes an element.
         let f = s
@@ -581,9 +581,9 @@ mod tests {
         // Tag markers draw in the tag's colour (screen view only).
         let d = s.doc().unwrap().doc.clone();
         let col = d.xml.tags.iter().find(|t| t.name == "term").unwrap().color;
-        let mut rr = designcraft_render::Renderer::new();
+        let mut rr = patronusdesign_render::Renderer::new();
         rr.threads = 0;
-        let count = |opts: &designcraft_render::RenderOptions, rr: &mut designcraft_render::Renderer| {
+        let count = |opts: &patronusdesign_render::RenderOptions, rr: &mut patronusdesign_render::Renderer| {
             let img = rr.render_page(&d, &s.cache, 0, 2.0, false, opts).unwrap();
             img.pixels
                 .as_chunks::<4>()
@@ -595,7 +595,7 @@ mod tests {
                 .count()
         };
         let plain = count(&Default::default(), &mut rr);
-        let marked = count(&designcraft_render::RenderOptions { tag_markers: true, ..Default::default() }, &mut rr);
+        let marked = count(&patronusdesign_render::RenderOptions { tag_markers: true, ..Default::default() }, &mut rr);
         assert!(marked > plain + 10, "{plain} {marked}");
     }
 }

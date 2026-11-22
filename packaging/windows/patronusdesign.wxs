@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <?ifndef HasCraftFontLicences ?>
+  <?define HasCraftFontLicences=0 ?>
+  <?endif?>
+  <Package Name="Patronus Design" Manufacturer="Patronus" Version="$(var.Version)" UpgradeCode="49E87D30-BB68-4896-AA1D-F45C833CFC3C" Scope="perUserOrMachine" Compressed="yes" Language="1033">
+    <SummaryInformation Description="Patronus Design page layout and publishing" Manufacturer="Patronus" />
+    <?include $(sys.SOURCEFILEDIR)install-policy.wxi?>
+    <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
+         (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of Patronus Design is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="PatronusDesignIcon.ico" SourceFile="$(var.IconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="PatronusDesignIcon.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://getartcraft.com/apps/designcraft" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://getartcraft.com/apps/designcraft" />
+    <Property Id="ARPHELPLINK" Value="https://discord.gg/artcraft" />
+
+    <!-- Shared native setup UI, including install/uninstall completion. -->
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="CraftSuiteFolder" Name="ArtCraft">
+        <Directory Id="INSTALLFOLDER" Name="Patronus Design" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="Patronus Design" Level="1">
+      <?if $(var.HasCraftFontLicences) = 1 ?>
+      <ComponentGroupRef Id="CraftFontLicences" />
+      <?endif?>
+      <ComponentGroupRef Id="PatronusDesignFiles" />
+      <ComponentGroupRef Id="CraftInstallerSettings" />
+    </Feature>
+    <!-- Shared full UI; app installation policy remains below. -->
+    <UIRef Id="CraftInstallerUI" />
+  </Package>
+
+  <Fragment>
+    <?if $(var.HasCraftFontLicences) = 1 ?>
+    <ComponentGroup Id="CraftFontLicences" Directory="INSTALLFOLDER">
+      <Files Include="$(var.DocsDir)\**" />
+    </ComponentGroup>
+    <?endif?>
+    <ComponentGroup Id="PatronusDesignFiles" Directory="INSTALLFOLDER">
+      <Component Id="PatronusDesignNotice">
+        <File Id="PatronusDesignNoticeFile" Source="$(var.BinDir)\NOTICE" KeyPath="yes" />
+      </Component>
+      <Component Id="PatronusDesignApp" Guid="DE018EF3-EE87-4E36-9F76-0B7B060A195E">
+        <File Id="PatronusDesignExe" Source="$(var.BinDir)\patronusdesign.exe" KeyPath="yes">
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Patronus Design" Description="Patronus Design page layout and publishing" WorkingDirectory="INSTALLFOLDER" Advertise="yes" Icon="PatronusDesignIcon.ico" IconIndex="0" />
+        </File>
+
+        <!-- .designcraft: Patronus Design's own format; Patronus Design is its default app. -->
+        <ProgId Id="PatronusDesign.Document" Description="Patronus Design Document" Icon="PatronusDesignExe" IconIndex="0">
+          <Extension Id="designcraft" ContentType="application/x-designcraft">
+            <Verb Id="open" Command="Open" TargetFile="PatronusDesignExe" Argument="&quot;%1&quot;" />
+          </Extension>
+        </ProgId>
+        <!-- IDML: offered under "Open with", never forced as the default. -->
+        <ProgId Id="PatronusDesign.Idml" Description="IDML Document" Icon="PatronusDesignExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\PatronusDesign.Idml\shell\open\command" Value="&quot;[#PatronusDesignExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.idml\OpenWithProgids" Name="PatronusDesign.Idml" Value="" Type="string" />
+
+        <!-- "Open with" app list and the Run dialog (Win+R "patronusdesign"). -->
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\patronusdesign.exe" Name="FriendlyAppName" Value="Patronus Design" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\patronusdesign.exe\shell\open\command" Value="&quot;[#PatronusDesignExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\patronusdesign.exe\SupportedTypes" Name=".designcraft" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\patronusdesign.exe\SupportedTypes" Name=".idml" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\patronusdesign.exe" Value="[#PatronusDesignExe]" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\Patronus Design" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
+      </Component>
+
+      <Component Id="PatronusDesignCli">
+        <File Id="PatronusDesignCliExe" Source="$(var.BinDir)\patronusdesign-cli.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

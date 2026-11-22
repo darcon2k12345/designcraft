@@ -5,8 +5,8 @@
 //! become `#`. RTF also keeps fonts, size, bold/italic, underline, strikethrough,
 //! superscript/subscript, alignment, indents and paragraph spacing.
 
-use designcraft_doc::story::{FORCED_LINE_BREAK, NEXT_PAGE_NUMBER, PAGE_NUMBER, PREV_PAGE_NUMBER, TABLE_ANCHOR};
-use designcraft_doc::{Align, Document, Position, Story};
+use patronusdesign_doc::story::{FORCED_LINE_BREAK, NEXT_PAGE_NUMBER, PAGE_NUMBER, PREV_PAGE_NUMBER, TABLE_ANCHOR};
+use patronusdesign_doc::{Align, Document, Position, Story};
 
 /// Characters of a run as plain text (`None`: dropped).
 fn plain_char(c: char) -> Option<&'static str> {
@@ -92,7 +92,7 @@ pub fn rtf(doc: &Document, story: &Story) -> String {
                 continue;
             }
             let cp = styles.resolve_char(&base, f);
-            if doc.conditions_hide(&cp.conditions) || cp.change == designcraft_doc::ChangeMark::Deleted {
+            if doc.conditions_hide(&cp.conditions) || cp.change == patronusdesign_doc::ChangeMark::Deleted {
                 continue;
             }
             let style = cp.font_style.to_ascii_lowercase();
@@ -145,8 +145,8 @@ pub fn rtf(doc: &Document, story: &Story) -> String {
 
 #[cfg(test)]
 mod tests {
-    use designcraft_doc::build::NewDocument;
-    use designcraft_doc::{CharAttrs, ParaAttrs, StoryId};
+    use patronusdesign_doc::build::NewDocument;
+    use patronusdesign_doc::{CharAttrs, ParaAttrs, StoryId};
 
     use super::*;
 
@@ -176,8 +176,8 @@ mod tests {
     #[test]
     fn text_only_leaves_out_hidden_and_deleted_text() {
         let mut doc = Document::new(&NewDocument::default());
-        doc.conditions.push(designcraft_doc::Condition { name: "Secret".into(), color: [0, 0, 0], visible: false });
-        doc.styles_mut().paragraph.push(designcraft_doc::ParagraphStyle {
+        doc.conditions.push(patronusdesign_doc::Condition { name: "Secret".into(), color: [0, 0, 0], visible: false });
+        doc.styles_mut().paragraph.push(patronusdesign_doc::ParagraphStyle {
             name: "Hidden".into(),
             based_on: None,
             next_style: None,
@@ -189,10 +189,10 @@ mod tests {
         let h = st.text.find("hidden").unwrap();
         st.format_paras(h..h + 1, |p| p.style = "Hidden".into());
         let g = st.text.find(" gone").unwrap();
-        st.format_chars(g..g + 5, |f| f.over = CharAttrs { change: Some(designcraft_doc::ChangeMark::Deleted), ..Default::default() });
+        st.format_chars(g..g + 5, |f| f.over = CharAttrs { change: Some(patronusdesign_doc::ChangeMark::Deleted), ..Default::default() });
         assert_eq!(plain_text(&doc, &st), "shown\r\n\r\nkept");
         let mut outer = Story::with_text(StoryId(2), &TABLE_ANCHOR.to_string(), Default::default());
-        let mut t = designcraft_doc::Table::new(7, 1, 1, 0, 0, 100.0);
+        let mut t = patronusdesign_doc::Table::new(7, 1, 1, 0, 0, 100.0);
         t.cells[0].text = st.clone();
         outer.tables.insert(7, std::sync::Arc::new(t));
         outer.paras[0].table = Some(7);

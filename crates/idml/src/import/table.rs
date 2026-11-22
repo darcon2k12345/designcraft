@@ -24,7 +24,7 @@ const MAX_TABLE_WARNINGS: usize = 20;
 /// bytes, so the 512 MiB a part may decompress to holds some 36 million of them, and a `Cell`
 /// each is tens of gigabytes with every table inside both caps (noted in review).
 fn budgeted_size(rows: usize, cols: usize, reserved: usize) -> Option<(usize, usize, bool)> {
-    let (mut nr, mut nc) = designcraft_doc::table::clamped_size(rows, cols);
+    let (mut nr, mut nc) = patronusdesign_doc::table::clamped_size(rows, cols);
     let left = MAX_IMPORT_TABLE_CELLS.checked_sub(reserved).filter(|left| *left > 0)?;
     let over_budget = nr.saturating_mul(nc) > left;
     if over_budget {
@@ -36,12 +36,12 @@ fn budgeted_size(rows: usize, cols: usize, reserved: usize) -> Option<(usize, us
 
 /// Preserve the legacy uniform field only when all four sides explicitly specify every
 /// property. Partial records must stay sparse so they can inherit from a parent style.
-pub(super) fn uniform_cell_stroke(edges: &[designcraft_doc::CellStrokeAttrs; 4]) -> Option<designcraft_doc::CellStroke> {
+pub(super) fn uniform_cell_stroke(edges: &[patronusdesign_doc::CellStrokeAttrs; 4]) -> Option<patronusdesign_doc::CellStroke> {
     let first = edges.first()?;
     if edges.iter().any(|edge| edge != first) {
         return None;
     }
-    let mut stroke = designcraft_doc::CellStroke {
+    let mut stroke = patronusdesign_doc::CellStroke {
         weight: first.weight?,
         color: first.color.clone()?,
         tint: first.tint?,
@@ -97,9 +97,9 @@ impl<'r> Importer<'r> {
         let cols = &layout.columns[..nc.min(layout.columns.len())];
         let mut t = Table::new(id, nr, nc, 0, 0, 0.0);
         t.options.direction = if table_options.direction.as_deref() == Some("RightToLeftDirection") {
-            designcraft_doc::TextDirection::RightToLeft
+            patronusdesign_doc::TextDirection::RightToLeft
         } else {
-            designcraft_doc::TextDirection::LeftToRight
+            patronusdesign_doc::TextDirection::LeftToRight
         };
         for (r, re) in rows.iter().enumerate() {
             let auto = re.auto_grow().unwrap_or(true);
@@ -115,7 +115,7 @@ impl<'r> Importer<'r> {
             t.set_header_footer(h, f);
         }
         let style_name =
-            table_options.applied_style.as_deref().map(|r| self.table_style_ref(r)).unwrap_or_else(|| designcraft_doc::BASIC_TABLE.into());
+            table_options.applied_style.as_deref().map(|r| self.table_style_ref(r)).unwrap_or_else(|| patronusdesign_doc::BASIC_TABLE.into());
         let style = self.styles.resolve_table_style(&style_name);
         style.apply_to(&mut t, &self.styles.cell);
         // IDML distinguishes an explicit AppliedCellStyle from the effective region style.
@@ -168,11 +168,11 @@ impl<'r> Importer<'r> {
             let mut cell = t.cell(r, c).cloned().unwrap_or_default();
             let cell_el = crate::xml::from_craft(model_cell.to_el());
             let cell_style =
-                model_cell.values.get("AppliedCellStyle").map(|r| self.cell_style_ref(r)).unwrap_or_else(|| designcraft_doc::NO_CELL_STYLE.into());
-            if cell_style != designcraft_doc::NO_CELL_STYLE {
-                designcraft_doc::resolve_cell_style(&self.styles.cell, &cell_style).apply_to(&mut cell);
+                model_cell.values.get("AppliedCellStyle").map(|r| self.cell_style_ref(r)).unwrap_or_else(|| patronusdesign_doc::NO_CELL_STYLE.into());
+            if cell_style != patronusdesign_doc::NO_CELL_STYLE {
+                patronusdesign_doc::resolve_cell_style(&self.styles.cell, &cell_style).apply_to(&mut cell);
             }
-            cell.style = if cell_style == designcraft_doc::NO_CELL_STYLE { String::new() } else { cell_style };
+            cell.style = if cell_style == patronusdesign_doc::NO_CELL_STYLE { String::new() } else { cell_style };
             let default_para = cell.text.paras.first().cloned().unwrap_or_default();
             cell.text = self.story_with_para(StoryId(0), &cell_el, default_para);
             self.read_cell_attrs(&mut cell, &options, border_unset);
@@ -190,7 +190,7 @@ impl<'r> Importer<'r> {
     }
 
     /// A cell's local fill, insets, alignment, rotation and edge strokes.
-    fn read_cell_attrs(&mut self, cell: &mut designcraft_doc::Cell, options: &craft_idml::model::CellOptions, border_unset: bool) {
+    fn read_cell_attrs(&mut self, cell: &mut patronusdesign_doc::Cell, options: &craft_idml::model::CellOptions, border_unset: bool) {
         if let Some(fc) = options.fill_color.as_deref() {
             cell.fill = self.swatch_ref(fc);
         }

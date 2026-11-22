@@ -33,7 +33,7 @@ impl DesignApp {
     /// Start the background font scan, establish the monotonic timing origin, and initialize document, view, input, screenshot, dialog and control state.
     pub fn new(session: Session, services: Services) -> Self {
         // The font menus and the first file opened need the installed fonts: catalog them now.
-        designcraft_fonts::FontDb::global().scan_in_background();
+        patronusdesign_fonts::FontDb::global().scan_in_background();
         // The app owns the monotonic origin for recovery timing and frame pacing; `now_ms` itself
         // is process-global so screenshot deadlines stay comparable across hosts.
         let now = now_ms() / 1000.0;
@@ -171,7 +171,7 @@ impl DesignApp {
                     self.status_error("Color Settings", e);
                 }
             }
-            let _ = designcraft_color::cms::set_active(&known);
+            let _ = patronusdesign_color::cms::set_active(&known);
         }
     }
 
@@ -227,7 +227,7 @@ impl DesignApp {
             panel_docking::cancel_gesture(&ctx);
         }
         canvas::begin_frame(&ctx);
-        let dbg = std::env::var_os("DESIGNCRAFT_DEBUG_LAYOUT").is_some();
+        let dbg = std::env::var_os("PATRONUSDESIGN_DEBUG_LAYOUT").is_some();
         if dbg {
             eprintln!("root start {:?}", ui.available_rect_before_wrap());
         }

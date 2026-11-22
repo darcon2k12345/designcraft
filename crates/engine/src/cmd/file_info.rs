@@ -2,8 +2,8 @@
 //! export writes the title, author, description and keywords into the file's metadata, and EPUB
 //! export writes the title and author.
 
-use designcraft_doc::FileInfo;
-use designcraft_doc::file_info::{clean_keywords, parse_keywords};
+use patronusdesign_doc::FileInfo;
+use patronusdesign_doc::file_info::{clean_keywords, parse_keywords};
 use serde_json::{Map, Value, json};
 
 use super::{CommandSpec, bad, cmd, has_doc};

@@ -2,24 +2,24 @@ use craft_pdf::write::backend as krilla;
 use std::sync::Arc;
 
 use craft_pdf::syntax::object::{Name, Object};
-use designcraft_color::{Color, Swatch};
-use designcraft_compose::Cache;
-use designcraft_doc::build::NewDocument;
-use designcraft_doc::{Asset, AssetId, Content, Document, Fill, Fitting, Graphic, Item, ItemId, Shape, SpreadRef};
-use designcraft_geom::{Affine, Rect};
 use image::{ExtendedColorType, ImageEncoder};
+use patronusdesign_color::{Color, Swatch};
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::build::NewDocument;
+use patronusdesign_doc::{Asset, AssetId, Content, Document, Fill, Fitting, Graphic, Item, ItemId, Shape, SpreadRef};
+use patronusdesign_geom::{Affine, Rect};
 
 use crate::{ExportReport, PdfOptions, Standard, check_pdfx4, export_pdf_with_report};
 
 pub(super) fn place(d: &mut Document, name: &str, data: Vec<u8>, size: (f64, f64), at: (f64, f64)) {
     let asset = AssetId(d.alloc());
-    let mime = designcraft_images::mime(&data).into();
-    let pixels = designcraft_images::pixel_size(&data);
+    let mime = patronusdesign_images::mime(&data).into();
+    let pixels = patronusdesign_images::pixel_size(&data);
     d.assets.insert(asset, Arc::new(Asset { id: asset, name: name.into(), mime, data: data.into(), pixels, ..Default::default() }));
     let lid = d.default_layer();
     let id = ItemId(d.alloc());
     let r = Rect::new(at.0, at.1, at.0 + 100.0, at.1 + 50.0);
-    let mut it = Item::new(id, lid, Shape::Rectangle, designcraft_geom::shapes::rectangle(r));
+    let mut it = Item::new(id, lid, Shape::Rectangle, patronusdesign_geom::shapes::rectangle(r));
     it.content = Content::Graphic(Graphic {
         layer_options: None,
         asset,
@@ -37,7 +37,7 @@ pub(super) fn place(d: &mut Document, name: &str, data: Vec<u8>, size: (f64, f64
 
 fn add_box(d: &mut Document, r: Rect, swatch: &str) {
     let lid = d.default_layer();
-    let mut b = Item::new(ItemId(d.alloc()), lid, Shape::Rectangle, designcraft_geom::shapes::rectangle(r));
+    let mut b = Item::new(ItemId(d.alloc()), lid, Shape::Rectangle, patronusdesign_geom::shapes::rectangle(r));
     b.fill = Fill::swatch(swatch);
     d.insert_item(SpreadRef::Doc(0), b, None).unwrap();
 }

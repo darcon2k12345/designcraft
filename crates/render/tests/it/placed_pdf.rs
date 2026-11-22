@@ -11,11 +11,11 @@ use std::time::Duration;
 use craft_pdf::interpret::Function;
 use craft_pdf::syntax::Pdf;
 use craft_pdf::syntax::object::{Object, ObjectIdentifier};
-use designcraft_compose::Cache;
-use designcraft_doc::build::NewDocument;
-use designcraft_doc::{Asset, AssetId, Content, Document, Graphic, Item, ItemId, PdfCrop, Shape, SpreadRef};
-use designcraft_geom::{Affine, Rect, shapes};
-use designcraft_render::{Rendered, Renderer, pdf_crop_box, pdf_page_size};
+use patronusdesign_compose::Cache;
+use patronusdesign_doc::build::NewDocument;
+use patronusdesign_doc::{Asset, AssetId, Content, Document, Graphic, Item, ItemId, PdfCrop, Shape, SpreadRef};
+use patronusdesign_geom::{Affine, Rect, shapes};
+use patronusdesign_render::{Rendered, Renderer, pdf_crop_box, pdf_page_size};
 
 const WHITE: [u8; 4] = [255, 255, 255, 255];
 const RED: [u8; 4] = [255, 0, 0, 255];
@@ -77,7 +77,7 @@ fn placed(size: f64, pdf: Vec<u8>) -> Rendered {
             id,
             name: "art.pdf".into(),
             mime: "application/pdf".into(),
-            data: designcraft_doc::AssetData::embedded(pdf),
+            data: patronusdesign_doc::AssetData::embedded(pdf),
             ..Default::default()
         });
         let id = ItemId(d.alloc());

@@ -1,0 +1,31 @@
+[package]
+name = "patronus-launcher"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Installs and updates Patronus Design, PdfCraft and PhotoCraft from their GitHub releases"
+
+[lints]
+workspace = true
+
+[lib]
+name = "launcher_core"
+path = "src/lib.rs"
+
+# The window (no console). Windows only; elsewhere it just points at the console tool.
+[[bin]]
+name = "patronus-launcher"
+path = "src/gui.rs"
+
+# The same launcher as a console program, for scripts and PowerShell.
+[[bin]]
+name = "patronus-launcher-cli"
+path = "src/main.rs"
+
+[dependencies]
+craft-update = { workspace = true }
+patronus-release = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+eframe = { workspace = true, features = ["default_fonts", "wgpu", "links"] }

@@ -3,7 +3,7 @@ use super::{CHAR_BUILTINS, CharFormat, El, Ex, ListType, NO_CHAR_ID, Node, PARA_
 
 impl<'a> Ex<'a> {
     /// `<GraphicLayerOption>` of a placed graphic: its layer attributes and nested layer tree.
-    pub(super) fn layer_option_el(&mut self, options: &designcraft_doc::GraphicLayerOptions) -> El {
+    pub(super) fn layer_option_el(&mut self, options: &patronusdesign_doc::GraphicLayerOptions) -> El {
         let model = craft_idml::model::GraphicLayerOptions {
             attributes: options.attributes.iter().map(|(key, value)| (key.clone(), value.clone())).collect(),
             layers: options.layers.iter().map(|layer| layer.iter().map(|(key, value)| (key.clone(), value.clone())).collect()).collect(),
@@ -107,10 +107,10 @@ impl<'a> Ex<'a> {
         el.push(crate::xml::from_craft(
             craft_idml::model::StoryPreference {
                 optical_margin_alignment: s.optical_margin.on,
-                optical_margin_size: designcraft_doc::OpticalMargin::clamp_size(s.optical_margin.size)
-                    .unwrap_or(designcraft_doc::OpticalMargin::DEFAULT_SIZE),
+                optical_margin_size: patronusdesign_doc::OpticalMargin::clamp_size(s.optical_margin.size)
+                    .unwrap_or(patronusdesign_doc::OpticalMargin::DEFAULT_SIZE),
                 vertical: s.vertical,
-                right_to_left: s.direction == designcraft_doc::TextDirection::RightToLeft,
+                right_to_left: s.direction == patronusdesign_doc::TextDirection::RightToLeft,
             }
             .to_el(),
         ));
@@ -123,7 +123,7 @@ impl<'a> Ex<'a> {
     /// Write an index reference and record any cross-reference it declares.
     fn index_reference(&mut self, s: &Story, k: usize) -> Option<El> {
         if let Some(r) = s.index_refs.get(k).filter(|r| !r.topics.is_empty()) {
-            use designcraft_doc::index::IndexRange as R;
+            use patronusdesign_doc::index::IndexRange as R;
             for n in 1..=r.topics.len() {
                 // A shared topic has one key: keep the first reference's
                 // value (even empty), rather than inventing a merged key.
@@ -160,10 +160,12 @@ impl<'a> Ex<'a> {
     fn anchored_object(&mut self, s: &Story, k: usize) -> Option<El> {
         if let Some(o) = s.objects.get(k) {
             let mut e = self.item_el(&o.item, o.item.xf);
-            use designcraft_doc::anchored::AnchorAlign as A;
+            use patronusdesign_doc::anchored::AnchorAlign as A;
             let setting = match &o.position {
-                designcraft_doc::AnchorPosition::Inline { y_offset } => craft_idml::model::AnchoredObjectSetting::inline_position(*y_offset).to_el(),
-                designcraft_doc::AnchorPosition::AboveLine { align, space_before, space_after } => {
+                patronusdesign_doc::AnchorPosition::Inline { y_offset } => {
+                    craft_idml::model::AnchoredObjectSetting::inline_position(*y_offset).to_el()
+                }
+                patronusdesign_doc::AnchorPosition::AboveLine { align, space_before, space_after } => {
                     craft_idml::model::AnchoredObjectSetting::above_line(
                         match align {
                             A::Left => "LeftAlign",
@@ -175,7 +177,7 @@ impl<'a> Ex<'a> {
                     )
                     .to_el()
                 }
-                designcraft_doc::AnchorPosition::Custom {
+                patronusdesign_doc::AnchorPosition::Custom {
                     x_relative,
                     y_relative,
                     x_offset,
@@ -276,13 +278,13 @@ impl<'a> Ex<'a> {
     /// A cross-reference source's text: what its format generates, or the text typed over it, its
     /// page numbers as InDesign's live cross-reference page number (as InDesign writes them, so
     /// generated text reads back as generated).
-    fn xref_content(&mut self, c: &mut El, x: &designcraft_doc::CrossRef) {
+    fn xref_content(&mut self, c: &mut El, x: &patronusdesign_doc::CrossRef) {
         let t = match &x.text {
             Some(t) => t.clone(),
             None => self.d.generated_xref_text(x.target, &x.format).unwrap_or_else(|| "??".into()),
         };
         let page = x.page.clone().unwrap_or_else(|| "?".into());
-        for (n, part) in t.split(designcraft_doc::xref::PAGE_NUM_BLOCK).enumerate() {
+        for (n, part) in t.split(patronusdesign_doc::xref::PAGE_NUM_BLOCK).enumerate() {
             if n > 0 {
                 c.push(crate::xml::from_craft(craft_idml::model::text_variable_instance_el(
                     &self.fresh(),
@@ -364,14 +366,14 @@ impl<'a> Ex<'a> {
                     if let Some(t) = s.para_table(pi) {
                         out.push(Node::El(self.table_el(t)));
                     }
-                } else if ch == designcraft_doc::ANCHOR_MARK {
+                } else if ch == patronusdesign_doc::ANCHOR_MARK {
                     flush_text(&mut cur, &mut pending);
                     flush_content(&mut pending, &mut out);
                     let k = marks.anchor.partition_point(|&at| at < seg_start + ci);
                     if let Some(a) = s.anchors.get(k) {
                         out.push(Node::El(crate::xml::from_craft(craft_idml::model::StoryAnchor::destination_el(a.id, &a.name))));
                     }
-                } else if ch == designcraft_doc::OBJECT_MARK {
+                } else if ch == patronusdesign_doc::OBJECT_MARK {
                     // An anchored object: the item inside the range with its anchoring settings.
                     flush_text(&mut cur, &mut pending);
                     flush_content(&mut pending, &mut out);
@@ -379,14 +381,14 @@ impl<'a> Ex<'a> {
                     if let Some(el) = self.anchored_object(s, k) {
                         out.push(Node::El(el));
                     }
-                } else if ch == designcraft_doc::INDEX_MARK {
+                } else if ch == patronusdesign_doc::INDEX_MARK {
                     flush_text(&mut cur, &mut pending);
                     flush_content(&mut pending, &mut out);
                     let k = marks.index.partition_point(|&at| at < seg_start + ci);
                     if let Some(el) = self.index_reference(s, k) {
                         out.push(Node::El(el));
                     }
-                } else if ch == designcraft_doc::XREF_MARK {
+                } else if ch == patronusdesign_doc::XREF_MARK {
                     // A source wrapping its current text (InDesign regenerates it on update).
                     flush_text(&mut cur, &mut pending);
                     flush_content(&mut pending, &mut out);
@@ -410,7 +412,7 @@ impl<'a> Ex<'a> {
                         csrs.push(src);
                         self.xref_sources.push((me, x.target));
                     }
-                } else if let Some(vi) = designcraft_doc::vars::var_index(ch) {
+                } else if let Some(vi) = patronusdesign_doc::vars::var_index(ch) {
                     flush_text(&mut cur, &mut pending);
                     flush_content(&mut pending, &mut out);
                     if let Some(v) = self.d.text_variables.get(vi) {
@@ -422,9 +424,9 @@ impl<'a> Ex<'a> {
                             &format!("dTextVariablen{}", v.name),
                         ))));
                     }
-                } else if ch == designcraft_doc::NOTE_MARK {
+                } else if ch == patronusdesign_doc::NOTE_MARK {
                     // Editorial notes aren't written to IDML yet.
-                } else if ch == designcraft_doc::ENDNOTE_REF {
+                } else if ch == patronusdesign_doc::ENDNOTE_REF {
                     // Endnote structures aren't written to IDML yet: the endnote frame keeps their
                     // text (numbers included), and the reference keeps its number as superscript
                     // text, so the endnote's place isn't lost (#2753).
@@ -438,12 +440,12 @@ impl<'a> Ex<'a> {
                     let k = u32::try_from(s.endnotes_before(seg_start + ci)).unwrap_or(u32::MAX);
                     let n = self.d.endnote_start(s.id).saturating_add(k);
                     let mut c = self.csr_el(&f);
-                    c.set("Position", names::position_out(designcraft_doc::Position::Superscript));
+                    c.set("Position", names::position_out(patronusdesign_doc::Position::Superscript));
                     let mut content = El::new("Content");
                     content.children.push(Node::Text(self.d.endnote_options.label(n)));
                     c.push(content);
                     csrs.push(c);
-                } else if ch == designcraft_doc::FOOTNOTE_REF {
+                } else if ch == patronusdesign_doc::FOOTNOTE_REF {
                     // The reference: its own range carrying the reference position.
                     flush_text(&mut cur, &mut pending);
                     flush_content(&mut pending, &mut out);
@@ -455,7 +457,7 @@ impl<'a> Ex<'a> {
                     if let Some(n) = s.notes.get(s.notes_before(seg_start + ci)) {
                         let mut c = self.csr_el(&f);
                         let pos = self.d.footnote_options.ref_position;
-                        if pos != designcraft_doc::Position::Normal {
+                        if pos != patronusdesign_doc::Position::Normal {
                             c.set("Position", names::position_out(pos));
                         }
                         c.push(self.footnote_el(&n.text));
@@ -512,7 +514,7 @@ impl<'a> Ex<'a> {
             .iter()
             .enumerate()
             .filter_map(|(i, h)| match &h.source {
-                designcraft_doc::HyperlinkSource::Text { story, start, end } if *story == s.id => {
+                patronusdesign_doc::HyperlinkSource::Text { story, start, end } if *story == s.id => {
                     let (a, b) = ((*start).max(r.start), (*end).min(r.end));
                     (a < b).then_some((i, a..b))
                 }
@@ -588,7 +590,7 @@ impl<'a> Ex<'a> {
 }
 
 /// The left stop the composer adds for a list's Tab Position, if it adds one.
-fn list_tab_stop(pp: &designcraft_doc::ParaProps) -> Option<f64> {
+fn list_tab_stop(pp: &patronusdesign_doc::ParaProps) -> Option<f64> {
     if !matches!(pp.list_type, ListType::Bullets | ListType::Numbers) {
         return None;
     }
@@ -599,7 +601,10 @@ fn list_tab_stop(pp: &designcraft_doc::ParaProps) -> Option<f64> {
 /// stop the composer adds for it, in the TabList of each level (style or paragraph) that sets the
 /// list type, the tab position or the tabs. `resolved` gives this level's resolved attributes and
 /// those it inherits; the stop comes back on import as an ordinary tab stop.
-pub(super) fn with_list_tab(mut a: ParaAttrs, resolved: impl FnOnce() -> (designcraft_doc::ParaProps, designcraft_doc::ParaProps)) -> ParaAttrs {
+pub(super) fn with_list_tab(
+    mut a: ParaAttrs,
+    resolved: impl FnOnce() -> (patronusdesign_doc::ParaProps, patronusdesign_doc::ParaProps),
+) -> ParaAttrs {
     if a.list_tab.is_none() && a.tabs.is_none() && a.list_type.is_none() {
         return a;
     }
@@ -611,7 +616,12 @@ pub(super) fn with_list_tab(mut a: ParaAttrs, resolved: impl FnOnce() -> (design
     }
     let mut tabs = here.tabs;
     if let Some(t) = stop {
-        tabs.push(designcraft_doc::TabStop { position: t, align: designcraft_doc::TabAlign::Left, leader: String::new(), align_on: String::new() });
+        tabs.push(patronusdesign_doc::TabStop {
+            position: t,
+            align: patronusdesign_doc::TabAlign::Left,
+            leader: String::new(),
+            align_on: String::new(),
+        });
         tabs.sort_by(|a, b| a.position.total_cmp(&b.position));
     }
     a.tabs = Some(tabs);
@@ -630,10 +640,10 @@ impl Marks {
     fn of(s: &Story) -> Self {
         let at = |c: char| s.text.match_indices(c).map(|(i, _)| i).collect::<Vec<_>>();
         Marks {
-            anchor: at(designcraft_doc::ANCHOR_MARK),
-            object: at(designcraft_doc::OBJECT_MARK),
-            index: at(designcraft_doc::INDEX_MARK),
-            xref: at(designcraft_doc::XREF_MARK),
+            anchor: at(patronusdesign_doc::ANCHOR_MARK),
+            object: at(patronusdesign_doc::OBJECT_MARK),
+            index: at(patronusdesign_doc::INDEX_MARK),
+            xref: at(patronusdesign_doc::XREF_MARK),
         }
     }
 }

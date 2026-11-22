@@ -5,12 +5,12 @@ use serde_json::{Value, json};
 use super::{CommandSpec, bad, cmd, has_selection, targets};
 use crate::Session;
 
-fn placed_pdf(s: &Session, id: designcraft_doc::ItemId) -> Option<std::sync::Arc<Vec<u8>>> {
+fn placed_pdf(s: &Session, id: patronusdesign_doc::ItemId) -> Option<std::sync::Arc<Vec<u8>>> {
     let d = &s.active()?.doc;
     let g = d.item(id)?.graphic()?;
     let a = d.assets.get(&g.asset)?;
     let bytes = a.data.load().ok()?;
-    designcraft_render::is_pdf(&bytes).then_some(bytes)
+    patronusdesign_render::is_pdf(&bytes).then_some(bytes)
 }
 
 pub fn specs() -> Vec<CommandSpec> {
@@ -22,7 +22,7 @@ pub fn specs() -> Vec<CommandSpec> {
             let hidden = item.map(|i| i.pdf_hidden_layers.clone()).unwrap_or_default();
             let overridden = item.is_some_and(|i| i.has_pdf_layer_override());
             Ok(Value::Array(
-                designcraft_render::pdf_layers(&data)
+                patronusdesign_render::pdf_layers(&data)
                     .into_iter()
                     .map(|(name, on)| json!({"visible": if overridden { !hidden.contains(&name) } else { on }, "name": name, "default": on, "overridden": overridden}))
                     .collect(),
@@ -62,7 +62,7 @@ pub fn specs() -> Vec<CommandSpec> {
                     let mut checked = std::collections::HashSet::new();
                     for id in &ids {
                         let Some(data) = placed_pdf(s, *id) else { continue };
-                        if checked.insert(std::sync::Arc::as_ptr(&data)) && designcraft_render::pdf_hide_layers(&data, &hidden).is_none() {
+                        if checked.insert(std::sync::Arc::as_ptr(&data)) && patronusdesign_render::pdf_hide_layers(&data, &hidden).is_none() {
                             return Err(bad(
                                 "object.layerOptions",
                                 "the selected PDF layers could not be changed (no readable optional-content layers, or an unsupported file); use the file defaults or replace the PDF",

@@ -2,10 +2,10 @@
 //! fonts and glyphs, missing or low-resolution graphics, RGB content in print documents, empty
 //! text frames, white or [Paper] set to overprint.
 
-use designcraft_compose::{Cache, ComposedStory};
-use designcraft_doc::{Content, Document, Intent, Item, SpreadRef};
-use designcraft_fonts::FaceRef;
-use designcraft_geom::Affine;
+use patronusdesign_compose::{Cache, ComposedStory};
+use patronusdesign_doc::{Content, Document, Intent, Item, SpreadRef};
+use patronusdesign_fonts::FaceRef;
+use patronusdesign_geom::Affine;
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -66,9 +66,9 @@ const MISSING_GLYPHS_LISTED: usize = 20;
 /// Nested notes and cells report the owning page frame, not their synthetic frame zero.
 fn missing_glyphs(
     cs: &ComposedStory,
-    owner: Option<designcraft_doc::ItemId>,
+    owner: Option<patronusdesign_doc::ItemId>,
     depth: usize,
-    out: &mut Vec<(FaceRef, Vec<char>, designcraft_doc::ItemId)>,
+    out: &mut Vec<(FaceRef, Vec<char>, patronusdesign_doc::ItemId)>,
 ) {
     if depth > 16 {
         return;
@@ -97,10 +97,10 @@ fn missing_glyphs(
 
 /// Locate an embedded frame at the outer page frame that actually renders it: the frame, the page
 /// its centre is on, and every page it reaches (see [`pages_of`]).
-type Located = (designcraft_doc::ItemId, Option<usize>, Vec<usize>);
+type Located = (patronusdesign_doc::ItemId, Option<usize>, Vec<usize>);
 
-fn overset_location(d: &Document, cache: &Cache, target: designcraft_doc::ItemId) -> Option<Located> {
-    let at = |id: designcraft_doc::ItemId, loc: &designcraft_doc::ItemLoc| {
+fn overset_location(d: &Document, cache: &Cache, target: patronusdesign_doc::ItemId) -> Option<Located> {
+    let at = |id: patronusdesign_doc::ItemId, loc: &patronusdesign_doc::ItemLoc| {
         let it = d.item(id);
         let xf = d.parent_xf(loc);
         (id, it.and_then(|it| page_of(d, loc.spread, it, xf)), it.map(|it| pages_of(d, loc.spread, it, xf)).unwrap_or_default())
@@ -108,7 +108,7 @@ fn overset_location(d: &Document, cache: &Cache, target: designcraft_doc::ItemId
     if let Some(loc) = d.find(target) {
         return Some(at(target, &loc));
     }
-    fn contains(root: &designcraft_compose::FrameText, target: designcraft_doc::ItemId) -> bool {
+    fn contains(root: &patronusdesign_compose::FrameText, target: patronusdesign_doc::ItemId) -> bool {
         let mut frames = vec![root];
         while let Some(frame) = frames.pop() {
             for object in &frame.objects {
@@ -165,7 +165,7 @@ fn page_list(pages: &[usize]) -> String {
 }
 
 /// The parent spread and the page of it a frame sits on, or `None` for a frame on a document page.
-fn parent_page_of(d: &Document, target: designcraft_doc::ItemId) -> Option<(usize, usize)> {
+fn parent_page_of(d: &Document, target: patronusdesign_doc::ItemId) -> Option<(usize, usize)> {
     let loc = d.find(target)?;
     let SpreadRef::Parent(pi) = loc.spread else { return None };
     let bounds = d.parent_xf(&loc).transform_rect_bbox(d.item(target)?.bounds());
@@ -180,7 +180,7 @@ fn pages_showing(d: &Document, (pi, pp): (usize, usize)) -> Vec<usize> {
 }
 
 /// Characters of `story` that `cs` had no room for.
-fn overset_chars(story: &designcraft_doc::Story, cs: &ComposedStory) -> usize {
+fn overset_chars(story: &patronusdesign_doc::Story, cs: &ComposedStory) -> usize {
     story.text.get(cs.overset_at.unwrap_or(0)..).unwrap_or("").chars().count()
 }
 
@@ -297,10 +297,10 @@ pub fn check_document(d: &Document, cache: &Cache, document: Option<&std::path::
     // Stories: overset and fonts.
     let mut missing_fonts: Vec<String> = Vec::new();
     let mut unsupported_typography = std::collections::BTreeSet::new();
-    let mut missing: Vec<(FaceRef, Vec<char>, designcraft_doc::ItemId)> = Vec::new();
+    let mut missing: Vec<(FaceRef, Vec<char>, patronusdesign_doc::ItemId)> = Vec::new();
     // Ruby and kenten set to overprint in white, by the frame that shows them (`None`: a note's,
     // a cell's or an unplaced story, which has no frame of its own).
-    let mut white_text: std::collections::BTreeMap<Option<designcraft_doc::ItemId>, Vec<&'static str>> = std::collections::BTreeMap::new();
+    let mut white_text: std::collections::BTreeMap<Option<patronusdesign_doc::ItemId>, Vec<&'static str>> = std::collections::BTreeMap::new();
     for story in d.stories.values() {
         let cs = cache.get(d, story.id, None);
         missing_glyphs(&cs, None, 0, &mut missing);
@@ -330,7 +330,7 @@ pub fn check_document(d: &Document, cache: &Cache, document: Option<&std::path::
         for (pi, pf) in story.paras.iter().enumerate() {
             let (para, base) = d.styles.resolve_para(pf);
             let Some(range) = ranges.get(pi) else { continue };
-            let has_rtl = story.text.get(range.clone()).is_some_and(|text| text.chars().any(designcraft_fonts::is_rtl));
+            let has_rtl = story.text.get(range.clone()).is_some_and(|text| text.chars().any(patronusdesign_fonts::is_rtl));
             if has_rtl {
                 if !matches!(para.arabic_justification.as_str(), "" | "DefaultJustification") {
                     unsupported_typography.insert(format!(
@@ -343,7 +343,7 @@ pub fn check_document(d: &Document, cache: &Cache, document: Option<&std::path::
                         .insert("Paragraph Kashida width preset is preserved; automatic elongation uses the engine's bounded allocation".into());
                 }
             }
-            match designcraft_doc::mojikumi::Rules::resolve(&d.styles, &para.mojikumi) {
+            match patronusdesign_doc::mojikumi::Rules::resolve(&d.styles, &para.mojikumi) {
                 Err(reason) => {
                     unsupported_typography.insert(format!("Mojikumi `{}` is not applied: {reason}", para.mojikumi));
                 }
@@ -375,9 +375,9 @@ pub fn check_document(d: &Document, cache: &Cache, document: Option<&std::path::
                     }
                 }
                 if has_rtl
-                    && story.text.get(run.start.max(range.start)..run.end.min(range.end)).is_some_and(|t| t.chars().any(designcraft_fonts::is_rtl))
+                    && story.text.get(run.start.max(range.start)..run.end.min(range.end)).is_some_and(|t| t.chars().any(patronusdesign_fonts::is_rtl))
                 {
-                    use designcraft_doc::arabic::DiacriticPosition as P;
+                    use patronusdesign_doc::arabic::DiacriticPosition as P;
                     if !matches!(props.diacritic_position, P::Default | P::OpenType) {
                         unsupported_typography.insert(format!(
                             "Diacritic preset `{:?}` is preserved; font OpenType anchors and explicit offsets are used",
@@ -448,12 +448,12 @@ pub fn check_document(d: &Document, cache: &Cache, document: Option<&std::path::
             pending.extend(it.children().iter().rev().map(|child| (child.as_ref(), xf)));
             let page = page_of(d, SpreadRef::Doc(si), it, parent);
             if let Content::Graphic(g) = &it.content
-                && g.layer_options.as_ref().is_some_and(designcraft_doc::GraphicLayerOptions::has_visibility_overrides)
+                && g.layer_options.as_ref().is_some_and(patronusdesign_doc::GraphicLayerOptions::has_visibility_overrides)
             {
                 out.push(Issue {
                     severity: "warning",
                     kind: "unsupportedGraphicLayers",
-                    message: designcraft_doc::GRAPHIC_LAYER_RENDERING_WARNING.into(),
+                    message: patronusdesign_doc::GRAPHIC_LAYER_RENDERING_WARNING.into(),
                     item: Some(it.id.0),
                     page,
                 });
@@ -506,7 +506,7 @@ pub fn check_document(d: &Document, cache: &Cache, document: Option<&std::path::
     // RGB swatches in use in a print document.
     if d.settings.intent == Intent::Print {
         for sw in &d.swatches {
-            if let designcraft_color::SwatchValue::Color { color: designcraft_color::Color::Rgb { .. }, .. } = sw.value {
+            if let patronusdesign_color::SwatchValue::Color { color: patronusdesign_color::Color::Rgb { .. }, .. } = sw.value {
                 out.push(Issue {
                     severity: "warning",
                     kind: "rgbColor",
@@ -523,7 +523,7 @@ pub fn check_document(d: &Document, cache: &Cache, document: Option<&std::path::
         out.push(Issue {
             severity: "warning",
             kind: "unsupportedGraphicLayers",
-            message: designcraft_doc::GRAPHIC_LAYER_RENDERING_WARNING.into(),
+            message: patronusdesign_doc::GRAPHIC_LAYER_RENDERING_WARNING.into(),
             item: None,
             page: None,
         });
@@ -557,7 +557,7 @@ mod placed_vector_tests {
         s.execute("file.place", &json!({"base64": pdf["base64"], "name": "logo.pdf", "x": 72, "y": 72, "width": 300})).unwrap();
         // Deselect the logo, or the photo would replace it in its frame.
         s.execute("selection.set", &json!({"ids": []})).unwrap();
-        let png = designcraft_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
         s.execute("file.place", &json!({"base64": base64_encode(&png), "name": "photo.png", "x": 72, "y": 300, "width": 300})).unwrap();
         let r = s.execute("preflight.run", &json!({})).unwrap();
         let low: Vec<&str> =
@@ -571,7 +571,7 @@ mod placed_vector_tests {
     fn a_missing_link_shown_by_its_preview_is_still_reported() {
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
-        let png = designcraft_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
+        let png = patronusdesign_render::Rendered { width: 40, height: 20, pixels: vec![200; 40 * 20 * 4] }.to_png();
         s.execute("file.place", &json!({"base64": base64_encode(&png), "name": "photo.jpg", "x": 72, "y": 72, "width": 20})).unwrap();
         let doc = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
         let asset = doc.assets.values_mut().next().unwrap();
@@ -630,11 +630,12 @@ mod missing_glyph_tests {
     #[test]
     fn characters_drawn_as_missing_glyphs_are_listed() {
         // Some font has them, for when fallback fonts are on.
-        designcraft_fonts::FontDb::global().add_font(designcraft_fonts::testing::font_with("DC Test Preflight Helper", &['日', '本', '語']).unwrap());
+        patronusdesign_fonts::FontDb::global()
+            .add_font(patronusdesign_fonts::testing::font_with("DC Test Preflight Helper", &['日', '本', '語']).unwrap());
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         s.execute("frame.create", &json!({"rect": [72, 72, 400, 300], "content": "text", "text": "Hello 日本語 日本 and 語."})).unwrap();
-        let family = designcraft_fonts::DEFAULT_FAMILY;
+        let family = patronusdesign_fonts::DEFAULT_FAMILY;
         assert_eq!(missing_glyphs(&mut s), [("error".to_string(), format!("Missing glyphs in {family} Regular: 日 本 語"))]);
         // Drawn from fallback fonts: nothing missing.
         s.execute("document.preferences", &json!({"glyphFallback": true})).unwrap();
@@ -666,9 +667,9 @@ mod generated_glyph_tests {
         let created = s.execute("frame.create", &json!({"rect":[20,20,300,400],"content":"text","text":"Body"})).unwrap();
         let d = Arc::make_mut(&mut s.doc_mut().unwrap().doc);
         let sid = *d.stories.keys().next().unwrap();
-        d.footnote_options.affix_in = designcraft_doc::notes::AffixIn::Reference;
+        d.footnote_options.affix_in = patronusdesign_doc::notes::AffixIn::Reference;
         d.footnote_options.suffix = "\u{10fffd}".into();
-        d.story_mut(sid).unwrap().insert_note(4, "Note", designcraft_doc::ParaFormat::default());
+        d.story_mut(sid).unwrap().insert_note(4, "Note", patronusdesign_doc::ParaFormat::default());
         let report = s.execute("preflight.run", &json!({})).unwrap();
         let issue = report["issues"].as_array().unwrap().iter().find(|i| i["kind"] == "missingGlyphs").unwrap();
         assert!(issue["message"].as_str().unwrap().contains('\u{10fffd}'));
@@ -688,9 +689,9 @@ mod mojikumi_nested_tests {
         s.execute("frame.create", &json!({"rect":[20,20,300,400],"content":"text","text":"Body"})).unwrap();
         let d = Arc::make_mut(&mut s.doc_mut().unwrap().doc);
         let sid = *d.stories.keys().next().unwrap();
-        let mut table = designcraft_doc::Table::new(1, 1, 1, 0, 0, 100.0);
+        let mut table = patronusdesign_doc::Table::new(1, 1, 1, 0, 0, 100.0);
         let cell = &mut table.cells[0].text;
-        let mut pf = designcraft_doc::ParaFormat::default();
+        let mut pf = patronusdesign_doc::ParaFormat::default();
         pf.para.mojikumi = Some("MojikumiTable/Unrecognized".into());
         cell.insert_note(0, "Note", pf);
         d.story_mut(sid).unwrap().insert_table(0, table);

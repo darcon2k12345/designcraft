@@ -12,7 +12,7 @@ const UNC: &str = r"\\192.0.2.1\share\x.png";
 const FILE_URL: &str = "file://192.0.2.1/s/x.png";
 
 fn png() -> Vec<u8> {
-    designcraft_render::Rendered { width: 2, height: 2, pixels: vec![255; 16] }.to_png()
+    patronusdesign_render::Rendered { width: 2, height: 2, pixels: vec![255; 16] }.to_png()
 }
 
 fn folder(name: &str) -> PathBuf {
@@ -62,20 +62,20 @@ fn links_to_other_computers_never_reach_the_file_system() {
 
     // Data sources and book chapters stored the same way.
     let mut d = s.doc().unwrap().doc.as_ref().clone();
-    d.data_merge.sources.push(designcraft_doc::DataSource {
+    d.data_merge.sources.push(patronusdesign_doc::DataSource {
         id: 1,
         path: Some(UNC.replace("x.png", "data.csv")),
         relative_path: Some(FILE_URL.replace("x.png", "data.csv")),
         name: "data.csv".into(),
-        delimiter: designcraft_doc::Delimiter::Comma,
+        delimiter: patronusdesign_doc::Delimiter::Comma,
         sheet: None,
         fields: vec![],
         rows: vec![],
         fingerprint: None,
-        status: designcraft_doc::SourceStatus::Ok,
+        status: patronusdesign_doc::SourceStatus::Ok,
         warnings: vec![],
     });
-    std::fs::write(&doc, designcraft_format::save(&d).unwrap()).unwrap();
+    std::fs::write(&doc, patronusdesign_format::save(&d).unwrap()).unwrap();
     let mut opened = Session::new();
     let ((), seen) = crate::io::touched(|| {
         opened.execute("file.open", &json!({"path": doc.to_string_lossy()})).unwrap();
@@ -83,7 +83,7 @@ fn links_to_other_computers_never_reach_the_file_system() {
     });
     // The document itself and the folders beside it, nothing else.
     assert!(seen.iter().all(|p| p.starts_with(&dir)), "{seen:?}");
-    assert_eq!(opened.doc().unwrap().doc.data_merge.sources[0].status, designcraft_doc::SourceStatus::Missing);
+    assert_eq!(opened.doc().unwrap().doc.data_merge.sources[0].status, patronusdesign_doc::SourceStatus::Missing);
     let book = dir.join("b.dcbook");
     std::fs::write(&book, json!({"documents": [UNC.replace("x.png", "c.designcraft"), FILE_URL.replace("x.png", "c.designcraft")]}).to_string())
         .unwrap();

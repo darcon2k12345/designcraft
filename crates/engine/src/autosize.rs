@@ -11,9 +11,9 @@
 
 use std::sync::Arc;
 
-use designcraft_compose::{ComposeOptions, ComposedStory, FrameSpec, compose, frame_specs};
-use designcraft_doc::{AutoSize, Document, Item, ItemId, StoryId};
-use designcraft_geom::{Affine, Rect, shapes};
+use patronusdesign_compose::{ComposeOptions, ComposedStory, FrameSpec, compose, frame_specs};
+use patronusdesign_doc::{AutoSize, Document, Item, ItemId, StoryId};
+use patronusdesign_geom::{Affine, Rect, shapes};
 
 /// Auto-size reference points, row-major from top-left (`TextFrameOptions::auto_size_ref`).
 pub const REFERENCES: [&str; 9] =

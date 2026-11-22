@@ -25,7 +25,7 @@ impl ClipboardImage {
     /// past the paste limit are not copied, and pasting it is refused by its size.
     pub fn from_color_image(image: &egui::ColorImage) -> Self {
         let [w, h] = image.size.map(|n| u32::try_from(n).unwrap_or(u32::MAX));
-        let rgba = if designcraft_engine::cmd::check_pasted_size(w, h).is_ok() {
+        let rgba = if patronusdesign_engine::cmd::check_pasted_size(w, h).is_ok() {
             image.pixels.iter().flat_map(|c| c.to_srgba_unmultiplied()).collect()
         } else {
             Vec::new()

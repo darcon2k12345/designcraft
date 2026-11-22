@@ -1,4 +1,4 @@
-DesignCraft
+Patronus Design
 Copyright (c) 2026 ArtCraft Team and the DesignCraft contributors.
 Licensed under the MIT License or the Apache License, Version 2.0, at your option
 (LICENSE-MIT, LICENSE-APACHE).
@@ -17,7 +17,7 @@ list (author, source, license) is in ASSETS.md.
 - JetBrains Mono (assets/fonts/JetBrainsMono-*.ttf) — SIL Open Font License 1.1. See assets/fonts/OFL-JetBrainsMono.txt.
 - English hyphenation word list (assets/hyphenation/en-us.dic) — derived from the Moby Hyphenator II
   list by Grady Ward, public domain (Project Gutenberg eBook #3204). The hyphenation patterns
-  (assets/hyphenation/en-us.pat) are trained from it by DesignCraft and released as CC0-1.0.
+  (assets/hyphenation/en-us.pat) are trained from it by Patronus Design and released as CC0-1.0.
 - Spanish hyphenation patterns, embedded through the hypher crate (feature "spanish"):
   hyph-es.tex 5.0 from hyph-utf8, https://github.com/hyphenation/tex-hyphen.
   Copyright (C) 1993, 1997 Javier Bezos, 2001-2019 Javier Bezos, CervanTeX. MIT License:

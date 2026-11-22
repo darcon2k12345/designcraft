@@ -1,8 +1,8 @@
 //! The Tools panel (left): single or double column, tool groups with flyouts, fill/stroke proxy,
 //! screen mode buttons.
 
-use designcraft_tools::{SPLIT_IN_TWO_COLUMNS, TOOL_GROUPS};
 use egui::{Color32, Sense, Stroke, StrokeKind, vec2};
+use patronusdesign_tools::{SPLIT_IN_TWO_COLUMNS, TOOL_GROUPS};
 use serde_json::{Value, json};
 
 use crate::theme::Tokens;
@@ -288,7 +288,7 @@ pub fn show(app: &mut DesignApp, ui: &mut egui::Ui) {
             }
         }
     });
-    if std::env::var_os("DESIGNCRAFT_DEBUG_LAYOUT").is_some() {
+    if std::env::var_os("PATRONUSDESIGN_DEBUG_LAYOUT").is_some() {
         eprintln!("tools panel rect {:?} (wanted width {width}); remaining {:?}", r.response.rect, ui.available_rect_before_wrap());
     }
 }
@@ -426,8 +426,8 @@ fn fill_stroke_proxy(app: &mut DesignApp, ui: &mut egui::Ui, width: f32, cols: u
     // them out; one well with the kind in front (and a flyout of the three) in one column.
     let front_sw = if stroke_front { &stroke_sw } else { &fill_sw };
     let front_kind = match doc.as_ref() {
-        Some(_) if front_sw == designcraft_color::swatch::NONE => 2,
-        Some(d) if designcraft_color::swatch::resolve_gradient(&d.swatches, front_sw).is_some() => 1,
+        Some(_) if front_sw == patronusdesign_color::swatch::NONE => 2,
+        Some(d) if patronusdesign_color::swatch::resolve_gradient(&d.swatches, front_sw).is_some() => 1,
         _ => 0,
     };
     let applies: [(&str, &str); 3] =
@@ -666,12 +666,10 @@ pub(crate) fn apply_color(app: &mut DesignApp) -> Result<Value, String> {
 /// a new white-to-black gradient (InDesign's default), on the fill or stroke in front.
 pub(crate) fn apply_gradient(app: &mut DesignApp) -> Result<Value, String> {
     let st = app.session.active().ok_or("no document")?;
-    let known = app
-        .ui
-        .last_gradient
-        .clone()
-        .filter(|s| designcraft_color::swatch::resolve_gradient(&st.doc.swatches, s).is_some())
-        .or_else(|| st.doc.swatches.iter().find(|w| matches!(w.value, designcraft_color::SwatchValue::Gradient { .. })).map(|w| w.name.clone()));
+    let known =
+        app.ui.last_gradient.clone().filter(|s| patronusdesign_color::swatch::resolve_gradient(&st.doc.swatches, s).is_some()).or_else(|| {
+            st.doc.swatches.iter().find(|w| matches!(w.value, patronusdesign_color::SwatchValue::Gradient { .. })).map(|w| w.name.clone())
+        });
     let stroke = app.ui.stroke_front;
     if let Some(sw) = known {
         return crate::panels::apply_swatch(app, stroke, &sw, None);
@@ -699,11 +697,11 @@ mod tests;
 #[cfg(test)]
 mod text_color_tests {
     use super::*;
-    use designcraft_doc::{ItemId, StoryId};
+    use patronusdesign_doc::{ItemId, StoryId};
 
     #[test]
     fn integration_color_swap_preserves_each_run_and_frame() {
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let mut frames = vec![];
         let mut stories = vec![];
@@ -744,7 +742,7 @@ mod text_color_tests {
     #[test]
     fn integration_color_toolbar_picker_targets_selected_frame_text() {
         use egui_kittest::kittest::Queryable;
-        let mut app = DesignApp::new(designcraft_engine::Session::new(), crate::Services::default());
+        let mut app = DesignApp::new(patronusdesign_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         let f = app.run("frame.create", json!({"rect":[36,36,300,200],"content":"text","text":"hello"})).unwrap();
         app.run("selection.set", json!({"ids":[f["id"]]})).unwrap();

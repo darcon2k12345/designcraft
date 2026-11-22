@@ -1,4 +1,4 @@
-use designcraft_geom::corners::Corner;
+use patronusdesign_geom::corners::Corner;
 
 use super::values::{finite, tint};
 use super::{DirectionalFeather, DropShadow, Effects, El, GradientFeather, Importer, Stroke, names};
@@ -28,7 +28,7 @@ pub(super) fn corners_in(levels: &[&El], prefix: &str) -> Option<[Corner; 4]> {
     }
     let mut out = [Corner::default(); 4];
     for (c, (shape, size)) in out.iter_mut().zip(shapes.iter().zip(sizes)) {
-        c.shape = shape.as_deref().map_or(designcraft_geom::corners::CornerShape::None, |s| names::corner_in(s.trim()));
+        c.shape = shape.as_deref().map_or(patronusdesign_geom::corners::CornerShape::None, |s| names::corner_in(s.trim()));
         c.size = size.filter(|v| v.is_finite()).map_or(12.0, |v| v.max(0.0));
     }
     Some(out)
@@ -79,18 +79,18 @@ impl<'r> Importer<'r> {
                 size: ds.size.unwrap_or(def.size),
                 spread: ds.spread.unwrap_or(def.spread),
                 global_light: false,
-                // Without the attribute (earlier DesignCraft exports) the shadow stays Normal, as it
+                // Without the attribute (earlier Patronus Design exports) the shadow stays Normal, as it
                 // rendered then; a new shadow's default is Multiply.
-                mode: ds.blend_mode.as_deref().map_or(designcraft_color::BlendMode::Normal, names::blend_in),
+                mode: ds.blend_mode.as_deref().map_or(patronusdesign_color::BlendMode::Normal, names::blend_in),
             };
         }
         if let Some(f) = settings.feather.as_ref().filter(|f| f.mode.as_deref().is_some_and(|m| m != "None")) {
             fx.feather = f.width.unwrap_or(9.0);
             fx.feather_options.choke = finite(f.choke_amount).unwrap_or(0.0).clamp(0.0, 100.0);
             fx.feather_options.corners = match f.corner_type.as_deref() {
-                Some("Sharp") => designcraft_doc::FeatherCorners::Sharp,
-                Some("Rounded") => designcraft_doc::FeatherCorners::Rounded,
-                _ => designcraft_doc::FeatherCorners::Diffused,
+                Some("Sharp") => patronusdesign_doc::FeatherCorners::Sharp,
+                Some("Rounded") => patronusdesign_doc::FeatherCorners::Rounded,
+                _ => patronusdesign_doc::FeatherCorners::Diffused,
             };
         }
         if let Some(g) = settings.gradient_feather.as_ref().filter(|g| g.applied) {

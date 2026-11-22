@@ -27,7 +27,7 @@ impl<'a> Ex<'a> {
             && let Some(pt) = &t.options.path
         {
             // Type on a path: a TextPath child holds the story.
-            let len = designcraft_geom::warp::PathWarp::new(&it.path.to_bezpath(), false).length();
+            let len = patronusdesign_geom::warp::PathWarp::new(&it.path.to_bezpath(), false).length();
             el.push(crate::xml::from_craft(craft_idml::model::TextPath::to_el(
                 &uid(it.id.0),
                 &uid(t.story.0),
@@ -57,7 +57,7 @@ impl<'a> Ex<'a> {
         el.set("Visible", bool_s(!it.hidden));
         el.set("Locked", bool_s(it.locked));
         el.set("Nonprinting", bool_s(it.nonprinting));
-        let os = if it.object_style.is_empty() { designcraft_doc::NO_OBJECT_STYLE } else { &it.object_style };
+        let os = if it.object_style.is_empty() { patronusdesign_doc::NO_OBJECT_STYLE } else { &it.object_style };
         el.set("AppliedObjectStyle", names::style_self("ObjectStyle", OBJECT_BUILTINS, os));
         el.set("ItemTransform", affine_s(xf));
         el.set("FillColor", self.sw(&it.fill.swatch));
@@ -107,10 +107,10 @@ impl<'a> Ex<'a> {
                         .attr(
                             "BaselineFrameGridRelativeOption",
                             match g.relative_to {
-                                designcraft_doc::FrameGridRelative::TopOfPage => "TopOfPageOfBaselineFrameGridRelativeOption",
-                                designcraft_doc::FrameGridRelative::TopMargin => "TopOfMarginOfBaselineFrameGridRelativeOption",
-                                designcraft_doc::FrameGridRelative::TopOfFrame => "TopOfFrameOfBaselineFrameGridRelativeOption",
-                                designcraft_doc::FrameGridRelative::TopInset => "TopOfInsetOfBaselineFrameGridRelativeOption",
+                                patronusdesign_doc::FrameGridRelative::TopOfPage => "TopOfPageOfBaselineFrameGridRelativeOption",
+                                patronusdesign_doc::FrameGridRelative::TopMargin => "TopOfMarginOfBaselineFrameGridRelativeOption",
+                                patronusdesign_doc::FrameGridRelative::TopOfFrame => "TopOfFrameOfBaselineFrameGridRelativeOption",
+                                patronusdesign_doc::FrameGridRelative::TopInset => "TopOfInsetOfBaselineFrameGridRelativeOption",
                             },
                         )
                         .attr("BaselineFrameGridIncrement", num(g.increment)),
@@ -126,10 +126,10 @@ impl<'a> Ex<'a> {
                 }
             }
             Content::Graphic(g) => {
-                if g.auto_fit != designcraft_doc::Fitting::None || g.fit_align != 4 || g.crop != [0.0; 4] {
+                if g.auto_fit != patronusdesign_doc::Fitting::None || g.fit_align != 4 || g.crop != [0.0; 4] {
                     el.push(
                         El::new("FrameFittingOption")
-                            .attr("AutoFit", bool_s(g.auto_fit != designcraft_doc::Fitting::None))
+                            .attr("AutoFit", bool_s(g.auto_fit != patronusdesign_doc::Fitting::None))
                             .attr("TopCrop", num(g.crop[0]))
                             .attr("LeftCrop", num(g.crop[1]))
                             .attr("BottomCrop", num(g.crop[2]))
@@ -155,9 +155,9 @@ impl<'a> Ex<'a> {
         if let Some(&known) = self.style_corners.get(name) {
             return known;
         }
-        let defaults = designcraft_doc::Styles::default();
+        let defaults = patronusdesign_doc::Styles::default();
         let style = |n: &str| self.d.styles.object_style(n).or_else(|| defaults.object_style(n));
-        let rounds = |os: &designcraft_doc::ObjectStyle| os.corners.is_some_and(|c| !c.is_none());
+        let rounds = |os: &patronusdesign_doc::ObjectStyle| os.corners.is_some_and(|c| !c.is_none());
         let mut seen: Vec<&str> = Vec::new();
         let mut cur = Some(name);
         let mut found = false;
@@ -173,7 +173,7 @@ impl<'a> Ex<'a> {
             seen.push(n);
             cur = os.based_on.as_deref();
         }
-        let found = found || style(designcraft_doc::NO_OBJECT_STYLE).is_some_and(rounds);
+        let found = found || style(patronusdesign_doc::NO_OBJECT_STYLE).is_some_and(rounds);
         self.style_corners.insert(name.to_string(), found);
         found
     }
@@ -185,7 +185,7 @@ impl<'a> Ex<'a> {
         let styled = self.d.styles.object_effects(os).is_some();
         let ds = &it.effects.drop_shadow;
         let (gf, df) = (&it.effects.gradient_feather, &it.effects.directional_feather);
-        if it.opacity < 1.0 || it.blend != designcraft_color::BlendMode::Normal || ds.on || it.effects.feather > 0.0 || gf.on || df.on || styled {
+        if it.opacity < 1.0 || it.blend != patronusdesign_color::BlendMode::Normal || ds.on || it.effects.feather > 0.0 || gf.on || df.on || styled {
             let gradient_feather = if gf.on {
                 let (angle, length, start) = gf.vector.map_or((Some(gf.angle), None, None), |[x0, y0, x1, y1]| {
                     (Some((-(y1 - y0)).atan2(x1 - x0).to_degrees()), Some((x1 - x0).hypot(y1 - y0)), Some([x0, y0]))
@@ -223,9 +223,9 @@ impl<'a> Ex<'a> {
                 }),
                 feather: (it.effects.feather > 0.0 || styled).then(|| {
                     let corners = match it.effects.feather_options.corners {
-                        designcraft_doc::FeatherCorners::Sharp => "Sharp",
-                        designcraft_doc::FeatherCorners::Rounded => "Rounded",
-                        designcraft_doc::FeatherCorners::Diffused => "Diffusion",
+                        patronusdesign_doc::FeatherCorners::Sharp => "Sharp",
+                        patronusdesign_doc::FeatherCorners::Rounded => "Rounded",
+                        patronusdesign_doc::FeatherCorners::Diffused => "Diffusion",
                     };
                     craft_idml::model::FeatherValues {
                         mode: Some(if it.effects.feather > 0.0 { "Standard" } else { "None" }.into()),
@@ -243,7 +243,7 @@ impl<'a> Ex<'a> {
 
     /// The `TransparencySetting` children for `e`'s drop shadow and feather; `all` also writes the
     /// effects that are off (`Mode="None"`), as an object style that sets effects does.
-    pub(super) fn effect_els(&self, e: &designcraft_doc::Effects, all: bool) -> Vec<El> {
+    pub(super) fn effect_els(&self, e: &patronusdesign_doc::Effects, all: bool) -> Vec<El> {
         let mut out = Vec::new();
         let ds = &e.drop_shadow;
         if ds.on || all {
@@ -264,9 +264,9 @@ impl<'a> Ex<'a> {
         }
         if e.feather > 0.0 || all {
             let corners = match e.feather_options.corners {
-                designcraft_doc::FeatherCorners::Sharp => "Sharp",
-                designcraft_doc::FeatherCorners::Rounded => "Rounded",
-                designcraft_doc::FeatherCorners::Diffused => "Diffusion",
+                patronusdesign_doc::FeatherCorners::Sharp => "Sharp",
+                patronusdesign_doc::FeatherCorners::Rounded => "Rounded",
+                patronusdesign_doc::FeatherCorners::Diffused => "Diffusion",
             };
             out.push(crate::xml::from_craft(
                 craft_idml::model::FeatherValues {
@@ -281,7 +281,7 @@ impl<'a> Ex<'a> {
         out
     }
 
-    fn image_el(&mut self, asset: &designcraft_doc::Asset, g: &designcraft_doc::Graphic) -> El {
+    fn image_el(&mut self, asset: &patronusdesign_doc::Asset, g: &patronusdesign_doc::Graphic) -> El {
         let is_pdf = asset.mime == "application/pdf";
         // Bytes are read only when they are embedded (an image with no link of its own always
         // is); a link without embedding stays a link. Bytes that can't be had are written like
@@ -302,7 +302,7 @@ impl<'a> Ex<'a> {
         } else {
             Default::default()
         };
-        let is_eps = asset.mime == "application/postscript" || (!data.is_empty() && designcraft_images::is_eps(&data));
+        let is_eps = asset.mime == "application/postscript" || (!data.is_empty() && patronusdesign_images::is_eps(&data));
         let mut el = El::new(if is_eps {
             "EPS"
         } else if is_pdf {
@@ -395,7 +395,7 @@ impl<'a> Ex<'a> {
 
 /// `rule_color` is the IDML reference of the column rule's swatch.
 /// `TextWrapPreference` of a page item or a placed graphic.
-fn text_wrap_pref(w: &designcraft_doc::TextWrap) -> El {
+fn text_wrap_pref(w: &patronusdesign_doc::TextWrap) -> El {
     let paths: Vec<_> = w.path.iter().filter(|p| !p.is_empty()).map(path_geometry_value).collect();
     let mut el = crate::xml::from_craft(craft_idml::model::TextWrapPreference::to_el(
         names::wrap_mode_out(w.mode),
@@ -446,7 +446,7 @@ pub(super) fn text_frame_pref(o: &TextFrameOptions, rule_color: &str) -> El {
 
 /// `<ClippingPathSettings>` with the outline (graphic space is the image's inner space, whose
 /// `GraphicBounds` start at 0,0).
-fn clipping_settings(c: &designcraft_doc::ClippingPath) -> El {
+fn clipping_settings(c: &patronusdesign_doc::ClippingPath) -> El {
     let mut geometry = path_geometry(&c.path);
     geometry.name = "ClippingPathGeometry".into();
     let el = El::new("ClippingPathSettings")
@@ -486,7 +486,7 @@ fn path_geometry_value(path: &PathData) -> craft_idml::model::PathGeometry {
 
 /// IDML corner names for anchors 0..4 of a path (by position on its bounding box).
 pub(crate) fn corner_names(path: &PathData) -> [&'static str; 4] {
-    designcraft_geom::corners::named_slots(path).map(|k| ["TopLeft", "TopRight", "BottomRight", "BottomLeft"][k])
+    patronusdesign_geom::corners::named_slots(path).map(|k| ["TopLeft", "TopRight", "BottomRight", "BottomLeft"][k])
 }
 
 fn format_name(mime: &str) -> &'static str {

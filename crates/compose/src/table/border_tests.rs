@@ -1,5 +1,5 @@
 use super::*;
-use designcraft_doc::{CellRange, ParaFormat, SpreadRef, build::NewDocument};
+use patronusdesign_doc::{CellRange, ParaFormat, SpreadRef, build::NewDocument};
 
 fn compose_table(table: Table) -> ComposedStory {
     let mut doc = Document::new(&NewDocument::default());
@@ -37,9 +37,9 @@ fn diagonal_lines_cross_the_placed_cell_corner_to_corner() {
     let stroke = CellStroke { weight: 3.0, ..Default::default() };
     let cell = table.cell_mut(0, 0).unwrap();
     cell.col_span = 2;
-    cell.diagonal = designcraft_doc::CellDiagonal { lines: designcraft_doc::DiagonalLines::Crossed, stroke: stroke.clone(), in_front: false };
-    table.cell_mut(1, 0).unwrap().diagonal.lines = designcraft_doc::DiagonalLines::TopLeft;
-    table.cell_mut(1, 0).unwrap().diagonal.stroke.color = designcraft_color::swatch::NONE.into();
+    cell.diagonal = patronusdesign_doc::CellDiagonal { lines: patronusdesign_doc::DiagonalLines::Crossed, stroke: stroke.clone(), in_front: false };
+    table.cell_mut(1, 0).unwrap().diagonal.lines = patronusdesign_doc::DiagonalLines::TopLeft;
+    table.cell_mut(1, 0).unwrap().diagonal.stroke.color = patronusdesign_color::swatch::NONE.into();
     let composed = compose_table(table);
     let fragment = &composed.frames[0].tables[0];
     let merged = fragment.cells.iter().find(|c| (c.row, c.col) == (0, 0)).unwrap();
@@ -54,7 +54,7 @@ fn diagonal_lines_cross_the_placed_cell_corner_to_corner() {
 #[test]
 fn diagonal_lines_move_with_their_cell_in_a_bottom_justified_frame() {
     let mut table = Table::new(77, 1, 1, 0, 0, 100.0);
-    table.cell_mut(0, 0).unwrap().diagonal.lines = designcraft_doc::DiagonalLines::TopLeft;
+    table.cell_mut(0, 0).unwrap().diagonal.lines = patronusdesign_doc::DiagonalLines::TopLeft;
     let mut doc = Document::new(&NewDocument::default());
     let layer = doc.default_layer();
     let (fid, sid) = doc.add_text_frame(SpreadRef::Doc(0), Rect::new(0.0, 0.0, 200.0, 300.0), layer, "", ParaFormat::default()).unwrap();
@@ -184,7 +184,7 @@ fn default_zero_priority_beats_a_negative_priority_rule() {
 
 #[test]
 fn higher_priority_zero_or_none_suppresses_a_visible_shared_rule() {
-    for invisible in [CellStroke::none(), CellStroke { color: designcraft_color::swatch::NONE.into(), ..Default::default() }] {
+    for invisible in [CellStroke::none(), CellStroke { color: patronusdesign_color::swatch::NONE.into(), ..Default::default() }] {
         let mut table = rule_table(2, 2, 0, 0);
         set_rule(&mut table, 0, 0, 2, 3.0, 7);
         set_rule(&mut table, 1, 0, 0, 0.0, 8);
@@ -213,7 +213,7 @@ fn supplied_zero_shared_edge_beats_missing_native_default() {
 
 #[test]
 fn specified_zero_priority_outer_edges_keep_per_side_table_borders() {
-    for direction in [designcraft_doc::TextDirection::LeftToRight, designcraft_doc::TextDirection::RightToLeft] {
+    for direction in [patronusdesign_doc::TextDirection::LeftToRight, patronusdesign_doc::TextDirection::RightToLeft] {
         let mut table = rule_table(1, 1, 0, 0);
         table.options.direction = direction;
         table.options.borders = std::array::from_fn(|i| Some(CellStroke { weight: (i + 1) as f64, ..Default::default() }));
@@ -235,9 +235,9 @@ fn specified_zero_priority_outer_edges_keep_per_side_table_borders() {
     }
 }
 
-fn uniform_pattern(weight: f64) -> designcraft_doc::AltStrokes {
+fn uniform_pattern(weight: f64) -> patronusdesign_doc::AltStrokes {
     let stroke = CellStroke { weight, ..Default::default() };
-    designcraft_doc::AltStrokes { first: 1, next: 1, first_stroke: stroke.clone(), next_stroke: stroke, skip_first: 0, skip_last: 0 }
+    patronusdesign_doc::AltStrokes { first: 1, next: 1, first_stroke: stroke.clone(), next_stroke: stroke, skip_first: 0, skip_last: 0 }
 }
 
 #[test]
@@ -332,7 +332,7 @@ fn metadata_free_native_and_legacy_edges_keep_top_and_left_suppression() {
     // The metadata arrays also default to zero/false when reading legacy JSON. Older
     // native table.setCell code changed these strokes without setting any metadata.
     table.cell_mut(1, 0).unwrap().strokes[0] = CellStroke::none();
-    table.cell_mut(0, 1).unwrap().strokes[1].color = designcraft_color::swatch::NONE.into();
+    table.cell_mut(0, 1).unwrap().strokes[1].color = patronusdesign_color::swatch::NONE.into();
     let composed = compose_table(table);
     let fragment = &composed.frames[0].tables[0];
     assert_eq!(fragment.strokes.len(), 2);
@@ -401,7 +401,7 @@ fn merged_winning_dashed_edge_stays_continuous_across_losing_neighbors() {
     table.columns.iter_mut().for_each(|column| column.width = 45.0);
     table.merge(CellRange::new(1, 0, 1, 1)).unwrap();
     set_rule(&mut table, 1, 0, 0, 1.0, 1);
-    table.cell_mut(1, 0).unwrap().strokes[0].kind = designcraft_doc::StrokeType::Dashed { pattern: vec![6.0, 4.0] };
+    table.cell_mut(1, 0).unwrap().strokes[0].kind = patronusdesign_doc::StrokeType::Dashed { pattern: vec![6.0, 4.0] };
     let composed = compose_table(table);
     let fragment = &composed.frames[0].tables[0];
     assert_eq!(fragment.strokes.len(), 1, "one winning source edge must retain one dash phase");
@@ -429,7 +429,7 @@ fn merged_perimeter_keeps_four_continuous_strokes() {
 #[test]
 fn rtl_shared_rules_use_physical_edges_and_outer_borders() {
     let mut table = rule_table(1, 2, 0, 0);
-    table.options.direction = designcraft_doc::TextDirection::RightToLeft;
+    table.options.direction = patronusdesign_doc::TextDirection::RightToLeft;
     table.columns[0].width = 30.0;
     table.columns[1].width = 70.0;
     set_rule(&mut table, 0, 0, 1, 2.0, 9);

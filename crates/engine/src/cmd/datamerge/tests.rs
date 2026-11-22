@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use designcraft_doc::{Content, DataField, DataFieldKind, DataSource, Delimiter, HyperlinkDest, Selection, SourceStatus, StoryId, TextSel};
+use patronusdesign_doc::{Content, DataField, DataFieldKind, DataSource, Delimiter, HyperlinkDest, Selection, SourceStatus, StoryId, TextSel};
 use serde_json::{Value, json};
 
 use super::parse::{self, parse_csv};
@@ -27,7 +27,7 @@ const PNG_B64: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42
 
 fn write_png(path: &Path) {
     let bytes = crate::cmd::base64_decode(PNG_B64);
-    assert!(designcraft_render::image_size(&bytes).is_some(), "the fixture png must decode");
+    assert!(patronusdesign_render::image_size(&bytes).is_some(), "the fixture png must decode");
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).unwrap();
     }
@@ -676,12 +676,12 @@ fn graphic_link(s: &Session) -> Option<String> {
     None
 }
 
-fn graphic_boxes(s: &Session) -> (designcraft_geom::Rect, designcraft_geom::Rect) {
+fn graphic_boxes(s: &Session) -> (patronusdesign_geom::Rect, patronusdesign_geom::Rect) {
     let doc = &s.documents()[s.active_index().unwrap()].doc;
     for sp in &doc.spreads {
         for it in &sp.items {
             if let Content::Graphic(g) = &it.content {
-                let bb = g.xf.transform_rect_bbox(designcraft_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1));
+                let bb = g.xf.transform_rect_bbox(patronusdesign_geom::Rect::new(0.0, 0.0, g.size.0, g.size.1));
                 return (it.inner_bounds(), bb);
             }
         }
@@ -751,8 +751,8 @@ fn role_overrides_column_kind_qr_and_hyperlink() {
 
 fn write_png_sized(path: &Path, width: u32, height: u32) {
     let pixels = vec![255; width as usize * height as usize * 4];
-    let bytes = designcraft_render::Rendered { width, height, pixels }.to_png();
-    assert_eq!(designcraft_render::image_size(&bytes), Some((width, height)), "the fixture png must decode");
+    let bytes = patronusdesign_render::Rendered { width, height, pixels }.to_png();
+    assert_eq!(patronusdesign_render::image_size(&bytes), Some((width, height)), "the fixture png must decode");
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).unwrap();
     }
@@ -795,7 +795,7 @@ fn an_image_field_at_the_insertion_point_merges_as_an_inline_image() {
     exec(&mut s, "data.placeholder.add", json!({"field": "Photo"}));
     let template = &s.documents()[0].doc;
     assert_eq!(template.stories.values().next().unwrap().text, "Photo: <<Photo>>");
-    let width = template.item(designcraft_doc::ItemId(made["id"].as_u64().unwrap())).unwrap().inner_bounds().width();
+    let width = template.item(patronusdesign_doc::ItemId(made["id"].as_u64().unwrap())).unwrap().inner_bounds().width();
 
     exec(&mut s, "data.preview", json!({"record": 1}));
     assert_eq!(inline_images(&s, 0).len(), 1, "the preview shows the image");
@@ -806,7 +806,7 @@ fn an_image_field_at_the_insertion_point_merges_as_an_inline_image() {
     let missing = r["missingImages"].as_array().unwrap();
     assert_eq!(missing.len(), 1, "{missing:?}");
     assert_eq!((missing[0]["record"].as_u64(), missing[0]["path"].as_str()), (Some(3), Some("pics/none.png")));
-    let mark = designcraft_doc::OBJECT_MARK;
+    let mark = patronusdesign_doc::OBJECT_MARK;
     assert_eq!(texts(&s), vec!["Photo: ".to_string(), format!("Photo: {mark}"), format!("Photo: {mark}")]);
     let placed = inline_images(&s, s.active_index().unwrap());
     assert_eq!(placed.len(), 2, "{placed:?}");
@@ -840,7 +840,7 @@ fn an_explicit_qr_role_at_the_insertion_point_is_refused() {
     select_csv(&mut s, "Name,#Code\nAda,hello\n");
     let made = text_frame(&mut s, [36.0, 36.0, 300.0, 300.0], "Hi ", None);
     let other = text_frame(&mut s, [36.0, 400.0, 300.0, 600.0], "", None);
-    let other_id = designcraft_doc::ItemId(other["id"].as_u64().unwrap());
+    let other_id = patronusdesign_doc::ItemId(other["id"].as_u64().unwrap());
     let sid = StoryId(made["story"].as_u64().unwrap());
     let doc = s.doc_mut().unwrap();
     doc.selection = Selection::text(TextSel { story: sid, anchor: 3, focus: 3, frame: None, cell: None });
@@ -882,7 +882,7 @@ fn a_typed_image_marker_places_the_image_and_a_text_role_keeps_the_path() {
     text_frame(&mut s, [36.0, 36.0, 300.0, 300.0], "A <<Photo>> B", None);
     let r = exec(&mut s, "data.merge", json!({}));
     assert_eq!(r["missingImages"].as_array().map(Vec::len), Some(0));
-    assert_eq!(texts(&s), vec![format!("A {} B", designcraft_doc::OBJECT_MARK)]);
+    assert_eq!(texts(&s), vec![format!("A {} B", patronusdesign_doc::OBJECT_MARK)]);
     let placed = inline_images(&s, s.active_index().unwrap());
     assert_eq!(placed.len(), 1);
     assert!((placed[0].1 - 10.0).abs() < 0.01 && (placed[0].2 - 30.0).abs() < 0.01, "{placed:?}");
@@ -1348,7 +1348,7 @@ fn relative_path_and_reopen() {
     assert_eq!(relative_between(&a, &csv), relative);
     assert_eq!(relative_between(&b, &csv), "data.csv");
 
-    let mut doc = designcraft_doc::Document::new(&designcraft_doc::build::NewDocument::default());
+    let mut doc = patronusdesign_doc::Document::new(&patronusdesign_doc::build::NewDocument::default());
     doc.data_merge.sources.push(DataSource {
         id: 1,
         path: Some("/no/such/data-merge-source.csv".into()),
@@ -1407,7 +1407,7 @@ fn merge_replaces_typed_fields_on_a_new_document() {
 #[test]
 fn tile_slots_match_the_insets() {
     let plan = parse::tile(&parse::TileInput {
-        block: designcraft_geom::Rect::new(72.0, 72.0, 172.0, 172.0),
+        block: patronusdesign_geom::Rect::new(72.0, 72.0, 172.0, 172.0),
         page_width: 612.0,
         page_height: 792.0,
         insets: [36.0; 4],
@@ -1533,7 +1533,7 @@ fn merged_records_give_anchored_objects_their_own_ids() {
     let doc = &s.documents()[s.active_index().unwrap()].doc;
     assert_eq!(doc.anchored_items().len(), 2);
     doc.check().unwrap();
-    designcraft_format::load(&designcraft_format::save(doc).unwrap()).unwrap();
+    patronusdesign_format::load(&patronusdesign_format::save(doc).unwrap()).unwrap();
 }
 
 /// A record previewed into an image placeholder whose frame wraps with an Alpha Channel contour
@@ -1547,7 +1547,7 @@ fn a_previewed_image_gets_its_alpha_channel_outline() {
             pixels[(y * 64 + x) * 4 + 3] = 255;
         }
     }
-    std::fs::write(dir.join("cut.png"), designcraft_render::Rendered { width: 64, height: 64, pixels }.to_png()).unwrap();
+    std::fs::write(dir.join("cut.png"), patronusdesign_render::Rendered { width: 64, height: 64, pixels }.to_png()).unwrap();
     write(&dir.join("pics.csv"), "Photo\ncut.png\n");
     let mut s = Session::new();
     new_doc(&mut s, 1);
@@ -1587,7 +1587,7 @@ fn merge_with_wrap(name: &str, wrap: Value) -> (Value, usize) {
             pixels[(y * 64 + x) * 4 + 3] = 255;
         }
     }
-    std::fs::write(dir.join("cut.png"), designcraft_render::Rendered { width: 64, height: 64, pixels }.to_png()).unwrap();
+    std::fs::write(dir.join("cut.png"), patronusdesign_render::Rendered { width: 64, height: 64, pixels }.to_png()).unwrap();
     write(&dir.join("pics.csv"), "Photo\ncut.png\n");
     let mut s = Session::new();
     new_doc(&mut s, 1);
@@ -1756,7 +1756,7 @@ fn a_field_in_an_endnote_is_filled() {
 /// limit, and the preview returns instead of exhausting the stack.
 #[test]
 fn deeply_nested_tables_are_filled_down_to_the_limit_without_overflowing() {
-    use designcraft_doc::{Cell, ParaFormat, Table};
+    use patronusdesign_doc::{Cell, ParaFormat, Table};
     let mut s = Session::new();
     new_doc(&mut s, 1);
     select_csv(&mut s, "Name,City\nAda,London\n");
