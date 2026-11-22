@@ -4455,7 +4455,7 @@ dependencies = [
 
 [[package]]
 name = "patronus-launcher"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "craft-update",
  "eframe",
@@ -4464,14 +4464,14 @@ dependencies = [
 
 [[package]]
 name = "patronus-release"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "craft-update",
 ]
 
 [[package]]
 name = "patronusdesign"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "arboard",
  "craft-update",
@@ -4496,7 +4496,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-cli"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "craft-file-formats",
  "craft-image-codecs",
@@ -4515,7 +4515,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-color"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "craft-cms",
  "kurbo",
@@ -4527,7 +4527,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-compose"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "fancy-regex",
  "hypher",
@@ -4547,7 +4547,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-doc"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "chrono",
  "patronusdesign-color",
@@ -4560,7 +4560,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-engine"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "caseless",
  "craft-atomic",
@@ -4605,7 +4605,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-epub"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "craft-epub",
  "craft-mime",
@@ -4616,7 +4616,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-fonts"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "core-text",
  "harfrust 0.13.3",
@@ -4629,7 +4629,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-format"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "craft-designcraft-format",
  "patronusdesign-doc",
@@ -4639,7 +4639,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-geom"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "flo_curves",
  "kurbo",
@@ -4652,7 +4652,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-idml"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "craft-file-formats",
  "craft-idml 0.1.0 (git+https://github.com/storytold/craft-libs?rev=b92907f69d6599b91ac76fb8377ac407c8ac956d)",
@@ -4669,7 +4669,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-images"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "craft-cms",
  "craft-eps",
@@ -4691,7 +4691,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-mcp"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "craft-file-formats",
  "craft-mcp-server",
@@ -4706,7 +4706,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-pdf"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "chrono",
  "craft-cms",
@@ -4732,7 +4732,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-pptx"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "chrono",
  "craft-image-codecs",
@@ -4753,7 +4753,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-render"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "bytemuck",
  "craft-image-codecs",
@@ -4774,7 +4774,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-textimport"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "craft-docx",
  "craft-file-formats",
@@ -4788,7 +4788,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-tools"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "patronusdesign-color",
  "patronusdesign-compose",
@@ -4800,7 +4800,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-ui-egui"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "craft-dialogs",
  "craft-file-formats",
@@ -4836,7 +4836,7 @@ dependencies = [
 
 [[package]]
 name = "patronusdesign-web"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "eframe",
  "egui",
@@ -8433,7 +8433,7 @@ checksum = "9440ea3e5aeabb0ac63af70daf835274065238cdd0cec83418f417eae38bacee"
 
 [[package]]
 name = "xtask"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "serde_json",
 ]

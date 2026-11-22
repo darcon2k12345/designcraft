@@ -14,7 +14,7 @@ section: graphics
 priority: optional
 maintainer: ${PATRONUSDESIGN_MAINTAINER}
 vendor: Patronus
-homepage: https://getartcraft.com/apps/designcraft
+homepage: https://github.com/darcon2k12345/designcraft
 license: MIT OR Apache-2.0
 description: |-
   Open-source, native page layout and publishing that works the way InDesign users expect.

@@ -13,9 +13,9 @@
 
     <Icon Id="PatronusDesignIcon.ico" SourceFile="$(var.IconPath)" />
     <Property Id="ARPPRODUCTICON" Value="PatronusDesignIcon.ico" />
-    <Property Id="ARPURLINFOABOUT" Value="https://getartcraft.com/apps/designcraft" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://getartcraft.com/apps/designcraft" />
-    <Property Id="ARPHELPLINK" Value="https://discord.gg/artcraft" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/darcon2k12345/designcraft" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/darcon2k12345/designcraft/releases" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/darcon2k12345/designcraft/discussions" />
 
     <!-- Shared native setup UI, including install/uninstall completion. -->
 

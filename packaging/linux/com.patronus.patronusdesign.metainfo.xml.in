@@ -18,10 +18,10 @@
   <launchable type="desktop-id">com.patronus.patronusdesign.desktop</launchable>
   <icon type="stock">com.patronus.patronusdesign</icon>
   <!-- Only url types known to appstream 0.15 (Ubuntu 22.04, where CI validates): no vcs-browser. -->
-  <url type="homepage">https://getartcraft.com/apps/designcraft</url>
+  <url type="homepage">https://github.com/darcon2k12345/designcraft</url>
   <url type="bugtracker">https://github.com/darcon2k12345/designcraft/issues</url>
   <url type="help">https://github.com/darcon2k12345/designcraft</url>
-  <url type="contact">https://discord.gg/artcraft</url>
+  <url type="contact">https://github.com/darcon2k12345/designcraft/discussions</url>
   <categories>
     <category>Graphics</category>
     <category>RasterGraphics</category>

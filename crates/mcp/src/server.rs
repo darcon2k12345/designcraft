@@ -62,7 +62,7 @@ struct PatronusDesignTools {
 impl Tools for PatronusDesignTools {
     fn instructions(&self) -> String {
         format!(
-            "{INSTRUCTIONS} Backend: {}. Community: {} (Discord), {} (app page), {} (source). The `app.links` command returns these links.",
+            "{INSTRUCTIONS} Backend: {}. Community: {} (discussions), {} (releases), {} (source). The `app.links` command returns these links.",
             self.backend.describe(),
             patronusdesign_engine::links::DISCORD,
             patronusdesign_engine::links::APP_PAGE,

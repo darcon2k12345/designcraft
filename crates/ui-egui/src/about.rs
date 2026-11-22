@@ -9,56 +9,24 @@ use serde_json::json;
 use crate::DesignApp;
 use crate::theme::{Tokens, semibold};
 
-/// ArtCraft brand blue (from `docs/brand/artcraft-mark.svg`).
-pub const BRAND: Color32 = Color32::from_rgb(0x4e, 0x7b, 0xfb);
-/// Discord's brand colour, used for the "Join our Discord" buttons (colour only; no Discord artwork).
+/// Patronus accent colour (the app icon's green).
+pub const BRAND: Color32 = Color32::from_rgb(0x7b, 0xb5, 0x1c);
+/// Colour of the community buttons (colour only; no third-party artwork).
 pub const DISCORD: Color32 = Color32::from_rgb(0x58, 0x65, 0xf2);
 
-/// The ArtCraft mark outline (viewBox -10 -19.42 136.34 136.34), from `docs/brand/artcraft-mark.svg`.
-const MARK_PATH: &str = "M104.28,49.49L81.55,0h-31.23l-3.17,4.76L14.75,53.63,0,75.85l21.55,21.55,63.79-36.94,16.99,37.04,14.01-21.74-12.06-26.27ZM32.89,65.66l32.42-48.87,10.91,23.77-43.32,25.09Z";
-
-/// The other ArtCraft apps (app-page slug, name, what it is) — same list as the README.
-pub const SIBLINGS: &[(&str, &str, &str)] = &[
-    ("photocraft", "PhotoCraft", "image editing"),
-    ("vectorcraft", "VectorCraft", "vector illustration"),
-    ("filmcraft", "FilmCraft", "video editing, color and sound"),
-    ("lightcraft", "LightCraft", "photo library and raw development"),
-    ("pdfcraft", "PdfCraft", "reading, organizing and protecting PDFs"),
-    ("effectcraft", "EffectCraft", "motion graphics and visual effects"),
-];
+/// The other Patronus apps (repository name, name, what it is).
+pub const SIBLINGS: &[(&str, &str, &str)] =
+    &[("photocraft", "Patronus Photo", "image editing"), ("pdfcraft", "Patronus PDF", "reading, organizing and protecting PDFs")];
 
 /// The About window's tabs, in `UiState::about_tab` order (`help.about {tab}` names them in lowercase).
 pub const ABOUT_TABS: [&str; 3] = ["About", "Contributors", "Models"];
 
-/// Paint the ArtCraft mark into `rect` (square), rasterised once per size and cached.
+/// Paint the Patronus badge (a rounded square with a "P") into `rect`, centred and square.
 pub fn paint_mark(ui: &egui::Ui, rect: Rect, color: Color32) {
-    use patronusdesign_render::vello_cpu::{self, kurbo, peniko};
-    let ctx = ui.ctx();
-    let ppp = ctx.pixels_per_point();
-    let px = ((rect.width().min(rect.height()) * ppp).round() as u32).clamp(8, 1024);
-    let key = egui::Id::unique(("artcraft_mark", px, color.to_array()));
-    let tex: Option<egui::TextureHandle> = ctx.data(|d| d.get_temp(key));
-    let tex = tex.unwrap_or_else(|| {
-        let mut rc = vello_cpu::RenderContext::new_with(px as u16, px as u16, vello_cpu::RenderSettings { num_threads: 0, ..Default::default() });
-        let k = px as f64 / 136.34;
-        rc.set_transform(kurbo::Affine::scale(k) * kurbo::Affine::translate((10.0, 19.42)));
-        let [r, g, b, a] = color.to_srgba_unmultiplied();
-        rc.set_paint(peniko::Color::from_rgba8(r, g, b, a));
-        if let Ok(p) = kurbo::BezPath::from_svg(MARK_PATH) {
-            rc.fill_path(&p);
-        }
-        rc.flush();
-        let mut pm = vello_cpu::Pixmap::new(px as u16, px as u16);
-        let mut res = vello_cpu::Resources::new();
-        rc.render(&mut pm, &mut res);
-        let ci = egui::ColorImage::from_rgba_premultiplied([px as usize, px as usize], pm.data_as_u8_slice());
-        let t = crate::widgets::load_texture(ctx, "artcraft_mark", ci, egui::TextureOptions::LINEAR);
-        ctx.data_mut(|d| d.insert_temp(key, t.clone()));
-        t
-    });
     let side = rect.width().min(rect.height());
     let r = Rect::from_center_size(rect.center(), vec2(side, side));
-    ui.painter().image(tex.id(), r, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+    ui.painter().rect_filled(r, side * 0.22, color);
+    ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "P", egui::FontId::proportional(side * 0.62), Color32::WHITE);
 }
 
 /// A speech-bubble glyph (drawn in code) for Discord buttons.
@@ -83,7 +51,7 @@ pub fn discord_button_size(ctx: &egui::Context, label: &str, min: egui::Vec2) ->
     egui::vec2(min.x.max(min.y * 0.5 + 8.0 + galley.size().x + min.y), min.y)
 }
 
-/// The big "Join our Discord" button. Returns true when clicked. `size` is the minimum: a longer label
+/// The big community button. Returns true when clicked. `size` is the minimum: a longer label
 /// widens the button (see `discord_button_size`) rather than spilling out of it.
 pub fn discord_button(ui: &mut egui::Ui, label: &str, size: egui::Vec2) -> bool {
     let size = discord_button_size(ui.ctx(), label, size);
@@ -177,18 +145,16 @@ pub fn show(app: &mut DesignApp, ctx: &egui::Context) {
             ));
             ui.label(crate::rtl::widget(
                 ui,
-                egui::RichText::new(crate::i18n::tr(&app.ui.language, "Part of the ArtCraft suite of open creative tools."))
-                    .size(12.0)
-                    .color(t.text_dim),
+                egui::RichText::new(crate::i18n::tr(&app.ui.language, "Part of the Patronus suite of creative tools.")).size(12.0).color(t.text_dim),
             ));
             ui.add_space(16.0);
-            if discord_button(ui, crate::i18n::tr(&app.ui.language, "Join the ArtCraft Discord"), vec2(300.0, 40.0)) {
+            if discord_button(ui, crate::i18n::tr(&app.ui.language, "Community Discussions"), vec2(300.0, 40.0)) {
                 open = Some("discord");
             }
             ui.add_space(4.0);
             ui.label(crate::rtl::widget(
                 ui,
-                egui::RichText::new(crate::i18n::tr(&app.ui.language, "discord.gg/artcraft — help, feedback and show-and-tell"))
+                egui::RichText::new(crate::i18n::tr(&app.ui.language, "GitHub Discussions — help, feedback and show-and-tell"))
                     .size(11.0)
                     .color(t.text_dim),
             ));
@@ -197,9 +163,7 @@ pub fn show(app: &mut DesignApp, ctx: &egui::Context) {
                 // Centre the row of links.
                 let w = 330.0;
                 ui.add_space(((ui.available_width() - w) / 2.0).max(0.0));
-                for (text, key) in
-                    [("Patronus Design page", "appPage"), ("GitHub", "github"), ("getartcraft.com", "website"), ("Report an issue", "issues")]
-                {
+                for (text, key) in [("Releases", "appPage"), ("GitHub", "github"), ("Patronus on GitHub", "website"), ("Report an issue", "issues")] {
                     if link(ui, crate::i18n::tr(&app.ui.language, text), links::get(key).unwrap_or_default(), t.accent) {
                         open = Some(key);
                     }
@@ -211,7 +175,7 @@ pub fn show(app: &mut DesignApp, ctx: &egui::Context) {
             ui.add_space(6.0);
             ui.label(crate::rtl::widget(
                 ui,
-                egui::RichText::new(crate::i18n::tr(&app.ui.language, "More ArtCraft apps")).font(semibold(12.0)).color(t.text_strong),
+                egui::RichText::new(crate::i18n::tr(&app.ui.language, "More Patronus apps")).font(semibold(12.0)).color(t.text_strong),
             ));
             ui.add_space(4.0);
             ui.horizontal(|ui| {
@@ -223,7 +187,7 @@ pub fn show(app: &mut DesignApp, ctx: &egui::Context) {
                     - ui.spacing().item_spacing.x;
                 ui.add_space(((ui.available_width() - w) / 2.0).max(0.0));
                 for (slug, name, what) in SIBLINGS {
-                    let url = format!("{}/apps/{slug}", links::WEBSITE);
+                    let url = format!("{}/{slug}", links::WEBSITE);
                     let b = ui
                         .add(egui::Button::new(egui::RichText::new(*name).size(12.0)).corner_radius(10.0))
                         .on_hover_text(format!("{} — {url}", crate::i18n::tr(&app.ui.language, what)));

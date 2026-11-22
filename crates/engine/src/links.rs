@@ -1,15 +1,16 @@
-//! ArtCraft community and project links (Help menu, About, start screen, CLI, MCP).
+//! Patronus community and project links (Help menu, About, start screen, CLI, MCP).
 
 use serde_json::{Value, json};
 
-/// The app's slug on getartcraft.com and the name of its GitHub repository.
+/// The app's slug, which is also the name of its GitHub repository.
 pub const APP: &str = "designcraft";
-/// The ArtCraft community Discord.
-pub const DISCORD: &str = "https://discord.gg/artcraft";
-/// The ArtCraft website.
-pub const WEBSITE: &str = "https://getartcraft.com";
-/// Patronus Design's page on the ArtCraft website.
-pub const APP_PAGE: &str = "https://getartcraft.com/apps/designcraft";
+/// Where the community talks: the repository's GitHub Discussions. (The constant and its `discord`
+/// key keep the name they have always had, so the commands and `app.links` stay compatible.)
+pub const DISCORD: &str = "https://github.com/darcon2k12345/designcraft/discussions";
+/// Patronus on GitHub. `{WEBSITE}/{slug}` is an app's repository.
+pub const WEBSITE: &str = "https://github.com/darcon2k12345";
+/// Where Patronus Design's installers are published.
+pub const APP_PAGE: &str = "https://github.com/darcon2k12345/designcraft/releases";
 /// Patronus Design's source repository.
 pub const GITHUB: &str = "https://github.com/darcon2k12345/designcraft";
 /// Where to report bugs and request features.
@@ -44,7 +45,8 @@ mod tests {
 
     #[test]
     fn links_follow_the_app_slug() {
-        assert!(APP_PAGE.ends_with(&format!("/apps/{APP}")));
+        assert!(APP_PAGE.starts_with(GITHUB) && APP_PAGE.ends_with("/releases"));
+        assert!(DISCORD.starts_with(GITHUB) && WEBSITE.starts_with("https://github.com/"));
         assert!(GITHUB.ends_with(&format!("/{APP}")));
         assert!(ISSUES.starts_with(GITHUB));
         for k in ["discord", "website", "appPage", "github", "issues"] {

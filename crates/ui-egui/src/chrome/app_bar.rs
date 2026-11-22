@@ -299,8 +299,8 @@ pub fn app_bar(app: &mut DesignApp, ui: &mut egui::Ui) {
                                 app.status(crate::i18n::tr(&app.ui.language, "Export a PDF, IDML or package to share — no cloud account needed."));
                             }
                             ui.add_space(8.0);
-                            // Always one click away: the ArtCraft community Discord.
-                            if crate::about::discord_button(ui, "Discord", vec2(78.0, 22.0)) {
+                            // Always one click away: the community discussions.
+                            if crate::about::discord_button(ui, "Community", vec2(78.0, 22.0)) {
                                 let _ = app.run("help.discord", json!({}));
                             }
                             tools_start = ui.min_rect().min.x;

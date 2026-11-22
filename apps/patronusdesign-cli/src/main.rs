@@ -18,7 +18,7 @@
 //!                                      # file's own GTS_PDFXVersion)
 //! patronusdesign-cli thumbnail FILE.designcraft OUT.png [SIZE]   # the file's first-page preview, fitted to SIZE
 //!                                      # (the freedesktop thumbnailer for Linux file managers)
-//! patronusdesign-cli links                   # Discord, website, app page and GitHub links
+//! patronusdesign-cli links                   # community, Patronus, releases, GitHub and issue links
 //! patronusdesign-cli --version               # print the version
 //! ```
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
@@ -215,7 +215,7 @@ fn main() -> ExitCode {
         Some("thumbnail") => report(thumbnail(&args[1..])),
         Some("links") => {
             use patronusdesign_engine::links::{APP_PAGE, DISCORD, GITHUB, ISSUES, WEBSITE};
-            outln!("Discord   {DISCORD}\nWebsite   {WEBSITE}\nApp page  {APP_PAGE}\nGitHub    {GITHUB}\nIssues    {ISSUES}");
+            outln!("Community {DISCORD}\nPatronus  {WEBSITE}\nReleases  {APP_PAGE}\nGitHub    {GITHUB}\nIssues    {ISSUES}");
             ExitCode::SUCCESS
         }
         // Asking for help is not an error: it goes to stdout and succeeds. An unknown command
