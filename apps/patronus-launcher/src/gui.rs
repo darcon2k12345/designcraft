@@ -16,16 +16,22 @@ fn main() -> eframe::Result {
 
 #[cfg(windows)]
 mod window {
+    use std::sync::Arc;
     use std::sync::mpsc::{Receiver, Sender, channel};
     use std::thread;
 
     use craft_update::JobPhase;
     use eframe::egui::{self, Align, Color32, RichText};
-    use launcher_core::{Action, Launcher, Tone, View};
+    use launcher_core::{Action, Launcher, SelfUpdate, Tone, View};
     use patronus_release::APPS;
 
     /// Badge colours, in the order of `APPS`: Patronus Design, PdfCraft, PhotoCraft.
-    const ACCENTS: [Color32; 3] = [Color32::from_rgb(123, 181, 28), Color32::from_rgb(232, 32, 79), Color32::from_rgb(47, 123, 245)];
+    const ACCENTS: [Color32; 3] = [Color32::from_rgb(0x4f, 0xc3, 0x6a), Color32::from_rgb(0xe0, 0x40, 0x44), Color32::from_rgb(0x3f, 0x91, 0xdf)];
+    /// 96x96 raw RGBA app icons, in the order of `APPS`.
+    const APP_ICONS: [&[u8]; 3] =
+        [include_bytes!("../assets/design-96.rgba"), include_bytes!("../assets/pdf-96.rgba"), include_bytes!("../assets/photo-96.rgba")];
+    /// 64x64 raw RGBA launcher icon, for the window.
+    const WINDOW_ICON: &[u8] = include_bytes!("../assets/launcher-64.rgba");
     const GOOD: Color32 = Color32::from_rgb(110, 205, 130);
     const ATTENTION: Color32 = Color32::from_rgb(245, 190, 70);
     const BAD: Color32 = Color32::from_rgb(242, 100, 100);
@@ -35,6 +41,7 @@ mod window {
         Refresh,
         Install(usize),
         Launch(usize),
+        UpdateSelf,
     }
 
     /// What the worker thread reports back.
@@ -45,6 +52,20 @@ mod window {
         Opened(usize, Result<(), String>),
         /// The launcher couldn't even start (no data folder, ...).
         Fatal(String),
+        /// The newer launcher version, if there is one (or why the check failed).
+        SelfChecked(Result<Option<String>, String>),
+        SelfProgress(String, Option<f32>),
+        /// The launcher was replaced and restarted (or why not).
+        SelfDone(Result<(), String>),
+    }
+
+    /// Where the launcher's own update stands.
+    enum SelfState {
+        Unknown,
+        Available(String),
+        Working(String, Option<f32>),
+        Failed(String),
+        Restarting,
     }
 
     #[derive(Default)]
@@ -64,6 +85,10 @@ mod window {
         fatal: Option<String>,
         /// An install is running; every button waits for it.
         working: bool,
+        icons: Vec<egui::TextureHandle>,
+        self_state: SelfState,
+        /// Set when the launcher has replaced itself and should close.
+        close: bool,
     }
 
     fn phase_text(phase: JobPhase) -> (String, Option<f32>) {
@@ -90,12 +115,16 @@ mod window {
             Ok(launcher) => launcher,
             Err(message) => return send(Event::Fatal(message)),
         };
+        let mut pending: Option<SelfUpdate> = None;
         while let Ok(command) = commands.recv() {
             match command {
                 Command::Refresh => {
                     for (i, app) in APPS.iter().enumerate() {
                         send(Event::Viewed(i, launcher.view(app)));
                     }
+                    let checked = launcher.check_self();
+                    pending = checked.as_ref().ok().cloned().flatten();
+                    send(Event::SelfChecked(checked.map(|found| found.map(|u| u.version))));
                 }
                 Command::Install(i) => {
                     let Some(app) = APPS.get(i) else { continue };
@@ -111,16 +140,48 @@ mod window {
                     let Some(app) = APPS.get(i) else { continue };
                     send(Event::Opened(i, launcher.launch(app)));
                 }
+                Command::UpdateSelf => {
+                    let Some(update) = pending.take() else { continue };
+                    let mut phase = |p: JobPhase| {
+                        let (label, fraction) = phase_text(p);
+                        send(Event::SelfProgress(label, fraction));
+                    };
+                    let outcome = launcher.apply_self(&update, &mut phase).and_then(|exe| {
+                        std::process::Command::new(&exe)
+                            .spawn()
+                            .map(|_| ())
+                            .map_err(|e| format!("the launcher was updated but couldn't be restarted ({e}). Start it again by hand."))
+                    });
+                    send(Event::SelfDone(outcome));
+                }
             }
         }
     }
 
     impl LauncherApp {
         fn new(ctx: egui::Context) -> Self {
+            let ctx_for_textures = ctx.clone();
             let (commands, command_rx) = channel();
             let (event_tx, events) = channel();
             thread::spawn(move || worker(ctx, command_rx, event_tx));
-            let mut app = Self { rows: APPS.iter().map(|_| Row::default()).collect(), commands, events, fatal: None, working: false };
+            let icons = APP_ICONS
+                .iter()
+                .enumerate()
+                .map(|(i, bytes)| {
+                    let image = egui::ColorImage::from_rgba_unmultiplied([96, 96], bytes);
+                    ctx_for_textures.load_texture(format!("app-icon-{i}"), image, egui::TextureOptions::LINEAR)
+                })
+                .collect();
+            let mut app = Self {
+                rows: APPS.iter().map(|_| Row::default()).collect(),
+                commands,
+                events,
+                fatal: None,
+                working: false,
+                icons,
+                self_state: SelfState::Unknown,
+                close: false,
+            };
             app.refresh();
             app
         }
@@ -145,6 +206,10 @@ mod window {
                     if let Some(row) = self.rows.get_mut(*i) {
                         row.note = None;
                     }
+                }
+                Command::UpdateSelf => {
+                    self.working = true;
+                    self.self_state = SelfState::Working("Starting\u{2026}".to_string(), None);
                 }
                 Command::Refresh => {}
             }
@@ -183,6 +248,24 @@ mod window {
                             });
                         }
                     }
+                    Event::SelfChecked(result) => {
+                        self.self_state = match result {
+                            Ok(Some(version)) => SelfState::Available(version),
+                            // Not being able to check is not worth a banner: the apps still work.
+                            Ok(None) | Err(_) => SelfState::Unknown,
+                        };
+                    }
+                    Event::SelfProgress(label, fraction) => self.self_state = SelfState::Working(label, fraction),
+                    Event::SelfDone(outcome) => {
+                        self.working = false;
+                        match outcome {
+                            Ok(()) => {
+                                self.self_state = SelfState::Restarting;
+                                self.close = true;
+                            }
+                            Err(message) => self.self_state = SelfState::Failed(message),
+                        }
+                    }
                     Event::Fatal(message) => {
                         self.fatal = Some(message);
                         for row in &mut self.rows {
@@ -201,10 +284,13 @@ mod window {
             egui::Frame::new().fill(ui.visuals().faint_bg_color).corner_radius(10.0).inner_margin(egui::Margin::same(14)).show(ui, |ui| {
                 ui.set_width(ui.available_width());
                 ui.horizontal(|ui| {
-                    let (rect, _) = ui.allocate_exact_size(egui::vec2(46.0, 46.0), egui::Sense::hover());
-                    ui.painter().rect_filled(rect, 10.0, accent);
-                    let initial = app.name.chars().next().map(String::from).unwrap_or_default();
-                    ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, initial, egui::FontId::proportional(26.0), Color32::WHITE);
+                    let size = egui::vec2(46.0, 46.0);
+                    if let Some(icon) = self.icons.get(i) {
+                        ui.add(egui::Image::new((icon.id(), size)));
+                    } else {
+                        let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+                        ui.painter().rect_filled(rect, 10.0, accent);
+                    }
                     ui.vertical(|ui| {
                         ui.label(RichText::new(app.name).size(19.0).strong());
                         ui.label(RichText::new(app.tagline).weak());
@@ -282,8 +368,11 @@ mod window {
     }
 
     impl eframe::App for LauncherApp {
-        fn logic(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
             self.drain_events();
+            if self.close {
+                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            }
         }
 
         fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
@@ -299,6 +388,48 @@ mod window {
                 });
                 ui.label(RichText::new("Install and update Patronus Design, PdfCraft and PhotoCraft.").weak());
                 ui.add_space(10.0);
+                let mut update_clicked = false;
+                match &self.self_state {
+                    SelfState::Available(version) => {
+                        egui::Frame::new().fill(ui.visuals().faint_bg_color).corner_radius(8.0).inner_margin(egui::Margin::same(10)).show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(RichText::new(format!("A new version of Patronus Launcher is available: {version}.")).color(ATTENTION));
+                                ui.with_layout(egui::Layout::right_to_left(Align::Center), |ui| {
+                                    if ui.add_enabled(!self.working, egui::Button::new("Update launcher")).clicked() {
+                                        update_clicked = true;
+                                    }
+                                });
+                            });
+                        });
+                        ui.add_space(8.0);
+                    }
+                    SelfState::Working(label, fraction) => {
+                        match fraction {
+                            Some(f) => {
+                                ui.add(egui::ProgressBar::new(*f).text(format!("Updating the launcher: {label}")));
+                            }
+                            None => {
+                                ui.horizontal(|ui| {
+                                    ui.spinner();
+                                    ui.label(format!("Updating the launcher: {label}"));
+                                });
+                            }
+                        }
+                        ui.add_space(8.0);
+                    }
+                    SelfState::Failed(message) => {
+                        ui.label(RichText::new(format!("The launcher couldn't update itself: {message}")).color(BAD));
+                        ui.add_space(8.0);
+                    }
+                    SelfState::Restarting => {
+                        ui.label(RichText::new("Updated. Restarting\u{2026}").color(GOOD));
+                        ui.add_space(8.0);
+                    }
+                    SelfState::Unknown => {}
+                }
+                if update_clicked {
+                    self.dispatch(Command::UpdateSelf);
+                }
                 if let Some(message) = &self.fatal {
                     ui.label(RichText::new(format!("The launcher couldn't start: {message}")).color(BAD));
                 }
@@ -316,6 +447,7 @@ mod window {
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_title("Patronus Launcher")
+                .with_icon(Arc::new(egui::IconData { rgba: WINDOW_ICON.to_vec(), width: 64, height: 64 }))
                 .with_inner_size([720.0, 600.0])
                 .with_min_inner_size([520.0, 420.0]),
             ..Default::default()

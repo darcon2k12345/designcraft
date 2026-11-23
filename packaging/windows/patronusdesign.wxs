@@ -20,7 +20,7 @@
     <!-- Shared native setup UI, including install/uninstall completion. -->
 
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="CraftSuiteFolder" Name="ArtCraft">
+      <Directory Id="CraftSuiteFolder" Name="Patronus">
         <Directory Id="INSTALLFOLDER" Name="Patronus Design" />
       </Directory>
     </StandardDirectory>

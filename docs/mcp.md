@@ -73,13 +73,13 @@ The release packages ship `patronusdesign-cli` alongside the desktop app, so no 
 
 | Install | CLI |
 |---|---|
-| Windows (MSI) | `%LOCALAPPDATA%\Programs\ArtCraft\Patronus Design\patronusdesign-cli.exe` by default (`C:\Program Files\ArtCraft\Patronus Design\patronusdesign-cli.exe` for an all-users install, under `Program Files (x86)` instead for the 32-bit build, or wherever you installed it otherwise), not on `PATH` |
+| Windows (MSI) | `%LOCALAPPDATA%\Programs\Patronus\Patronus Design\patronusdesign-cli.exe` by default (`C:\Program Files\Patronus\Patronus Design\patronusdesign-cli.exe` for an all-users install, under `Program Files (x86)` instead for the 32-bit build, or wherever you installed it otherwise), not on `PATH` |
 | Linux (deb, rpm) | `/usr/bin/patronusdesign-cli` |
 | macOS (DMG) | `/Applications/Patronus Design.app/Contents/MacOS/patronusdesign-cli` after installing the app; the separate CLI ZIP is also available |
 
 ```sh
 # Windows (PowerShell), default install folder
-claude mcp add patronusdesign -- "$env:LOCALAPPDATA\Programs\ArtCraft\Patronus Design\patronusdesign-cli.exe" mcp
+claude mcp add patronusdesign -- "$env:LOCALAPPDATA\Programs\Patronus\Patronus Design\patronusdesign-cli.exe" mcp
 # macOS, app installed in Applications
 claude mcp add patronusdesign -- "/Applications/Patronus Design.app/Contents/MacOS/patronusdesign-cli" mcp
 # Linux, or the separate CLI unzipped onto PATH

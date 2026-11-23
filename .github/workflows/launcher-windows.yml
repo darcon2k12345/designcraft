@@ -22,11 +22,20 @@ jobs:
     runs-on: windows-latest
     env:
       PATRONUS_RELEASE_REPO: ${{ github.repository }}
+      # Where the launcher looks for its own updates (the release this workflow attaches to).
+      PATRONUS_LAUNCHER_REPO: ${{ github.repository }}
+      PATRONUS_REQUIRE_WINRES: "1"
       TAG: ${{ inputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Check the tag matches the launcher version
+        shell: pwsh
+        run: |
+          $version = ((cargo metadata --no-deps --format-version 1 | ConvertFrom-Json).packages | Where-Object { $_.name -eq 'patronus-launcher' }).version
+          if ($env:TAG.TrimStart('v') -ne $version) { throw "Tag $env:TAG does not match the launcher version $version (the launcher only updates itself to a release whose tag equals its files' version)" }
+          "Releasing the launcher $version"
       - name: Rust toolchain
         shell: pwsh
         run: |

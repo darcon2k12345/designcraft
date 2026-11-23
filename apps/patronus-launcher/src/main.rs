@@ -30,6 +30,7 @@ COMMANDS:
     update [app]    Update installed apps (all of them if none is named); skips apps that aren't installed
     launch <app>    Start the installed app
     apps            List the apps this launcher manages
+    self-update     Update this launcher itself to the newest release
     help            Show this help
 
 <app> is one of: patronusdesign (also designcraft), pdfcraft (also printcraft), photocraft.
@@ -149,6 +150,21 @@ fn update_all(launcher: &mut Launcher, apps: &[&App]) -> u8 {
     u8::from(failed)
 }
 
+/// `self-update`: look for a newer launcher and install it.
+fn self_update(launcher: &Launcher) -> Result<u8, String> {
+    let current = env!("CARGO_PKG_VERSION");
+    let Some(update) = launcher.check_self()? else {
+        say!("The launcher is up to date ({current}).");
+        return Ok(0);
+    };
+    say!("Updating the launcher {current} -> {}", update.version);
+    let mut last = None;
+    let mut phase = |p: JobPhase| progress(p, &mut last);
+    launcher.apply_self(&update, &mut phase)?;
+    say!("Done. Run the launcher again to use version {}.", update.version);
+    Ok(0)
+}
+
 fn run(args: &[String]) -> Result<u8, String> {
     let selector = args.get(1).map(String::as_str);
     match args.first().map(String::as_str).unwrap_or("status") {
@@ -168,8 +184,20 @@ fn run(args: &[String]) -> Result<u8, String> {
         }
         "status" | "check" => {
             let apps = select(selector)?;
-            Ok(status_all(&Launcher::open()?, &apps))
+            let launcher = Launcher::open()?;
+            let code = status_all(&launcher, &apps);
+            if selector.is_none() || selector == Some("all") {
+                match launcher.check_self() {
+                    Ok(Some(update)) => {
+                        say!("\nThe launcher itself has an update: {} -> {} (run `self-update`).", env!("CARGO_PKG_VERSION"), update.version)
+                    }
+                    Ok(None) => say!("\nThe launcher is up to date ({}).", env!("CARGO_PKG_VERSION")),
+                    Err(message) => eprintln!("\ncouldn't check for a launcher update: {message}"),
+                }
+            }
+            Ok(code)
         }
+        "self-update" => self_update(&Launcher::open()?),
         "install" => install_or_update(&mut Launcher::open()?, one(selector, "install")?, false),
         "update" => match selector {
             None | Some("all") => Ok(update_all(&mut Launcher::open()?, &select(selector)?)),

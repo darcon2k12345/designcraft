@@ -11,7 +11,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
     icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/com.patronus.patronusdesign.png")),
-    accent: Some([0x7b, 0xb5, 0x1c]),
+    accent: Some([0x4f, 0xc3, 0x6a]),
     ..patronus_release::APP
 };
 

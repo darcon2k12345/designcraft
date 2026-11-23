@@ -44,11 +44,11 @@ pub struct View {
 }
 
 pub struct Launcher {
-    paths: Paths,
-    http: Http,
-    source: GitHubSource,
-    manifest_path: PathBuf,
-    manifest: Manifest,
+    pub(crate) paths: Paths,
+    pub(crate) http: Http,
+    pub(crate) source: GitHubSource,
+    pub(crate) manifest_path: PathBuf,
+    pub(crate) manifest: Manifest,
 }
 
 /// "0.21.0 (Installer (.msi), C:\\Program Files\\…)" for the console tool.
@@ -77,6 +77,7 @@ impl Launcher {
         let source = GitHubSource::new(http.clone(), paths.cache.join("releases.json"));
         let manifest_path = paths.data.join("installed.json");
         let manifest = Manifest::load(&manifest_path);
+        crate::selfupdate::remove_leftovers();
         Ok(Self { paths, http, source, manifest_path, manifest })
     }
 

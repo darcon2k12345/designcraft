@@ -4,5 +4,7 @@
 
 pub mod core;
 pub mod plan;
+pub mod selfupdate;
 
 pub use core::{Action, Launcher, Tone, View, describe};
+pub use selfupdate::SelfUpdate;

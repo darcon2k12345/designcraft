@@ -9,8 +9,8 @@ use serde_json::json;
 use crate::DesignApp;
 use crate::theme::{Tokens, semibold};
 
-/// Patronus accent colour (the app icon's green).
-pub const BRAND: Color32 = Color32::from_rgb(0x7b, 0xb5, 0x1c);
+/// Patronus Design accent colour (the green of its shield icon).
+pub const BRAND: Color32 = Color32::from_rgb(0x4f, 0xc3, 0x6a);
 /// Colour of the community buttons (colour only; no third-party artwork).
 pub const DISCORD: Color32 = Color32::from_rgb(0x58, 0x65, 0xf2);
 
