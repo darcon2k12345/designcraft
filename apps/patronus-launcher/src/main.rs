@@ -1,4 +1,4 @@
-//! `patronus-launcher-cli`: install and update Patronus Design, PdfCraft and PhotoCraft from the
+//! `patronus-launcher-cli`: install and update Patronus Design, Patronus PDF and Patronus Photo from the
 //! console. The window version is `patronus-launcher`.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
@@ -18,7 +18,7 @@ use launcher_core::{Launcher, describe};
 use patronus_release::APPS;
 
 const USAGE: &str = "\
-patronus-launcher-cli: install and update Patronus Design, PdfCraft and PhotoCraft
+patronus-launcher-cli: install and update Patronus Design, Patronus PDF and Patronus Photo
 
 USAGE:
     patronus-launcher-cli <command> [app]
@@ -33,7 +33,7 @@ COMMANDS:
     self-update     Update this launcher itself to the newest release
     help            Show this help
 
-<app> is one of: patronusdesign (also designcraft), pdfcraft (also printcraft), photocraft.
+<app> is one of: patronusdesign (also designcraft), patronuspdf (also pdfcraft, printcraft), patronusphoto (also photocraft).
 Set GITHUB_TOKEN to raise GitHub's API rate limit. For the window version, run patronus-launcher.";
 
 /// Exit status of `check` when there is something to install.

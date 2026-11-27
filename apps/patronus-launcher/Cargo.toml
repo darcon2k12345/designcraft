@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
-description = "Installs and updates Patronus Design, PdfCraft and PhotoCraft from their GitHub releases"
+description = "Installs and updates Patronus Design, Patronus PDF and Patronus Photo from their GitHub releases"
 
 build = "build.rs"
 

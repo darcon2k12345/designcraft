@@ -1,6 +1,6 @@
 # patronus-launcher
 
-Installs and updates **Patronus Design**, **PdfCraft** and **PhotoCraft** from their GitHub releases
+Installs and updates **Patronus Design**, **Patronus PDF** and **Patronus Photo** from their GitHub releases
 (`darcon2k12345/designcraft`, `darcon2k12345/pdfcraft`, `darcon2k12345/photocraft`). It is a thin
 command-line layer over
 [`craft-update`](https://github.com/storytold/craft-libs/tree/main/crates/update) (MIT OR
@@ -16,13 +16,13 @@ patronus-launcher launch <app>   # start the installed app
 patronus-launcher apps           # list the managed apps
 ```
 
-`<app>` is `patronusdesign` (also `designcraft`), `pdfcraft` (also `printcraft`) or `photocraft`.
+`<app>` is `patronusdesign` (also `designcraft`), `patronuspdf` (also `pdfcraft`, `printcraft`) or `patronusphoto` (also `photocraft`).
 Set `GITHUB_TOKEN` to raise GitHub's API rate limit.
 
 ## Where releases come from
 
 `crates/release` (`patronus-release`) is the single definition of the apps' identities for both
-this launcher and Patronus Design's own update check. PdfCraft and PhotoCraft are the `craft-update`
+this launcher and Patronus Design's own update check. Patronus PDF and Patronus Photo are the `craft-update`
 registry entries with their repository swapped to your forks. The Patronus Design repository is fixed **at build time**, so
 nothing at run time can redirect updates:
 
@@ -57,7 +57,7 @@ The executable is unsigned, so Windows SmartScreen will warn on first run until 
 
 ## What a release must contain
 
-- Assets named `<app>-<version>-<os>-<arch>.<ext>` (`patronusdesign-…`, `pdfcraft-…`, `photocraft-…`), for example
+- Assets named `<app>-<version>-<os>-<arch>.<ext>` (`patronusdesign-…`, `patronuspdf-…`, `patronusphoto-…`), for example
   `patronusdesign-0.21.0-linux-x86_64.deb` or `patronusdesign-0.21.0-windows-x64.msi`. Releases that still
   use the old `designcraft-…` names are found too.
 - A checksum for each asset (GitHub's per-file digest or a `SHA256SUMS.txt`). A file nothing

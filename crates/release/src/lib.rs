@@ -31,11 +31,31 @@ pub const APP: App = App {
     ..App::new("patronusdesign", "Patronus Design", "Page layout and publishing", RELEASE_REPO)
 };
 
-/// PdfCraft, installed from its own fork. (Registry entry from craft-update, repository swapped.)
-pub const PDFCRAFT: App = App { repo: "darcon2k12345/pdfcraft", developer: "Patronus", ..craft_update::suite::PDFCRAFT };
+/// Patronus PDF, installed from its own fork. It was PdfCraft (and PrintCraft before that), so those
+/// stay as former ids and names: installs made under them are still found, and `pdfcraft` and
+/// `printcraft` still work on the command line. The rest comes from the craft-update registry entry.
+pub const PDFCRAFT: App = App {
+    id: "patronuspdf",
+    name: "Patronus PDF",
+    repo: "darcon2k12345/pdfcraft",
+    former_ids: &["pdfcraft", "printcraft"],
+    former_names: &["PdfCraft", "PrintCraft"],
+    developer: "Patronus",
+    bundle_id_override: Some("com.patronus.patronuspdf"),
+    ..craft_update::suite::PDFCRAFT
+};
 
-/// PhotoCraft, installed from its own fork.
-pub const PHOTOCRAFT: App = App { repo: "darcon2k12345/photocraft", developer: "Patronus", ..craft_update::suite::PHOTOCRAFT };
+/// Patronus Photo, installed from its own fork. It was PhotoCraft, which stays as a former id and name.
+pub const PHOTOCRAFT: App = App {
+    id: "patronusphoto",
+    name: "Patronus Photo",
+    repo: "darcon2k12345/photocraft",
+    former_ids: &["photocraft"],
+    former_names: &["PhotoCraft"],
+    developer: "Patronus",
+    bundle_id_override: Some("com.patronus.patronusphoto"),
+    ..craft_update::suite::PHOTOCRAFT
+};
 
 /// Every app the launcher manages, in display order.
 pub static APPS: [App; 3] = [APP, PDFCRAFT, PHOTOCRAFT];
@@ -71,19 +91,23 @@ mod tests {
         assert_eq!(find("patronusdesign").map(|a| a.id), Some("patronusdesign"));
         assert_eq!(find("DesignCraft").map(|a| a.id), Some("patronusdesign"));
         assert_eq!(find("Patronus Design").map(|a| a.id), Some("patronusdesign"));
-        assert_eq!(find("printcraft").map(|a| a.id), Some("pdfcraft"));
-        assert_eq!(find("PhotoCraft").map(|a| a.id), Some("photocraft"));
+        assert_eq!(find("printcraft").map(|a| a.id), Some("patronuspdf"));
+        assert_eq!(find("pdfcraft").map(|a| a.id), Some("patronuspdf"));
+        assert_eq!(find("Patronus PDF").map(|a| a.id), Some("patronuspdf"));
+        assert_eq!(find("PhotoCraft").map(|a| a.id), Some("patronusphoto"));
+        assert_eq!(find("photocraft").map(|a| a.id), Some("patronusphoto"));
+        assert_eq!(find("patronusphoto").map(|a| a.id), Some("patronusphoto"));
         assert!(find("wordcraft").is_none() && find("").is_none());
     }
 
     #[test]
-    fn app_ids_are_unique_and_forks_are_named_after_their_app() {
+    fn app_ids_are_unique_and_forks_come_from_darcon2k12345() {
         let mut ids: Vec<_> = APPS.iter().map(|a| a.id).collect();
         ids.sort_unstable();
         ids.dedup();
         assert_eq!(ids.len(), APPS.len(), "ids must be unique");
         for a in [&PDFCRAFT, &PHOTOCRAFT] {
-            assert!(a.repo.starts_with("darcon2k12345/") && a.repo.ends_with(a.id), "{} -> {}", a.id, a.repo);
+            assert!(a.repo.starts_with("darcon2k12345/") && a.id.starts_with("patronus"), "{} -> {}", a.id, a.repo);
         }
         assert_eq!(PDFCRAFT.repo, "darcon2k12345/pdfcraft");
         assert_eq!(PHOTOCRAFT.repo, "darcon2k12345/photocraft");

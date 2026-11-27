@@ -1,5 +1,5 @@
-//! Patronus Launcher: a small window to install, update and start Patronus Design, PdfCraft and
-//! PhotoCraft. (The console version is `patronus-launcher-cli`.)
+//! Patronus Launcher: a small window to install, update and start Patronus Design, Patronus PDF and
+//! Patronus Photo. (The console version is `patronus-launcher-cli`.)
 #![cfg_attr(windows, windows_subsystem = "windows")]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
@@ -25,7 +25,7 @@ mod window {
     use launcher_core::{Action, Launcher, SelfUpdate, Tone, View};
     use patronus_release::APPS;
 
-    /// Badge colours, in the order of `APPS`: Patronus Design, PdfCraft, PhotoCraft.
+    /// Badge colours, in the order of `APPS`: Patronus Design, Patronus PDF, Patronus Photo.
     const ACCENTS: [Color32; 3] = [Color32::from_rgb(0x4f, 0xc3, 0x6a), Color32::from_rgb(0xe0, 0x40, 0x44), Color32::from_rgb(0x3f, 0x91, 0xdf)];
     /// 96x96 raw RGBA app icons, in the order of `APPS`.
     const APP_ICONS: [&[u8]; 3] =
@@ -386,7 +386,7 @@ mod window {
                         }
                     });
                 });
-                ui.label(RichText::new("Install and update Patronus Design, PdfCraft and PhotoCraft.").weak());
+                ui.label(RichText::new("Install and update Patronus Design, Patronus PDF and Patronus Photo.").weak());
                 ui.add_space(10.0);
                 let mut update_clicked = false;
                 match &self.self_state {
